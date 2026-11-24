@@ -9,7 +9,7 @@ assert.equal(liveSyncDelay(null,0),4000)
 assert.equal(liveSyncDelay('paused',0),4000)
 assert.equal(liveSyncDelay('ended',0),15000)
 assert.deepEqual([1,2,3,4,100].map(n=>liveSyncDelay('active',n)),[5000,10000,20000,30000,30000])
-import {encodeSlide,decodeSlide,validSlide,SLIDE_DIAGRAMS,adjacentSlide,visualSlideBody,visualSlidePayload} from '../components/live-classroom/LiveSlideProtocol.ts'
+import {encodeSlide,decodeSlide,validSlide,SLIDE_DIAGRAMS,adjacentSlide,visualSlideBody,visualSlidePayload,studioMinutes,setStudioMinutes,studioResource,setStudioResource,studioFile,setStudioFile} from '../components/live-classroom/LiveSlideProtocol.ts'
 import {emptyBoard,encodeBoard,decodeBoard,boardFromLegacy,BOARD_DIAGRAMS,revealBoard,boardRevealCount} from '../components/live-classroom/LiveBoardProtocol.ts'
 const shape={id:'fixture-rect',kind:'rectangle',x:20,y:25,w:90,h:60,angle:15,color:'#1865c0',stroke:3,locked:true}
 const drawnBoard={...emptyBoard(2,3),background:'grid',objects:[shape,{...shape,id:'fixture-note',kind:'text',text:'2 + 3 = 5'},{...shape,id:'fixture-diagram',kind:'diagram',diagram:'fraction-bars'},{...shape,id:'fixture-arrow',kind:'arrow',points:[0,0,1000,1000]}]}
@@ -83,6 +83,23 @@ assert.equal(preparedAssessment({...preparedQuiz,notes:setPresenterNotes(notesWi
 assert.ok(!encodeSlide(preparedQuiz,1,1).includes('Because two'))
 assert.ok(!exportDeck('Quiz',[preparedQuiz]).includes('Because two'))
 assert.equal(prepareAssessment(quizDraft,99,''),null)
+const timed={...preparedQuiz,notes:setStudioMinutes(preparedQuiz,7)}
+assert.equal(studioMinutes(timed),7)
+assert.equal(preparedAssessment(timed).option,0)
+assert.equal(studioMinutes({...timed,notes:setPresenterNotes(timed.notes,'Changed notes')}),7)
+assert.equal(setStudioMinutes(timed,121),null)
+assert.equal(studioMinutes({...timed,notes:setStudioMinutes(timed,0)}),0)
+const resourceRef={id:photo.id,version:photoDoc.roomId,page:0}
+const linked={...privateSlide,notes:setStudioResource(privateSlide,resourceRef)}
+assert.deepEqual(studioResource(linked),resourceRef)
+assert.deepEqual(studioResource({...linked,notes:setStudioMinutes(linked,4)}),resourceRef)
+assert.ok(!encodeSlide(linked,1,1).includes(resourceRef.id))
+const attachment={hash:'a'.repeat(64),mime:'application/pdf'}
+const fileStage={...privateSlide,notes:setStudioFile(privateSlide,attachment)}
+assert.deepEqual(studioFile(fileStage),attachment)
+assert.deepEqual(studioFile({...fileStage,notes:setStudioMinutes(fileStage,5)}),attachment)
+assert.equal(setStudioFile(privateSlide,{...attachment,hash:'../bad'}),null)
+assert.ok(!encodeSlide(fileStage,1,1).includes(attachment.hash))
 const demos=[{id:'a',demo:defaultDemo('clock')},{id:'b',demo:defaultDemo('ruler')}]
 const multiBody=encodeMultiDemo(demos)
 assert.deepEqual(decodeMultiDemo(multiBody),demos)
@@ -116,17 +133,23 @@ assert.throws(()=>exportDeck('X',[{title:'x',body:'"'.repeat(3878)}]),/too large
 assert.equal(importDeck(exportDeck('Blank',[{title:'',body:''}])).slides.length,1)
 console.log('PASS: portable presentation round trip, privacy, validation and size limits')
 // Dashboard shortcut must use existing scoped host routes and remain hidden until enabled.
-const teacherToday=readFileSync(new URL('../app/teacher/pulse/page.tsx',import.meta.url),'utf8')
-assert.ok(teacherToday.includes('process.env.NEXT_PUBLIC_VIBE_LIVE_ENABLED === "true"'))
-assert.ok(teacherToday.includes('>Go Live</button>'))
-assert.ok(teacherToday.includes('/teacher/classhub/${encodeURIComponent(audience)}/live'))
-assert.ok(teacherToday.includes('safeMyClasses.some(item => item.class_id === audience)'))
-assert.ok(teacherToday.includes('<select aria-label="Choose live audience"'))
-assert.ok(teacherToday.includes('<option value="tuition">Invited</option>'))
-assert.ok(teacherToday.includes('Choose live audience'))
-assert.ok(teacherToday.includes('/teacher/tutoring/live?mode='))
-assert.ok(teacherToday.includes('<option value="open">Public</option>'))
-assert.ok(teacherToday.includes('audience === "tuition" || audience === "open"'))
+const teacherTodayPage=readFileSync(new URL('../app/teacher/pulse/page.tsx',import.meta.url),'utf8')
+const teacherToday=readFileSync(new URL('../components/teacher/TeacherTodayV09.tsx',import.meta.url),'utf8')
+assert.ok(teacherTodayPage.includes('<TeacherTodayV09'))
+assert.ok(teacherToday.includes('process.env.NEXT_PUBLIC_VIBE_LIVE_ENABLED==="true"'))
+assert.ok(teacherToday.includes('{liveEnabled&&<section'))
+assert.ok(teacherToday.includes('current?"Resume":"Go Live"'))
+assert.ok(teacherToday.includes('"/teacher/classhub/"+encodeURIComponent(audience)+"/live"'))
+assert.ok(teacherToday.includes('classes.some(c=>c.class_id===audienceChoice)'))
+assert.ok(teacherToday.includes('aria-label="Choose live audience"'))
+assert.ok(teacherToday.includes('<option value="tuition">Invited learners</option>'))
+assert.ok(teacherToday.includes('"/teacher/tutoring/live"'))
+assert.ok(teacherToday.includes('<option value="open">Public class</option>'))
+assert.ok(teacherToday.includes('audienceChoice==="tuition"||audienceChoice==="open"'))
+assert.ok(teacherToday.includes('liveParams.set("mode",audience)'))
+assert.ok(teacherToday.includes('p_class_id:schoolLive?audience:null'))
+assert.ok(teacherToday.includes('v.own===true'))
+assert.ok(teacherToday.includes('liveHref({resumeRoom:current.id})'))
 const liveUi=readFileSync(new URL('../components/live-classroom/LiveClassroom.tsx',import.meta.url),'utf8')
 assert.ok(liveUi.includes("act('join',sharedId)"))
 assert.ok(liveUi.includes('Find live lessons'))
@@ -298,11 +321,22 @@ await assert.rejects(rpc(a,'materials_list'),/live_not_authorized/)
 await assert.rejects(rpc(teacher,'materials_save',null,null,{id:material,title:'Stale',revision:0,slides:[privateSlide]}),/live_material_conflict/)
 assert.equal((await rpc(teacher,'materials_save',null,null,{id:material,title:'Prepared fractions v2',revision:1,slides:[privateSlide]})).revision,2)
 assert.equal((await rpc(teacher,'materials_get',null,null,{id:material})).title,'Prepared fractions v2')
-assert.equal((await rpc(teacher,'materials_delete',null,null,{id:material,revision:2})).deleted,true)
+assert.deepEqual((await rpc(teacher,'materials_versions',null,null,{id:material})).versions.map(v=>v.revision),[2,1])
+assert.equal((await rpc(teacher,'materials_version_get',null,null,{id:material,revision:1})).title,'Prepared fractions')
+assert.deepEqual((await rpc(teacher,'materials_version_get',null,null,{id:material,revision:1})).slides,[privateSlide])
+await assert.rejects(rpc(otherTeacher,'materials_versions',null,null,{id:material}),/live_not_authorized/)
+await assert.rejects(rpc(otherTeacher,'materials_version_get',null,null,{id:material,revision:1}),/live_not_authorized/)
+await assert.rejects(rpc(a,'materials_versions',null,null,{id:material}),/live_not_authorized/)
+await assert.rejects(rpc(teacher,'materials_version_get',null,null,{id:material,revision:99}),/live_material_version_unavailable/)
+for(let revision=2;revision<13;revision++)await rpc(teacher,'materials_save',null,null,{id:material,title:'Version '+(revision+1),revision,slides:[privateSlide]})
+assert.deepEqual((await rpc(teacher,'materials_versions',null,null,{id:material})).versions.map(v=>v.revision),[13,12,11,10,9,8,7,6,5,4,3])
+await assert.rejects(rpc(teacher,'materials_version_get',null,null,{id:material,revision:1}),/live_material_version_unavailable/)
+assert.equal((await rpc(teacher,'materials_delete',null,null,{id:material,revision:13})).deleted,true)
+assert.equal((await db.query('select count(*)::int as n from vibe_live.teacher_material_versions where material_id=$1',[material])).rows[0].n,0)
 assert.deepEqual((await rpc(teacher,'materials_list')).materials,[])
 for(const role of ['authenticated','anon','service_role']){
  await db.exec(`set role ${role}`)
- try {for(const table of ['teacher_workspace','teacher_materials']){await assert.rejects(db.query(`select * from vibe_live.${table}`),/permission denied/);await assert.rejects(db.query(`delete from vibe_live.${table}`),/permission denied/)}}
+ try {for(const table of ['teacher_workspace','teacher_materials','teacher_material_versions']){await assert.rejects(db.query(`select * from vibe_live.${table}`),/permission denied/);await assert.rejects(db.query(`delete from vibe_live.${table}`),/permission denied/)}}
  finally {await db.exec('reset role')}
 }
 console.log('PASS: server draft recovery, revision conflict, private presenter notes, library ownership, CRUD and direct access denial')
@@ -713,3 +747,17 @@ await db.close()
  assert.equal(adjacentSlide([{...deck[0],notes:'Changed private notes'},...deck.slice(1)],first,1),2)
  assert.equal(adjacentSlide([deck[0],deck[1],deck[1]],first,1),null)
 }
+
+// Science and Geography simulations use the existing versioned slide protocol.
+const {simulationSummary}=await import('../components/live-classroom/LiveSimulationModel.ts')
+assert.equal(simulationSummary({kind:'electric-circuit',a:0,b:2}),'Open circuit — bulb off · 2 cells')
+assert.equal(simulationSummary({kind:'electric-circuit',a:1,b:1}),'Closed circuit — bulb on · 1 cell')
+assert.equal(simulationSummary({kind:'lever-balance',a:6,b:4}),'Left 12 N m · Right 12 N m · Balanced')
+assert.equal(simulationSummary({kind:'map-scale',a:5,b:2}),'5 cm × 2 km/cm = 10 km')
+assert.equal(encodeDemo({kind:'electric-circuit',a:2,b:1}),'')
+assert.equal(encodeDemo({kind:'map-scale',a:0,b:1}),'')
+await import('./test-live-breakouts.mjs')
+await import('./test-live-workbook-contract.mjs')
+await import('./test-live-classroom-phase.mjs')
+
+await import('./test-live-stage-ink.mjs')

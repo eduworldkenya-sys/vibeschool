@@ -369,3 +369,32 @@
 .board[data-reveal-motion=true] g[data-object]{animation:slideObjectArrival .22s ease-out both}@keyframes slideObjectArrival{from{opacity:0}to{opacity:1}}@media(prefers-reduced-motion:reduce){.board[data-reveal-motion=true] g[data-object]{animation:none}}
 
 .multiDemoGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:10px;width:100%;align-items:start}.multiDemoGrid>section{min-width:0}.multiDemoGrid svg{width:100%;height:auto}.presentationCanvas[data-mini=true] .multiDemoGrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:2px}.presentationCanvas[data-mini=true] .multiDemoGrid svg{max-height:28px}
+
+/* Responsive classroom entry and dedicated pre-live studio. No page-level clipping. */
+.live{width:100%;min-width:0;box-sizing:border-box;grid-template-columns:minmax(0,1fr)}
+.live :where(.panel,.rooms,.teachingLibrary,.slideFields,.materialList,.startLesson,.planPicker,.studioSection){min-width:0;max-width:100%;grid-template-columns:minmax(0,1fr);box-sizing:border-box}
+.live :where(.panel>*,.panel form>*,.slideFields>*,.slideOptions>*,.studioSection>*,.controls>*,.slideToolbar>*,.rooms>*){min-width:0;max-width:100%;box-sizing:border-box;overflow-wrap:anywhere}
+.live :where(input:not([type=checkbox]):not([type=radio]),select,textarea){min-width:0;max-width:100%;width:100%;box-sizing:border-box}
+.live button{white-space:normal;overflow-wrap:anywhere}
+.rooms strong{min-width:0;overflow-wrap:anywhere}.rooms button>span{flex:none}
+.classroomEntry{border:0;padding:0;gap:16px}
+.live .studioEntry{display:flex;align-items:center;text-align:left;gap:12px;padding:14px;border-radius:14px;background:var(--vs-surface,Canvas)}
+.studioEntry svg{width:42px;height:42px;box-sizing:border-box;padding:9px;color:#087454;background:#e5f3ec;border-radius:10px;flex:none}
+.studioEntry>span:first-of-type{flex:1;min-width:0}.studioEntry strong,.studioEntry small{display:block}.studioEntry small{font-weight:400;margin-top:4px;opacity:.8}
+.startLesson{display:grid;gap:12px;border:1px solid color-mix(in srgb,currentColor 18%,transparent);border-radius:14px;padding:14px;background:var(--vs-surface,Canvas)}
+.planPicker{display:grid;gap:6px}.entryCaption{opacity:.8}.classroomEntry .rooms button{padding:14px;background:var(--vs-surface,Canvas);border-radius:14px}.classroomEntry .rooms button>span{padding:8px;border-radius:9px;background:#e5f3ec;color:#087454}
+.studioPage{position:fixed;inset:0;z-index:9999;height:100dvh;max-width:none;overflow-y:auto;overscroll-behavior:contain;align-content:start;background:var(--vs-surface,Canvas);color:var(--vs-text,CanvasText);padding:max(12px,env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) max(12px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left))}
+.studioPage>.teachingLibrary{width:min(100%,880px);margin:0 auto}
+.studioHeader{display:flex;align-items:center;gap:12px;min-width:0}.studioHeader>div{min-width:0;flex:1}.studioHeader h1{font-size:1.15rem;margin:0}.studioHeader small{display:block;overflow-wrap:anywhere}.studioHeader button{flex:none}
+.studioLibraryMenu{min-width:0;max-width:100%;border:1px solid color-mix(in srgb,currentColor 16%,transparent);border-radius:10px;padding:10px;box-sizing:border-box}.studioLibraryMenu summary{cursor:pointer;font-weight:600}.studioLibraryMenu[open]>:not(summary){margin-top:10px}
+.studioStatus{display:flex;align-items:center;justify-content:space-between;gap:8px}.studioStatus small{min-width:0;overflow-wrap:anywhere}
+.studioTabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}.live .studioTabs button{font-size:12px;padding:7px 3px;border:0;border-radius:18px}
+.studioSection{display:grid;gap:10px}.studioSection[hidden]{display:none}
+.studioPage .slideFields input,.studioPage .slideFields select,.studioPage .slideFields textarea{background:var(--vs-surface,Canvas);color:var(--vs-text,CanvasText)}
+.studioPage .presentationCanvas:not([data-mini=true]){width:100%;max-width:600px;min-width:0;min-height:0;aspect-ratio:16/9}.studioPage .presentationCanvas[data-layout=portrait]:not([data-mini=true]){aspect-ratio:3/4;max-width:430px}
+.studioPage nav[aria-label="Presentation thumbnails"]{min-width:0;max-width:100%;box-sizing:border-box;overscroll-behavior-x:contain}
+.studioPage .slideToolbar{justify-content:space-between}
+.studioTools{display:flex;flex-wrap:wrap;gap:6px}.studioTools button{flex:1 1 85px;min-width:0;font-size:12px}
+.studioFooter{display:flex;gap:8px;position:sticky;bottom:0;z-index:2;background:var(--vs-surface,Canvas);padding:8px 0 max(8px,env(safe-area-inset-bottom));box-shadow:0 -4px 16px #0000000b}.studioFooter button{flex:1;min-width:0}
+.slideFields label.autoSaveLabel{display:flex;align-items:center;gap:8px}.autoSaveLabel input[type=checkbox]{width:18px;height:18px;flex:none}
+@media(max-width:420px){.studioPage .slideOptions{grid-template-columns:minmax(0,1fr)}.studioPage .presentationCanvas:not([data-mini=true]) .presentationBody h2{font-size:clamp(16px,5vw,24px)}.studioPage .presentationCanvas:not([data-mini=true]) .presentationBody p{font-size:clamp(12px,3.8vw,18px)}}

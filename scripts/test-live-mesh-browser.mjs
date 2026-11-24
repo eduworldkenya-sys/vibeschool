@@ -11,6 +11,7 @@ const { chromium } = require(modules + '/playwright')
 const { db, rpc, teacher, a, b, id, cls } = await createLiveFixture()
 const raisedId = id(30)
 const listenerId = id(31)
+const openClassrooms = process.env.MESH_OPEN_CLASSROOMS === '1'
 const learnerCount = Number(process.env.MESH_BROWSER_LEARNERS ?? 2)
 assert.ok(Number.isInteger(learnerCount) && learnerCount >= 2 && learnerCount <= 8)
 const seats = [
@@ -23,6 +24,9 @@ for (let i = 2; i < learnerCount; i++) {
 const migration = readFileSync(new URL('../supabase/migrations/20261124192341_live_classroom_mesh_pilot.sql', import.meta.url), 'utf8')
 await db.exec('create table auth.users(id uuid primary key); insert into auth.users select id from public.profiles')
 await db.exec(migration)
+if (openClassrooms) await db.exec(readFileSync(new URL(
+  '../supabase/migrations/20261124222141_live_classroom_mesh_classroom_admission.sql', import.meta.url,
+), 'utf8'))
 const room = await rpc(teacher, 'start', null, null, { title: 'VibeMesh browser fixture' })
 for (const seat of seats.slice(2)) {
   await db.query('insert into auth.users(id) values($1)', [seat.user])
@@ -31,11 +35,13 @@ for (const seat of seats.slice(2)) {
   await db.query('insert into public.student_classes values($1,$2,(select school_id from public.classes where id=$2),true)',
     [seat.student, cls])
 }
-await db.query(`insert into vibe_live.mesh_pilot(room_id,teacher_user,verified_adults_at,expires_at)
-  values($1,$2,now(),now()+interval '30 minutes')`, [room.id, teacher])
-for (const [index, seat] of seats.entries()) {
-  await db.query('insert into vibe_live.mesh_pilot_seats(room_id,seat,learner_user,student_id) values($1,$2,$3,$4)',
-    [room.id, index + 1, seat.user, seat.student])
+if (!openClassrooms) {
+  await db.query(`insert into vibe_live.mesh_pilot(room_id,teacher_user,verified_adults_at,expires_at)
+    values($1,$2,now(),now()+interval '30 minutes')`, [room.id, teacher])
+  for (const [index, seat] of seats.entries()) {
+    await db.query('insert into vibe_live.mesh_pilot_seats(room_id,seat,learner_user,student_id) values($1,$2,$3,$4)',
+      [room.id, index + 1, seat.user, seat.student])
+  }
 }
 const fixtureUsers = new Map([['/teacher', teacher], ...seats.map(seat => [seat.path, seat.user])])
 
@@ -56,6 +62,7 @@ const bundled = await build({
   define: {
     'process.env.NODE_ENV': '"production"',
     'process.env.NEXT_PUBLIC_VIBE_LIVE_MESH_PILOT_ENABLED': 'undefined',
+    'process.env.NEXT_PUBLIC_VIBE_LIVE_DAILY_ENABLED': openClassrooms ? 'undefined' : '"true"',
   },
   plugins: [{
     name: 'isolated-supabase-rpc',
@@ -166,7 +173,12 @@ try {
     return page
   }
   const unavailable = await open('unavailable')
-  await unavailable.getByRole('button', { name: 'Join audio' }).waitFor()
+  if (openClassrooms) {
+    await unavailable.getByRole('alert').getByText('VibeMesh audio unavailable.').waitFor()
+    assert.equal(await unavailable.getByRole('button', { name: 'Join audio' }).count(), 0)
+  } else {
+    await unavailable.getByRole('button', { name: 'Join audio' }).waitFor()
+  }
   assert.equal(await unavailable.evaluate(() => window.peerConnections.length), 0)
   await unavailable.context().close()
 
@@ -216,16 +228,20 @@ try {
     return Array.from(stats.values()).some(row => row.type === 'inbound-rtp' && row.kind === 'audio' && row.audioLevel < 0.001)
   })
 
-  await host.getByRole('button', { name: 'Use Daily audio' }).click()
-  await Promise.all(group.map(page => page.getByRole('button', { name: 'Join audio' }).waitFor()))
-  assert.equal(await host.evaluate(() => window.micTracks[0].readyState), 'ended')
-  await Promise.all(group.map(page => page.waitForFunction(() =>
-    window.peerConnections.every(peer => peer.connectionState === 'closed'))))
+  if (openClassrooms) {
+    assert.equal(await host.getByRole('button', { name: 'Use Daily audio' }).count(), 0)
+  } else {
+    await host.getByRole('button', { name: 'Use Daily audio' }).click()
+    await Promise.all(group.map(page => page.getByRole('button', { name: 'Join audio' }).waitFor()))
+    assert.equal(await host.evaluate(() => window.micTracks[0].readyState), 'ended')
+    await Promise.all(group.map(page => page.waitForFunction(() =>
+      window.peerConnections.every(peer => peer.connectionState === 'closed'))))
 
-  // Fresh direct connections exercise database-driven end before the UI state updates.
-  await serial(() => db.query('update vibe_live.mesh_pilot set daily_fallback=false where room_id=$1', [room.id]))
-  await Promise.all(group.map(page => page.reload()))
-  await host.getByText('Learners on audio: ' + learnerCount).waitFor()
+    // Fresh direct connections exercise database-driven end before the UI state updates.
+    await serial(() => db.query('update vibe_live.mesh_pilot set daily_fallback=false where room_id=$1', [room.id]))
+    await Promise.all(group.map(page => page.reload()))
+    await host.getByText('Learners on audio: ' + learnerCount).waitFor()
+  }
   await host.getByRole('button', { name: 'Unmute' }).click()
   await host.getByRole('button', { name: 'Mute', exact: true }).waitFor()
   await serial(async () => {
@@ -235,7 +251,7 @@ try {
   await Promise.all(group.map(page => page.waitForFunction(() =>
     window.peerConnections.length > 0 && window.peerConnections.every(peer => peer.connectionState === 'closed'))))
   assert.equal(await host.evaluate(() => window.micTracks[0].readyState), 'ended')
-  console.log('PASS: teacher and ' + learnerCount + ' learners exchanged real audio; consent, relay, revoke, fallback and lesson end verified')
+  console.log('PASS: teacher and ' + learnerCount + ' learners exchanged real audio; consent, relay, revoke, provider selection and lesson end verified')
 } finally {
   await browser?.close()
   await queue

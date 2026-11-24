@@ -150,3 +150,64 @@ test('real group SQL enforces role, recipient, lease, roster, speaking turn and 
     await db.close()
   }
 })
+
+test('ordinary Live rooms open audio automatically, with no pilot provisioning or Daily', async () => {
+  const { db, rpc, id, teacher, a, b, outsider, cls } = await createLiveFixture()
+  try {
+    await db.exec('create table auth.users(id uuid primary key); insert into auth.users select id from public.profiles')
+    await db.exec(migration)
+    await db.exec(readFileSync(new URL(
+      '../supabase/migrations/20261124222141_live_classroom_mesh_classroom_admission.sql', import.meta.url,
+    ), 'utf8'))
+    const room = await rpc(teacher, 'start', null, null, { title: 'Ordinary classroom' })
+    const call = async (user, action, client, { target = null, epoch = null, sdp = null } = {}) => {
+      await db.query("select set_config('request.jwt.claim.sub',$1,false)", [user])
+      await db.exec('set role authenticated')
+      try {
+        return (await db.query('select public.vibe_live_mesh($1,$2,$3,$4,$5,$6,$7) as result',
+          [room.id, cls, action, client, epoch, sdp, target])).rows[0].result
+      } finally {
+        await db.exec('reset role')
+      }
+    }
+    const host = id(70)
+    const clients = [{ user: a, student: id(30), device: id(71) }, { user: b, student: id(31), device: id(72) }]
+    for (let n = 2; n < 9; n++) {
+      const seat = { user: id(100 + n), student: id(200 + n), device: id(300 + n) }
+      await db.query('insert into auth.users values($1)', [seat.user])
+      await db.query("insert into public.profiles(id,account_status) values($1,'active')", [seat.user])
+      await db.query("insert into public.students values($1,$2,null,'Fixture')", [seat.student, seat.user])
+      await db.query('insert into public.student_classes values($1,$2,(select school_id from public.classes where id=$2),true)',
+        [seat.student, cls])
+      clients.push(seat)
+    }
+
+    await assert.rejects(call(outsider, 'join', id(99)), /live_|mesh_denied/)
+    await assert.rejects(call(a, 'join', id(71)), /live_join_required/)
+    assert.equal((await db.query('select count(*)::int as n from vibe_live.mesh_pilot')).rows[0].n, 0)
+    assert.deepEqual((await call(teacher, 'join', host)).peers, [])
+    for (const c of clients) await rpc(c.user, 'join', room.id)
+    for (const c of clients.slice(0, 8)) {
+      assert.deepEqual((await call(c.user, 'join', c.device)).peers.map(peer => peer.studentId), [c.student])
+    }
+    const ninth = clients[8]
+    await assert.rejects(call(ninth.user, 'join', ninth.device), /mesh_full/)
+    assert.equal((await call(teacher, 'poll', host)).peers.length, 8)
+    await assert.rejects(call(teacher, 'fallback', host), /mesh_denied/)
+    const first = clients[0]
+    const [oldEdge] = (await call(first.user, 'poll', first.device)).peers
+    await call(first.user, 'leave', first.device)
+    await call(ninth.user, 'join', ninth.device)
+    await db.query('update public.student_classes set is_current=false where student_id=$1', [ninth.student])
+    await assert.rejects(call(ninth.user, 'poll', ninth.device), /live_|mesh_denied/)
+    const [newEdge] = (await call(first.user, 'join', first.device)).peers
+    assert.ok(newEdge.epoch > oldEdge.epoch)
+    await assert.rejects(call(teacher, 'offer', host, { target: first.student, epoch: oldEdge.epoch, sdp: audio }), /mesh_stale/)
+    assert.equal((await call(teacher, 'poll', host)).peers.length, 8)
+    const current = await rpc(teacher, 'get', room.id)
+    await rpc(teacher, 'end', room.id, current.version)
+    assert.equal((await db.query('select count(*)::int as n from vibe_live.mesh_pilot_seats')).rows[0].n, 0)
+  } finally {
+    await db.close()
+  }
+})

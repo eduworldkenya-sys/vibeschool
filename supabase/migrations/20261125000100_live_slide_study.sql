@@ -1,10 +1,11 @@
--- Migration candidate. Apply only after canonical migration generation and independent authorization tests.
+-- Canonical migration for independent slide assignments; no room photo grants.
 begin;
--- access: owner-only vibe_live.study_assignments and vibe_live.study_recipients; no direct client grants.
--- authorization-test: scripts/test-live-slide-study.mjs
+-- access: owner-only vibe_live.study_assignments
+-- authorization-test: vibe_live.study_assignments; scripts/test-live-slide-study.mjs
 create table vibe_live.study_assignments(
  id uuid primary key, owner_id uuid not null references public.profiles(id),
  material_id uuid not null, material_revision integer not null check(material_revision>0),
+ source_session_id uuid references vibe_live.sessions(id) on delete restrict,
  mode text not null check(mode in ('school','tuition','homeschool')),
  class_id uuid, school_id uuid, group_id uuid,
  title text not null check(char_length(title) between 1 and 120),
@@ -12,6 +13,8 @@ create table vibe_live.study_assignments(
  keys jsonb not null default '{}'::jsonb check(jsonb_typeof(keys)='object' and pg_column_size(keys)<=64000),
  created_at timestamptz not null default now(), revoked_at timestamptz
 );
+-- access: owner-only vibe_live.study_recipients
+-- authorization-test: vibe_live.study_recipients; scripts/test-live-slide-study.mjs
 create table vibe_live.study_recipients(
  assignment_id uuid not null references vibe_live.study_assignments(id) on delete cascade,
  student_id uuid not null references public.students(id),
@@ -33,6 +36,7 @@ returns jsonb language plpgsql security definer set search_path='' as $$
 declare
  caller uuid:=auth.uid(); learner uuid; learner_count integer; school uuid; mode_value text; group_value uuid;
  m vibe_live.teacher_materials%rowtype; a vibe_live.study_assignments%rowtype; r vibe_live.study_recipients%rowtype;
+ source_room vibe_live.sessions%rowtype; source_room_id uuid;
  public_deck jsonb:='[]'::jsonb; answer_keys jsonb:='{}'::jsonb; s jsonb; n jsonb; q jsonb; k jsonb;
  idx integer:=0; page_value integer; option_value integer; correct_index integer; body_value text; notes_value text;
  feedback jsonb; result jsonb; recipient_count integer;
@@ -40,15 +44,24 @@ begin
  if caller is null or not exists(select 1 from public.profiles p where p.id=caller and p.account_status::text='active' and not coalesce(p.is_anonymized,false)) then
   raise exception 'live_not_authorized' using errcode='42501';
  end if;
- if p_action is null or p_action not in ('list_owner','create','revoke','list','get','advance','answer') or jsonb_typeof(p_payload) is distinct from 'object' or pg_column_size(p_payload)>8000 then raise exception 'live_invalid_request'; end if;
+ if p_action is null or p_action not in ('list_owner','create','create_from_room','revoke','list','get','advance','answer') or jsonb_typeof(p_payload) is distinct from 'object' or pg_column_size(p_payload)>8000 then raise exception 'live_invalid_request'; end if;
  if p_action='list_owner' then
   return coalesce((select jsonb_agg(jsonb_build_object('id',x.id,'title',x.title,'slideCount',jsonb_array_length(x.slides),'mode',x.mode,'revoked',x.revoked_at is not null,'assignedCount',(select count(*) from vibe_live.study_recipients r0 where r0.assignment_id=x.id),'completedCount',(select count(*) from vibe_live.study_recipients r0 where r0.assignment_id=x.id and cardinality(r0.visited)=jsonb_array_length(x.slides))) order by x.created_at desc) from (select * from vibe_live.study_assignments where owner_id=caller and (p_class is null or class_id=p_class) order by created_at desc limit 50)x),'[]'::jsonb);
  end if;
- if p_action='create' then
+ if p_action in ('create','create_from_room') then
   if p_id is null then raise exception 'live_invalid_assignment'; end if;
-  mode_value:=case when p_class is not null then 'school' else p_payload->>'mode' end;
+  if p_action='create_from_room' then
+   if coalesce(p_payload->>'roomId','') !~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' then raise exception 'live_invalid_source_room'; end if;
+   source_room_id:=(p_payload->>'roomId')::uuid;
+   select * into source_room from vibe_live.sessions s0 where s0.id=source_room_id and s0.teacher_id=caller and s0.class_id is not distinct from p_class for share;
+   if not found or source_room.mode='open' or (source_room.status<>'ended' and source_room.expires_at>now()) then raise exception 'live_not_authorized' using errcode='42501'; end if;
+   mode_value:=source_room.mode;
+   group_value:=source_room.group_id;
+  else
+   mode_value:=case when p_class is not null then 'school' else p_payload->>'mode' end;
+   group_value:=nullif(p_payload->>'groupId','')::uuid;
+  end if;
   if mode_value is null or mode_value not in ('school','tuition','homeschool') then raise exception 'live_invalid_mode'; end if;
-  group_value:=nullif(p_payload->>'groupId','')::uuid;
   if group_value is not null and mode_value<>'tuition' then raise exception 'live_invalid_group'; end if;
   if p_class is not null then
    select c.school_id into school from public.classes c where c.id=p_class;
@@ -58,7 +71,7 @@ begin
   perform 1 from public.profiles where id=caller for update;
   select * into a from vibe_live.study_assignments where id=p_id;
   if found then
-   if a.owner_id<>caller or a.material_id::text is distinct from p_payload->>'materialId' or a.material_revision::text is distinct from p_payload->>'revision' or a.class_id is distinct from p_class or a.mode<>mode_value or a.group_id is distinct from group_value or a.revoked_at is not null then raise exception 'live_assignment_conflict'; end if;
+   if a.owner_id<>caller or a.material_id::text is distinct from p_payload->>'materialId' or a.material_revision::text is distinct from p_payload->>'revision' or a.class_id is distinct from p_class or a.mode<>mode_value or a.group_id is distinct from group_value or a.source_session_id is distinct from source_room_id or a.revoked_at is not null then raise exception 'live_assignment_conflict'; end if;
    return jsonb_build_object('id',a.id);
   end if;
   if (select count(*) from vibe_live.study_assignments where owner_id=caller and revoked_at is null)>=40 then raise exception 'live_assignment_limit'; end if;
@@ -88,8 +101,8 @@ begin
    end if;
    idx:=idx+1;
   end loop;
-  insert into vibe_live.study_assignments(id,owner_id,material_id,material_revision,mode,class_id,school_id,group_id,title,slides,keys)
-  values(p_id,caller,m.id,m.revision,mode_value,p_class,school,group_value,m.title,public_deck,answer_keys);
+  insert into vibe_live.study_assignments(id,owner_id,material_id,material_revision,source_session_id,mode,class_id,school_id,group_id,title,slides,keys)
+  values(p_id,caller,m.id,m.revision,source_room_id,mode_value,p_class,school,group_value,m.title,public_deck,answer_keys);
   insert into vibe_live.study_recipients(assignment_id,student_id)
   select p_id,st.id from public.students st where vibe_live.can_join(st.id,caller,mode_value,p_class,school,group_value);
   get diagnostics recipient_count=row_count;

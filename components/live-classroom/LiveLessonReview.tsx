@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { liveToLessonHref } from '@/lib/teaching/liveLessonLinks'
+import { liveHomeworkLink } from '@/lib/live/homeworkHandoff'
 
 type BridgeReview = {
   lessonPlanId: string | null
@@ -104,6 +105,7 @@ export default function LiveLessonReview({
     ? liveToLessonHref({lessonPlanId:review.lessonPlanId,classId,occurrenceId:review.occurrenceId})
     : null
 
+  const homeworkHref=review?liveHomeworkLink(classId,roomId,review.lessonPlanId,review.occurrenceId):null
   return <section aria-label="Live lesson review" style={{
     background:'#fff',color:'#1f2937',padding:'12px 16px',borderBottom:'1px solid #e5e7eb',
     display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap',
@@ -126,6 +128,7 @@ export default function LiveLessonReview({
     </label>}
     <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
       {error && <button type="button" onClick={() => setRetry(n => n + 1)}>Retry</button>}
+      {homeworkHref&&<a href={homeworkHref} style={{display:'inline-flex',alignItems:'center',padding:'8px 12px',border:'1px solid #142e23',borderRadius:4,fontSize:13,fontWeight:700,color:'#142e23'}}>Set homework from this lesson</a>}
       {review?.lessonPlanId && review.responses > 0 && review.captureAllowed && <button
         type="button" disabled={saving} onClick={() => void saveEvidence()}>
         {saving ? 'Saving…' : 'Save responses as evidence'}
