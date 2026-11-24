@@ -203,6 +203,8 @@ type LiveDatabase = Omit<Database, 'public'> & {
       vibechat_open_or_request_contact: { Args: { p_handle: string }; Returns: string | null }
       vibechat_request_contact: { Args: { p_handle: string }; Returns: string }
       vibechat_my_contacts: { Args: Record<never, never>; Returns: { id: string; name: string; avatar_url: string | null; handle: string; direction: 'incoming' | 'outgoing'; status: 'pending' | 'accepted' | 'declined'; thread_id: string | null; created_at: string }[] }
+      vibechat_my_inbox_state: { Args: Record<never, never>; Returns: { kind: 'vc' | 'tuition'; room_id: string; updated: string | null; preview: string | null; unread: number; latest_incoming_id: string | null; peer_delivered_at: string | null; peer_read_at: string | null }[] }
+      vibechat_ack_message: { Args: { p_kind: string; p_room: string; p_message: string; p_read?: boolean }; Returns: boolean }
       vibechat_thread_safety: { Args: { p_kind: string; p_room: string }; Returns: { blocked: boolean; blocked_by_me: boolean } }
       vibechat_block_thread: { Args: { p_kind: string; p_room: string; p_block: boolean }; Returns: boolean }
       vibechat_report_thread: { Args: { p_kind: string; p_room: string; p_reason: string }; Returns: string }
