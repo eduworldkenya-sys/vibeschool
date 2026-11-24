@@ -96,8 +96,8 @@ create policy mini_request_reports_owner_create on public.mini_request_reports
 
 create or replace function public.mini_request_report_guard()
 returns trigger language plpgsql security definer set search_path=''
-as $
-declare v_count int; v_count_request int;
+as $$
+declare v_count int;
 begin
  if new.reporter_id is distinct from (select auth.uid()) then
    raise exception 'Report identity mismatch' using errcode='42501';
@@ -106,23 +106,35 @@ begin
  select count(*) into v_count from public.mini_request_reports
  where reporter_id=new.reporter_id and created_at>now()-interval '24 hours';
  if v_count>=20 then raise exception 'Daily report limit reached';end if;
- select count(*) into v_count_request from public.mini_request_reports
+ return new;
+end; $$;
+drop trigger if exists mini_request_reports_guard on public.mini_request_reports;
+create trigger mini_request_reports_guard before insert on public.mini_request_reports
+ for each row execute function public.mini_request_report_guard();
+
+-- Hide only after the RLS INSERT check has passed. Avoid flipping visibility
+-- in BEFORE INSERT where the policy's approved-request check could invalidate
+-- the same report and roll back the automatic safety hold.
+create or replace function public.mini_request_report_safety_hold()
+returns trigger language plpgsql security definer set search_path=''
+as $$
+declare v_count integer;
+begin
+ if new.reason not in ('unsafe','spam','harassment','personal_information') then return new;end if;
+ select count(*) into v_count from public.mini_request_reports
  where request_id=new.request_id and reason in ('unsafe','spam','harassment','personal_information')
  and created_at>now()-interval '7 days';
- if new.reason in ('unsafe','spam','harassment','personal_information') then
-   v_count_request:=v_count_request+1;
- end if;
- if v_count_request>=5 then
+ if v_count>=5 then
    update public.mini_requests set status='hidden',
      moderation_note='Temporarily hidden after community safety reports',
      updated_at=now()
    where id=new.request_id and status='approved';
  end if;
  return new;
-end; $;
-drop trigger if exists mini_request_reports_guard on public.mini_request_reports;
-create trigger mini_request_reports_guard before insert on public.mini_request_reports
- for each row execute function public.mini_request_report_guard();
+end; $$;
+drop trigger if exists mini_request_report_safety_hold on public.mini_request_reports;
+create trigger mini_request_report_safety_hold after insert on public.mini_request_reports
+ for each row execute function public.mini_request_report_safety_hold();
 
 comment on table public.mini_safety_scans is 'Automated pre-publication safety scan audit, no HQ approval workflow; deny direct user access.';
 comment on function public.mini_report_safety_hold() is 'Fail-safe community report hold; reported content is hidden without requiring HQ manual approval.';
