@@ -29,7 +29,7 @@ export function decodeSlide(body:string):PublishedSlide|null {
   return {title:x.title,body:x.body,diagram:x.diagram,theme:x.theme,layout:x.layout,font:x.font,number:x.number,total:x.total}
  }catch{return null}
 }
-export function diagramLabel(d:SlideDiagram){return d==='none'?'Text only':d.replaceAll('-',' ').replace(/^./,s=>s.toUpperCase())}
+export function diagramLabel(d:SlideDiagram|DemoKind){return d==='none'?'Text only':d.replaceAll('-',' ').replace(/^./,s=>s.toUpperCase())}
 
 /** Find a publishable neighbour without exposing unsaved or invalid content.
  * Empty draft placeholders are skipped, but the published numbering is retained.
@@ -99,7 +99,7 @@ export function visualSlideBody(board:string):string{
  return VISUAL_SLIDE_PREFIX+board
 }
 
-export type DemoKind='clock'|'fraction-circle'|'fraction-bars'|'number-line'|'ruler'|'coordinate-grid'|'protractor'
+export type DemoKind='clock'|'fraction-circle'|'fraction-bars'|'number-line'|'ruler'|'coordinate-grid'|'protractor'|'electric-circuit'|'lever-balance'|'map-scale'
 export type SlideDemo={kind:DemoKind;a:number;b:number}
 const DEMO_PREFIX='VSLIDEDEMO1:'
 export const DEMO_RANGES:Record<DemoKind,{a:[number,number];b:[number,number];labels:[string,string];initial:[number,number]}>={
@@ -109,7 +109,10 @@ export const DEMO_RANGES:Record<DemoKind,{a:[number,number];b:[number,number];la
  'number-line':{a:[-10,10],b:[-10,10],labels:['Start','End'],initial:[-3,4]},
  ruler:{a:[0,10],b:[0,10],labels:['Start (cm)','End (cm)'],initial:[2,7]},
  'coordinate-grid':{a:[-4,4],b:[-4,4],labels:['x','y'],initial:[2,3]},
- protractor:{a:[0,180],b:[0,0],labels:['Angle (degrees)','Unused'],initial:[60,0]}
+ protractor:{a:[0,180],b:[0,0],labels:['Angle (degrees)','Unused'],initial:[60,0]},
+ 'electric-circuit':{a:[0,1],b:[1,3],labels:['Switch (0 open, 1 closed)','Cells'],initial:[0,1]},
+ 'lever-balance':{a:[1,10],b:[1,10],labels:['Left force (N)','Right force (N)'],initial:[6,4]},
+ 'map-scale':{a:[1,12],b:[1,10],labels:['Map distance (cm)','Scale (km per cm)'],initial:[5,2]}
 }
 export function validDemo(value:unknown):value is SlideDemo {
  if(!value||typeof value!=='object'||Array.isArray(value))return false
