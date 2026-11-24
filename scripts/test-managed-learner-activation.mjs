@@ -13,10 +13,11 @@ const compiled=ts.transpileModule(source,{compilerOptions:{
 const CHILD='218c6e09-42b0-4de0-8d8c-dcaa98c84493'
 
 async function run({enabled=true,origin=true,authenticated=true,confirmed=true,
-  owned=true,linked=false,rpcError=false,createError=false,body={
+  owned=true,linked=false,rpcError=false,lateCommit=false,createError=false,body={
     identityId:CHILD,grade:'Grade 4',confirmGuardian:true,
   }}={}) {
   const events=[]
+  let activated=false
   const db={
     auth:{getUser:async()=>{
       events.push('session-checked')
@@ -28,13 +29,15 @@ async function run({enabled=true,origin=true,authenticated=true,confirmed=true,
       if(name==='vs_list_my_identities')return{data:{
         self:{id:'guardian-identity'},
         managed_learners:owned?[{id:CHILD,username:'brian254',display_name:'Brian',
-          status:linked?'linked':'managed'}]:[],
+          status:(linked||activated)?'linked':'managed',linked_student_id:activated?'student-001':null}]:[],
       },error:null}
+      if(name==='vs_my_managed_student_login')return{data:activated?'new-child-id':null,error:null}
       if(name==='vs_activate_managed_student'){
         assert.equal(args.p_identity_id,CHILD)
         assert.equal(args.p_child_auth_user_id,'new-child-id')
         assert.equal(args.p_grade,'Grade 4')
-        return rpcError?{data:null,error:{code:'42501'}}:
+        if(lateCommit)activated=true
+        return rpcError||lateCommit?{data:null,error:{code:'42501'}}:
           {data:{student_id:'student-001',username:'brian254'},error:null}
       }
       throw Error('Unexpected RPC '+name)
@@ -172,4 +175,13 @@ test('verified parent or teacher can add a child without claiming a public usern
   assert.match(migration,/coalesce\(v_access->>'role',''\) not in \('parent','teacher'\)/)
   assert.doesNotMatch(migration,/Set up username first/)
   assert.match(setup,/Skip for now/)
+})
+
+test('lost response after a committed activation returns matching credentials without deleting the account',async()=>{
+  const {response,events}=await run({lateCommit:true})
+  assert.equal(response.status,201)
+  assert.equal(response.payload.studentId,'student-001')
+  assert.ok(response.payload.password.length>=16)
+  assert.ok(events.includes('vs_my_managed_student_login'))
+  assert.ok(!events.includes('rollback-child-auth'))
 })
