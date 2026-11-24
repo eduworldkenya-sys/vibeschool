@@ -28,7 +28,7 @@ on:
       - 'lib/live/mesh-*'
       - 'scripts/test-live-mesh.mjs'
       - 'scripts/test-live-mesh-browser.mjs'
-      - 'supabase/candidates/live_slide_study.sql'
+      - 'supabase/migrations/*live_slide_study*'
       - 'scripts/test-live-slide-study.mjs'
       - 'scripts/test-live-classroom-pilot.mjs'
       - 'scripts/live-classroom-test-fixture.mjs'
@@ -38,6 +38,8 @@ on:
   push:
     branches: [main]
     paths:
+      - 'supabase/migrations/*live_slide_study*'
+      - 'scripts/test-live-slide-study.mjs'
       - 'components/live-classroom/**'
       - 'supabase/migrations/*live_private_session_assets*'
       - 'scripts/test-live-class-assets.mjs'
@@ -70,7 +72,7 @@ jobs:
         run: node scripts/test-live-classroom-pilot.mjs
       - name: Verify private VibeMesh signaling and microphone lifecycle
         run: node --experimental-strip-types --test scripts/test-live-mesh.mjs lib/live/mesh-*.test.mjs
-      - name: Exercise independent study candidate and learner isolation
+      - name: Exercise independent study migration and learner isolation
         run: node scripts/test-live-slide-study.mjs
       - name: Install exact locked application dependencies for voice policy tests
         run: npm ci --ignore-scripts --no-audit --no-fund

@@ -2,13 +2,15 @@
 import {useState} from 'react'
 import {changeDemo,DEMO_RANGES,diagramLabel,type SlideDemo} from './LiveSlideProtocol'
 import styles from './LiveClassroom.module.css'
+import {ScienceSimulation} from './LiveScienceSimulation'
+import {simulationSummary} from './LiveSimulationModel'
 const ink='#183a56',blue='#2466a4',fill='#70b9ea'
 function point(angle:number,r:number){const a=angle*Math.PI/180;return [160+r*Math.sin(a),88-r*Math.cos(a)]}
 export function DemoDrawing({demo}:{demo:SlideDemo}){
  const {kind,a,b}=demo
- const description=kind==='clock'?a+':'+String(b).padStart(2,'0'):kind.startsWith('fraction-')?a+'/'+b:kind==='protractor'?a+' degrees':kind==='coordinate-grid'?'('+a+', '+b+')':a+' to '+b
+ const description=simulationSummary(demo)??(kind==='clock'?a+':'+String(b).padStart(2,'0'):kind.startsWith('fraction-')?a+'/'+b:kind==='protractor'?a+' degrees':kind==='coordinate-grid'?'('+a+', '+b+')':a+' to '+b)
  return <svg className={styles.slideDiagram} viewBox="0 0 320 180" role="img" aria-label={diagramLabel(kind)+': '+description}>
- <rect width="320" height="180" fill="#fff"/>
+ <rect width="320" height="180" fill="#fff"/><ScienceSimulation demo={demo}/>
  {kind==='clock'&&<><circle cx="160" cy="88" r="72" fill="white" stroke={blue} strokeWidth="2"/>{Array.from({length:12},(_,i)=>{const [x,y]=point(i*30,57);return <text key={i} x={x} y={y+4} textAnchor="middle" fontSize="13" fill={ink}>{i||12}</text>})}{[[a*30+b*.5,36,5],[b*6,53,3]].map(([angle,r,w],i)=>{const [x,y]=point(angle,r);return <line key={i} x1="160" y1="88" x2={x} y2={y} stroke={ink} strokeWidth={w} strokeLinecap="round"/>})}<circle cx="160" cy="88" r="4" fill={ink}/><text x="160" y="176" textAnchor="middle" fill={ink}>{description}</text></>}
  {kind==='fraction-circle'&&<>{Array.from({length:b},(_,i)=>{const [x1,y1]=point(i*360/b,62),[x2,y2]=point((i+1)*360/b,62);return b===1?<circle key={i} cx="160" cy="88" r="62" fill={a?fill:'white'} stroke={blue}/>:<path key={i} d={`M160 88L${x1} ${y1}A62 62 0 ${360/b>180?1:0} 1 ${x2} ${y2}Z`} fill={i<a?fill:'white'} stroke={blue} strokeWidth="1.5"/>})}<text x="160" y="169" textAnchor="middle" fill={ink}>{description}</text></>}
  {kind==='fraction-bars'&&<>{Array.from({length:b},(_,i)=><rect key={i} x={20+i*280/b} y="50" width={280/b} height="65" fill={i<a?fill:'white'} stroke={blue}/>)}<text x="160" y="147" textAnchor="middle" fill={ink}>{description}</text></>}
