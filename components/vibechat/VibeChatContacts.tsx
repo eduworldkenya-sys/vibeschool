@@ -27,6 +27,8 @@ export default function VibeChatContacts({
   const params = useSearchParams()
   const suggestedHandle = params.get('find') ?? ''
   const [myHandle, setMyHandle] = useState('')
+  const [discovery, setDiscovery] = useState<{eligible:boolean;enabled:boolean;username:string|null;role_missing:boolean}|null>(null)
+  const [savingDiscovery,setSavingDiscovery] = useState(false)
   const [lookupText, setLookupText] = useState(initialQuery)
   const [connections, setConnections] = useState<Connection[]>([])
   const [loading, setLoading] = useState(true)
@@ -39,12 +41,14 @@ export default function VibeChatContacts({
     setError('')
     try {
       const db = getSupabaseClient()
-      const [handleResult, connectionsResult] = await Promise.all([
+      const [handleResult, connectionsResult, discoveryResult] = await Promise.all([
         db.rpc('vibechat_my_handle'),
         db.rpc('vibechat_my_contacts'),
+        db.rpc('vibechat_my_discovery'),
       ])
       if (handleResult.error || connectionsResult.error) throw new Error('contacts unavailable')
-      setMyHandle(handleResult.data ?? '')
+      setDiscovery(discoveryResult.error ? null : discoveryResult.data)
+      setMyHandle(discoveryResult.data?.enabled ? (discoveryResult.data.username ?? handleResult.data ?? '') : (handleResult.data ?? ''))
       setConnections((connectionsResult.data ?? []) as Connection[])
     } catch {
       setError('Contacts are not available. Check your connection and try again.')
@@ -55,8 +59,21 @@ export default function VibeChatContacts({
 
   useEffect(() => { void refresh() }, [refresh])
   useEffect(() => {
-    if (/^@[a-z0-9][a-z0-9.]{2,30}$/i.test(suggestedHandle)) setLookupText(suggestedHandle)
+    if (/^@[a-z0-9][a-z0-9._]{2,30}$/i.test(suggestedHandle)) setLookupText(suggestedHandle)
   }, [suggestedHandle])
+
+  async function toggleDiscovery() {
+    if (!discovery?.eligible || savingDiscovery) return
+    setSavingDiscovery(true)
+    setError('')
+    try {
+      const {data,error} = await getSupabaseClient().rpc('vibechat_set_discovery',{p_enabled:!discovery.enabled})
+      if (error) throw error
+      setDiscovery(previous=>previous?{...previous,enabled:data}:previous)
+      await refresh()
+    } catch { setError('Could not update chat privacy. Retry.') }
+    finally { setSavingDiscovery(false) }
+  }
 
   async function respond(connection: Connection, accept: boolean) {
     if (busy || connection.direction !== 'incoming' || connection.status !== 'pending') return
@@ -84,7 +101,7 @@ export default function VibeChatContacts({
     </header>
     {loading ? <p role="status">Loading your contacts…</p> : <>
       <div className={styles.contactBlock}>
-        <span className={styles.subtitle}>Your VibeChat ID</span>
+        <span className={styles.subtitle}>Your username</span>
         <div className={styles.contactRow}>
           <strong>{myHandle || 'Unavailable'}</strong>
           <button type="button" className={styles.back} disabled={!myHandle}
@@ -107,6 +124,11 @@ export default function VibeChatContacts({
 
       </div>
       <div className={styles.contactBlock}>
+        {discovery?.eligible && <label className={styles.contactRow}>
+          <input type="checkbox" checked={discovery.enabled} disabled={savingDiscovery} onChange={()=>void toggleDiscovery()}/>
+          Allow other adult accounts to start chats with me
+        </label>}
+        {discovery?.role_missing && !discovery.eligible && <p className={styles.subtitle}>Complete your account profile to enable more chat options. <a href="/join">Account setup</a></p>}
         <label htmlFor="vc-handle"><strong>Find by username</strong></label>
         <input id="vc-handle" type="search" className={styles.search} placeholder="Search username"
           autoComplete="off" value={lookupText} maxLength={32} onChange={e=>setLookupText(e.target.value)} />
