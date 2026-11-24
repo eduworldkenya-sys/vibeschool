@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { ArrowRight, BookOpen, ChevronRight } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { subjectKey } from '@/lib/learn/schoolCatalog'
+import { projectGrade4SocialStudiesOutline } from '@/lib/learn/grade4SocialStudiesOutline'
 import { connectReadingEntries, projectGrade4MathOutline, type Grade4MathBinding, type BookReadingEntry, type CurriculumOutlineRow } from '@/lib/learn/textbookOutline'
 import styles from './SchoolLearnLibrary.module.css'
 import { certifiedResourceHref, useCertifiedInteractiveResources } from '@/lib/learn/useCertifiedInteractiveResources'
@@ -28,7 +29,13 @@ export default function SubjectTextbookOutline({ grade, subject: displaySubject,
   useEffect(() => {
     let active = true
     const finish = (status: State['status'], rows: CurriculumOutlineRow[] = []) => {
-      if (active) setState({ scope, status, rows })
+      if (!active) return
+      if (status === 'ready' && grade === 'Grade 4' && subjectKey(subject) === 'socialstudies') {
+        const canonical = projectGrade4SocialStudiesOutline(rows)
+        setState({scope,status:canonical ? 'ready' : 'unavailable',rows:canonical ?? []})
+        return
+      }
+      setState({ scope, status, rows })
     }
     finish('loading')
     async function load() {
