@@ -5,6 +5,7 @@ import styles from './LiveClassroom.module.css'
 import {SlidePrintPreview} from './LiveSlidePrintPreview'
 import {PrivateSlideFields} from './LivePreparedAssessment'
 import {SlideBodyEditor} from './LiveSlideBodyEditor'
+import {LiveStudioRehearsal} from './LiveStudioRehearsal'
 import {exportDeck,importDeck,MAX_DECK_FILE_BYTES,buildTextRevealSlides,isPhotoBody} from './LiveSlideProtocol'
 type Summary={id:string;title:string;revision:number;slideCount:number;updatedAt:string}
 type Material={id:string;title:string;revision:number;slides:LiveSlide[]}
@@ -15,11 +16,12 @@ function isMaterial(v:unknown):v is Material{
  const m=v as Material
  return typeof m.id==='string'&&typeof m.title==='string'&&Number.isInteger(m.revision)&&m.revision>0&&Array.isArray(m.slides)&&m.slides.length>0&&m.slides.length<=30&&m.slides.every(validSlide)
 }
-export function TeachingLibrary({command,currentDeck,onUse}:{command:Command;currentDeck:LiveSlide[]|null;onUse:(m:Material)=>void}){
+export function TeachingLibrary({command,currentDeck,onUse,onClose}:{command:Command;currentDeck:LiveSlide[]|null;onUse:(m:Material)=>void;onClose?:()=>void}){
  const [items,setItems]=useState<Summary[]>([]),[edit,setEdit]=useState<Material|null>(null),[index,setIndex]=useState(0),[busy,setBusy]=useState(false),[error,setError]=useState(''),[dirty,setDirty]=useState(false)
  const alive=useRef(false),lock=useRef(false),fileInput=useRef<HTMLInputElement>(null)
  const [saveProblem,setSaveProblem]=useState('')
  const [autoSave,setAutoSave]=useState(true)
+ const [rehearsing,setRehearsing]=useState(false)
  const [printDeck,setPrintDeck]=useState<Material|null>(null)
  const onUseRef=useRef(onUse)
  useEffect(()=>{onUseRef.current=onUse},[onUse])
@@ -102,7 +104,9 @@ export function TeachingLibrary({command,currentDeck,onUse}:{command:Command;cur
  function changeDeck(slides:LiveSlide[],nextIndex:number){if(lock.current)return;setEdit(m=>m?{...m,slides}:m);setIndex(nextIndex);setDirty(true)}
  function move(delta:number){if(!edit)return;const target=index+delta;if(target<0||target>=edit.slides.length)return;const next=[...edit.slides];[next[index],next[target]]=[next[target],next[index]];changeDeck(next,target)}
  const slide=edit?.slides[index]
+ if(rehearsing&&edit)return <LiveStudioRehearsal slides={edit.slides} onClose={()=>setRehearsing(false)}/>
  return <div className={styles.teachingLibrary}>
+  {onClose&&<div className={styles.slideToolbar}><strong>Live Studio</strong><button type="button" disabled={busy} onClick={()=>{if(mayReplace())onClose()}}>Back to Go Live</button></div>}
  {printDeck&&<SlidePrintPreview title={printDeck.title} slides={printDeck.slides} onClose={()=>setPrintDeck(null)}/>}
   <div className={styles.controls}><button type="button" disabled={busy} onClick={()=>create()}>New presentation</button>{currentDeck&&<button type="button" disabled={busy} onClick={()=>create(true)}>Save current deck</button>}<button type="button" disabled={busy} onClick={()=>fileInput.current?.click()}>Import JSON / PDF / PPTX</button><input ref={fileInput} type="file" accept=".json,application/json,.pdf,application/pdf,.pptx,application/vnd.openxmlformats-officedocument.presentationml.presentation" hidden onChange={e=>{const file=e.target.files?.[0];e.target.value='';if(file)loadFile(file)}}/><button type="button" disabled={busy} onClick={()=>void run(refresh)}>Refresh</button></div>
   {error&&<p role="alert">{error}</p>}
@@ -125,7 +129,7 @@ export function TeachingLibrary({command,currentDeck,onUse}:{command:Command;cur
     <label>Text size<select aria-label="Text size" disabled={busy} value={slide.font??'normal'} onChange={e=>patch({font:e.target.value==='large'?'large':'normal'})}><option value="normal">Normal</option><option value="large">Large</option></select></label>
    </div>
    <PrivateSlideFields key={edit.id+':private:'+index} slide={slide} disabled={busy} onChange={notes=>patch({notes})}/>
-   <div className={styles.controls}><button className={styles.primary} disabled={busy||!edit.title.trim()} onClick={()=>void save()}>Save presentation</button><button disabled={busy||!edit.title.trim()} onClick={()=>void save(true)}>Save & use</button><button disabled={busy} onClick={()=>{if(mayReplace()){setEdit(null);setDirty(false);setSaveProblem('')}}}>Close editor</button><button type="button" disabled={busy||!edit.title.trim()} onClick={download} >Export slides (without private notes)</button><button type="button" disabled={busy||!edit.title.trim()||edit.slides.some(s=>isPhotoBody(s.body))} onClick={()=>setPrintDeck(edit)}>Print / Save PDF</button><button type="button" disabled={busy||!edit.title.trim()} onClick={downloadPowerPoint}>Export PowerPoint text</button><small>{busy?'Saving…':dirty?'Changes not yet saved':edit.revision>0?'Saved privately · recover from My Presentations':'New presentation'}</small></div>
+   <div className={styles.controls}><button className={styles.primary} disabled={busy||!edit.title.trim()} onClick={()=>void save()}>Save presentation</button><button disabled={busy||!edit.title.trim()} onClick={()=>void save(true)}>{onClose?"Save & prepare for Live":"Save & use"}</button>{onClose&&<button type="button" disabled={busy||!edit.slides.some(s=>s.title.trim()||s.body.trim())} onClick={()=>setRehearsing(true)}>Preview & rehearse</button>}<button disabled={busy} onClick={()=>{if(mayReplace()){setEdit(null);setDirty(false);setSaveProblem('')}}}>Close editor</button><button type="button" disabled={busy||!edit.title.trim()} onClick={download} >Export slides (without private notes)</button><button type="button" disabled={busy||!edit.title.trim()||edit.slides.some(s=>isPhotoBody(s.body))} onClick={()=>setPrintDeck(edit)}>Print / Save PDF</button><button type="button" disabled={busy||!edit.title.trim()} onClick={downloadPowerPoint}>Export PowerPoint text</button><small>{busy?'Saving…':dirty?'Changes not yet saved':edit.revision>0?'Saved privately · recover from My Presentations':'New presentation'}</small></div>
   </section>}
  </div>
 }
