@@ -9,6 +9,7 @@ import { useStudent } from "@/lib/student-context";
 import { readCache, writeCache } from "@/lib/student-cache";
 import Skel from "@/components/student/Skel";
 import LearnerProgressReport from "@/components/student/LearnerProgressReport";
+import LearningEvidenceOverview from "@/components/student/LearningEvidenceOverview";
 import { getLearnerAssessmentHub } from "@/lib/assessment/integration";
 
 interface ExamResult {
@@ -74,15 +75,26 @@ function letterGrade(percentage: number): string {
 }
 
 export default function MarksPage() {
+  const { identity, loading } = useStudent();
+  if (loading) return <Skel h={80} radius={12} />;
+  if (!identity) return <p role="status">Sign in to view your learning progress.</p>;
+  return <MarksSession key={JSON.stringify([identity.studentId, identity.profileId, identity.className])}/>;
+}
+
+function MarksSession() {
   const { identity, loading: idLoading } = useStudent();
   const [exams,      setExams]      = useState<ExamResult[]>([]);
   const [cbc,        setCbc]        = useState<CBCAssessment[]>([]);
   const [grades,     setGrades]     = useState<TraditionalGrade[]>([]);
   const [loading,    setLoading]    = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [retry, setRetry] = useState(0);
 
   useEffect(() => {
     if (idLoading || !identity) return;
 
+    setLoadError(false);
+    setLoading(true);
     const cached = readCache<{ exams: ExamResult[]; cbc: CBCAssessment[]; grades: TraditionalGrade[] }>("marks", identity.studentId);
     if (cached) { setExams(cached.exams); setCbc(cached.cbc); setGrades(cached.grades); setLoading(false); }
     let cancelled = false;
@@ -199,17 +211,12 @@ export default function MarksPage() {
       setExams(allExams); setCbc(cbcData); setGrades(gradeData);
       setLoading(false);
     }
-    void load().catch(error => { if (!cancelled) { console.error("Could not load learner marks", error); setLoading(false); } });
+    void load().catch(error => { if (!cancelled) { console.error("Could not load learner marks", error); setLoadError(true); setLoading(false); } });
     return () => { cancelled = true; };
-  }, [identity, idLoading]);
+  }, [identity, idLoading, retry]);
 
   const isLoading = idLoading || (loading && exams.length === 0 && cbc.length === 0 && grades.length === 0);
 
-  if (isLoading) return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12, paddingTop: 8 }}>
-      <Skel h={44} radius={12} /><Skel h={80} radius={12} /><Skel h={80} radius={12} />
-    </div>
-  );
 
   return (
     <div style={{ animation: "slideIn 0.22s ease" }}>
@@ -218,6 +225,7 @@ export default function MarksPage() {
         <StudentIntro feature="progress-overview"><p>See released results, learning progress and personal targets here.</p></StudentIntro>
       </div>
 
+      {identity && <LearningEvidenceOverview studentId={identity.studentId} profileId={identity.profileId} className={identity.className}/>}
       <section aria-label="What to do after receiving results" style={{background:"var(--vs-card)",border:"1px solid var(--vs-border)",borderRadius:14,padding:15,marginBottom:16}}>
         <h2 style={{fontSize:16,fontWeight:800,margin:"0 0 6px",fontFamily:"'Bricolage Grotesque',sans-serif"}}>What next?</h2>
 
@@ -229,6 +237,8 @@ export default function MarksPage() {
         </nav>
       </section>
 
+      {loadError && <section role="alert" style={{padding:15,marginBottom:16,border:"1px solid var(--vs-border)",borderRadius:12}}>Assessment report could not be refreshed. {exams.length + grades.length + cbc.length > 0 ? "Showing previously saved records." : "No assessment records could be loaded."} <button type="button" style={progressAction} onClick={()=>setRetry(n=>n+1)}>Retry</button></section>}
+      {isLoading ? <div role="status"><Skel h={80} radius={12}/><p>Loading assessment results…</p></div> : loadError && exams.length + grades.length + cbc.length === 0 ? null : <>
       <LearnerProgressReport studentId={identity?.studentId ?? ""} exams={exams} grades={grades} competencies={cbc} />
       <h2 style={{fontSize:18,margin:"24px 0 12px"}}>Assessment history</h2>
       {/* Exams */}
@@ -320,6 +330,7 @@ export default function MarksPage() {
           </div>
         )
       )}
+      </>}
     </div>
   );
 }
