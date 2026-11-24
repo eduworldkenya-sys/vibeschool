@@ -50,7 +50,18 @@ export default function ManagedLearners() {
       })
       const result=await response.json()
       if (!response.ok) {setError(result.error||'Could not create learner profile');return}
+      // One action creates the managed profile and activates its private
+      // student login. If activation fails, the saved child remains available
+      // for a safe retry without repeating registration or guardian details.
+      const createdName = name.trim()
+      const createdGrade = grade
       setName('');setUsername('');setGrade('');setGuardianConfirmed(false)
+      if (typeof result.id === 'string' && typeof result.username === 'string') {
+        await activate({
+          id: result.id, username: result.username,
+          display_name: createdName, grade_label: createdGrade, status: 'managed',
+        })
+      }
       await load()
     } catch {setError('Could not connect. Try again.')}
     finally {setBusy(false)}
