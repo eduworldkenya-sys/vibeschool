@@ -68,6 +68,8 @@ test('post-class panel is rendered after End, allows explicit link and evidence 
   assert.match(review,/request\('capture'\)/)
   assert.match(review,/review\.captureAllowed/)
   assert.match(review,/liveToLessonHref\(/)
+  assert.match(review,/onSelectPlan\(result\.lessonPlanId\)/)
+  assert.match(classroom,/selectedPlanId=\{selectedPlanId\}/)
   assert.match(review,/roomStatus !== 'ended'/)
   assert.doesNotMatch(review,/public\.attendance|mark.*mastery/i)
 })
