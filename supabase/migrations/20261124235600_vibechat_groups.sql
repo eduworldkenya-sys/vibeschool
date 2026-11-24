@@ -269,5 +269,47 @@ begin
 end;$report$;
 revoke all on function public.vibechat_group_report(uuid,text) from public,anon,authenticated;
 grant execute on function public.vibechat_group_report(uuid,text) to authenticated;
+-- Extend the existing private push eligibility to accepted adult group members.
+create or replace function private.vibechat_push_member(p_user uuid,p_kind text,p_room uuid)
+returns boolean language sql stable security definer set search_path='' as $member$
+ select exists(select 1 from public.profiles p where p.id=p_user and p.account_status::text='active' and not coalesce(p.is_anonymized,false))
+ and case when p_kind='vc' then exists(
+  select 1 from public.vc_threads t join public.vc_participants m on m.thread_id=t.id and m.profile_id=p_user and m.left_at is null
+  where t.id=p_room and (t.type='direct' or (t.type='group' and private.vibechat_presence_eligible(p_user)))
+  and (t.type='group' or (select count(*) from public.vc_participants x where x.thread_id=t.id and x.left_at is null)=2)
+  and (t.student_id is null or exists(
+    select 1 from public.parent_student_links l join public.students s on s.id=l.student_id and s.deleted_at is null join public.classes c on c.id=s.class_id
+    where l.parent_id=p_user and l.student_id=t.student_id and c.school_id=t.school_id and (l.school_id is null or l.school_id=c.school_id)
+  ) or exists(
+    select 1 from public.students s join public.classes c on c.id=s.class_id
+    join public.school_members sm on sm.school_id=c.school_id and sm.profile_id=p_user
+    join public.profiles staff on staff.id=p_user and staff.role in ('teacher','admin')
+    where s.id=t.student_id and s.deleted_at is null and c.school_id=t.school_id and (staff.role='admin' or exists(
+      select 1 from public.teacher_classes a where a.teacher_id=p_user and a.class_id=c.id and a.school_id=c.school_id
+    ))
+  ))
+ ) when p_kind='tuition' then exists(
+  select 1 from public.vibetutor_student_invitations i join public.students s on s.id=i.student_id and s.deleted_at is null
+  where i.id=p_room and i.status='accepted' and p_user in (i.tutor_id,s.profile_id)
+ ) else false end
+$member$;
+revoke all on function private.vibechat_push_member(uuid,text,uuid) from public,anon,authenticated;
+
+create or replace function private.vibechat_push_allowed(p_device uuid,p_sender uuid,p_kind text,p_room uuid,p_message uuid)
+returns boolean language sql stable security definer set search_path='' as $allowed$
+ select exists(select 1 from private.vibechat_push_devices d
+ join private.vibechat_notification_preferences n on n.profile_id=d.profile_id and n.enabled
+ join auth.sessions s on s.id=d.session_id and s.user_id=d.profile_id
+ where d.id=p_device and d.profile_id<>p_sender and private.vibechat_valid_push_endpoint(d.endpoint)
+ and private.vibechat_push_member(d.profile_id,p_kind,p_room) and private.vibechat_push_member(p_sender,p_kind,p_room)
+ and not private.vibechat_pair_blocked(d.profile_id,p_sender)
+ and not exists(select 1 from private.vibechat_conversation_preferences p where p.profile_id=d.profile_id and p.kind=p_kind and p.room_id=p_room and p.muted)
+ and case when p_kind='vc' then exists(select 1 from public.vc_messages m where m.id=p_message and m.thread_id=p_room and m.sender_id=p_sender and m.deleted_at is null and not exists(
+  select 1 from public.vc_participants cp where cp.thread_id=p_room and cp.profile_id=d.profile_id and cp.last_read_at>=m.created_at
+ ) and (not private.vibechat_is_group(p_room) or exists(select 1 from public.vc_participants cp where cp.thread_id=p_room and cp.profile_id=d.profile_id and cp.left_at is null and m.created_at>=cp.joined_at))) else exists(select 1 from public.vibetutor_lesson_messages m where m.id=p_message and m.invitation_id=p_room and m.sender_id=p_sender and m.deleted_at is null) end
+ and not exists(select 1 from private.vibechat_receipts r where r.profile_id=d.profile_id and r.kind=p_kind and r.room_id=p_room and r.read_at>=case when p_kind='vc' then (select m.created_at from public.vc_messages m where m.id=p_message) else (select m.created_at from public.vibetutor_lesson_messages m where m.id=p_message) end)
+ )
+$allowed$;
+revoke all on function private.vibechat_push_allowed(uuid,uuid,text,uuid,uuid) from public,anon,authenticated;
 notify pgrst,'reload schema';
 commit;
