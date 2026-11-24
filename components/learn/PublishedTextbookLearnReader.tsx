@@ -7,6 +7,7 @@ import UniversalLearnReader, { type UniversalLearnSection } from '@/components/l
 import { VisualRichText } from '@/components/learn/VisualLearningAsset'
 import { TextbookSafeInlineHtml } from '@/components/learn/TextbookSafeInlineHtml'
 import { BiologyInteractiveBlock } from '@/components/global/publish/BiologyInteractiveBlock'
+import TextbookSelfCheck from './TextbookSelfCheck'
 
 type ReaderSection = UniversalLearnSection & { sourceBlocks: ContentBlock[] }
 
@@ -64,6 +65,7 @@ function PublishedBlock({ block }: { block: ContentBlock }) {
       {caption && <figcaption>{caption}</figcaption>}
     </figure>
   }
+  if (block.type === 'interactive' && meta.kind === 'textbook-self-check-v1') return <TextbookSelfCheck key={block.id} block={block}/>
   if (block.type === 'interactive') return <div style={{
     ['--publication-text' as string]: '#173e2c',
     ['--publication-muted' as string]: '#52665a',
