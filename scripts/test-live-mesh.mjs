@@ -157,7 +157,7 @@ test('ordinary Live rooms open audio automatically, with no pilot provisioning o
     await db.exec('create table auth.users(id uuid primary key); insert into auth.users select id from public.profiles')
     await db.exec(migration)
     await db.exec(readFileSync(new URL(
-      '../supabase/migrations/20261124221323_live_classroom_mesh_classroom_admission.sql', import.meta.url,
+      '../supabase/migrations/20261124222141_live_classroom_mesh_classroom_admission.sql', import.meta.url,
     ), 'utf8'))
     const room = await rpc(teacher, 'start', null, null, { title: 'Ordinary classroom' })
     const call = async (user, action, client, { target = null, epoch = null, sdp = null } = {}) => {

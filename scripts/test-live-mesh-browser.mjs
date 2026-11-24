@@ -25,7 +25,7 @@ const migration = readFileSync(new URL('../supabase/migrations/20261124192341_li
 await db.exec('create table auth.users(id uuid primary key); insert into auth.users select id from public.profiles')
 await db.exec(migration)
 if (openClassrooms) await db.exec(readFileSync(new URL(
-  '../supabase/migrations/20261124221323_live_classroom_mesh_classroom_admission.sql', import.meta.url,
+  '../supabase/migrations/20261124222141_live_classroom_mesh_classroom_admission.sql', import.meta.url,
 ), 'utf8'))
 const room = await rpc(teacher, 'start', null, null, { title: 'VibeMesh browser fixture' })
 for (const seat of seats.slice(2)) {
