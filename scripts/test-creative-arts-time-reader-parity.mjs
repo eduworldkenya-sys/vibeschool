@@ -21,5 +21,5 @@ test('textbook content begins with actual saved prose rather than a generated he
   assert.match(shared,/presentation === 'book' && !section\.title/)
   assert.match(shared,/section\.title \|\| presentation !== 'book'/)
   assert.match(reader,/active\.can_read/)
-  assert.match(reader,/record_reading_progress/)
+  assert.doesNotMatch(reader,/record_reading_progress/, 'Reader progress is written by the canonical continuity coordinator')
 })

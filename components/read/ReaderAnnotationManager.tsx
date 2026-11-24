@@ -112,10 +112,12 @@ export function ReaderAnnotationManager() {
     }
     const { data: auth } = await supabase.auth.getUser();
     if (!auth.user) {
-      setItems([]);
+      if (chapterIdRef.current === chapterId) setItems([]);
       return;
     }
+    if (chapterIdRef.current !== chapterId) return;
     const { data, error } = await supabase.rpc("get_my_study_workspace_items", { p_item_type: null });
+    if (chapterIdRef.current !== chapterId) return;
     if (error) {
       setMessage("Could not load annotations.");
       return;
@@ -131,6 +133,7 @@ export function ReaderAnnotationManager() {
       const event = raw as CustomEvent<ReaderChapterEventDetail>;
       const chapterId = typeof event.detail?.chapterId === "string" ? event.detail.chapterId : null;
       chapterIdRef.current = chapterId;
+      setItems([]);
       setOpen(false);
       setEditing(null);
       setMessage("");
@@ -145,6 +148,12 @@ export function ReaderAnnotationManager() {
         setEditing(null);
       }
     }
+    function onAnnotationChanged(raw: Event) {
+      const event = raw as CustomEvent<{chapterId?: unknown}>;
+      if (typeof event.detail?.chapterId === "string" && event.detail.chapterId === chapterIdRef.current) {
+        void load(event.detail.chapterId);
+      }
+    }
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
         setOpen(false);
@@ -153,10 +162,12 @@ export function ReaderAnnotationManager() {
     }
     window.addEventListener("vibe:reader-chapter", onChapter);
     window.addEventListener("vibe:reader-mode", onMode);
+    window.addEventListener("vibe:reader-annotation-changed", onAnnotationChanged);
     window.addEventListener("keydown", onKeyDown);
     return () => {
       window.removeEventListener("vibe:reader-chapter", onChapter);
       window.removeEventListener("vibe:reader-mode", onMode);
+      window.removeEventListener("vibe:reader-annotation-changed", onAnnotationChanged);
       window.removeEventListener("keydown", onKeyDown);
     };
   }, []);
