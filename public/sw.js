@@ -110,3 +110,14 @@ self.addEventListener('fetch', event => {
     }
   })())
 })
+
+self.addEventListener('notificationclick', event => {
+  if (event.notification.tag !== 'vibechat-new-message') return
+  event.notification.close()
+  event.waitUntil((async () => {
+    const windows = await self.clients.matchAll({type:'window',includeUncontrolled:true})
+    const existing = windows.find(client => new URL(client.url).origin === self.location.origin && new URL(client.url).pathname === '/vibechat')
+    if (existing) { await existing.focus(); return }
+    await self.clients.openWindow('/vibechat')
+  })())
+})
