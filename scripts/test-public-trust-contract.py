@@ -156,20 +156,23 @@ if 'href="/home" aria-label="VibeSchool home"' not in header:
 for fragment in ['RoleJourneySelector','ConnectedEducationExplorer','SchoolReadinessAssessment','GET TO KNOW VIBESCHOOL','FOR SCHOOLS &amp; EDUCATION INSTITUTIONS','Pathways','Trust Centre','/product','/institutions']:
     if fragment not in home: errors.append(f'homepage communication missing: {fragment}')
 
-# Mini Lessons are a discovery UI preview; real publishing remains off.
+# Mini Lessons must show real content only; uncommissioned UI is honest.
 mini_page = text('app/explore/page.tsx')
 if 'PublicFooter' in mini_page:
-    errors.append('Mini Explore must remain footer-free in both preview and live modes')
+    errors.append('Mini Explore must remain footer-free in both modes')
 mini_ui = text('components/public/MiniExplore.tsx')
 mini_home = text('components/public/MiniHomeSection.tsx')
-for fragment in ['MiniExplore', "canonical: '/explore'", 'PublicHeader', 'main-content']:
+for fragment in ['MiniExplore', "canonical: '/explore'", 'PublicHeader', 'main-content', 'MiniLiveExplore']:
     if fragment not in mini_page: errors.append(f'Mini Explore shell missing: {fragment}')
-for fragment in ['MINI_EXAMPLES', 'setQuery(', 'setTag(', 'setTab(', 'toggle(liked, setLiked,', 'toggle(saved, setSaved,', 'toggle(followed, setFollowed,', 'setComments(', 'Create Mini', 'Publish — not active', 'moderation', 'safeguarding']:
-    if fragment not in mini_ui: errors.append(f'Mini Explore preview missing: {fragment}')
-for forbidden in ['setSubject(', 'supabase.from(', 'fetch(', 'localStorage.', 'sessionStorage.', 'service_role', 'publish_mini(']:
-    if forbidden in mini_ui: errors.append(f'Mini Explore preview must not activate backend publishing: {forbidden}')
-if 'MiniHomeSection' not in home or '/explore' not in home or 'MiniCard' not in mini_home:
-    errors.append('Home must show Mini discovery without replacing its existing roles and trust content')
+for source in [mini_ui, mini_home]:
+    if 'Publishing is not yet available' not in source:
+        errors.append('Uncommissioned Mini surface must report availability honestly')
+    for forbidden in ['MINI_EXAMPLES', 'EXAMPLE_REQUESTS', 'local-request-', 'local-answer-', 'Add to preview', 'setComments(', 'setLiked(', 'setRequests(', 'supabase.from(', 'fetch(', 'localStorage.', 'sessionStorage.', 'service_role', 'publish_mini(']:
+        if forbidden in source: errors.append(f'Uncommissioned Mini surface must not simulate engagement or activate publishing: {forbidden}')
+if 'MiniHomeSection' not in home or '/explore' not in home or 'MiniLiveHome' not in mini_home:
+    errors.append('Home must retain real Mini discovery and existing roles and trust content')
+if "NEXT_PUBLIC_MINI_LESSONS_BACKEND_ENABLED === 'true'" not in mini_page or "NEXT_PUBLIC_MINI_LESSONS_BACKEND_ENABLED === 'true'" not in mini_home:
+    errors.append('Mini publishing commissioning gate must remain intact')
 
 role_selector = text('components/public/RoleJourneySelector.tsx')
 for fragment in ['Learner','Teacher','Family','School leader','public_role_learner','public_role_teacher','public_role_family','public_role_school','See the whole system']:
