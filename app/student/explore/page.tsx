@@ -64,7 +64,8 @@ export default function StudentExplorePage() {
       <section>
         <h2 style={{ fontSize: 16, marginBottom: 10 }}>Try something different</h2>
         <nav style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(190px,1fr))', gap: 10 }} aria-label="Discovery activities">
-          <Link href="/learn/stories" style={card}><BookOpen size={23} color="var(--vs-accent)" /><strong>Read a story</strong><span style={{ fontSize: 12, color: 'var(--vs-muted)' }}>Find published stories</span></Link>
+          <Link href="/explore" style={card}><Lightbulb size={23} color="var(--vs-accent)" /><strong>Mini Lessons</strong><span style={{ fontSize: 12, color: "var(--vs-muted)" }}>Explore short explanations or request one</span></Link>
+           <Link href="/learn/stories" style={card}><BookOpen size={23} color="var(--vs-accent)" /><strong>Read a story</strong><span style={{ fontSize: 12, color: 'var(--vs-muted)' }}>Find published stories</span></Link>
           <Link href="/student/funhub" style={card}><Gamepad2 size={23} color="var(--vs-accent)" /><strong>Play a game</strong><span style={{ fontSize: 12, color: 'var(--vs-muted)' }}>Try a quick learning challenge</span></Link>
           <Link href="/student/create" style={card}><Palette size={23} color="var(--vs-accent)" /><strong>Create</strong><span style={{ fontSize: 12, color: 'var(--vs-muted)' }}>Start a story or a project</span></Link>
         </nav>
