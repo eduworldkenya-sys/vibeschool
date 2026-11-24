@@ -1,13 +1,13 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { Check, Copy, Link2, Search, UserPlus, X } from 'lucide-react'
+import { Check, Copy, Link2, X } from 'lucide-react'
 import { useSearchParams } from 'next/navigation'
 import { getSupabaseClient } from '@/lib/supabase'
 import styles from './VibeChat.module.css'
 import VibeChatAvatar from './VibeChatAvatar'
+import VibeChatUsernameSearch from './VibeChatUsernameSearch'
 
-type Lookup = { handle: string; display_name: string; account_role: string; avatar_url: string | null }
 type Connection = {
   id: string
   name: string
@@ -27,10 +27,8 @@ export default function VibeChatContacts({
   const suggestedHandle = params.get('find') ?? ''
   const [myHandle, setMyHandle] = useState('')
   const [lookupText, setLookupText] = useState('')
-  const [found, setFound] = useState<Lookup | null>(null)
   const [connections, setConnections] = useState<Connection[]>([])
   const [loading, setLoading] = useState(true)
-  const [looking, setLooking] = useState(false)
   const [busy, setBusy] = useState<string | null>(null)
   const [notice, setNotice] = useState('')
   const [error, setError] = useState('')
@@ -59,47 +57,6 @@ export default function VibeChatContacts({
   useEffect(() => {
     if (/^@[a-z0-9][a-z0-9.]{2,30}$/i.test(suggestedHandle)) setLookupText(suggestedHandle)
   }, [suggestedHandle])
-
-  async function lookup(event: React.FormEvent) {
-    event.preventDefault()
-    if (!mayInvite) return
-    setFound(null)
-    setNotice('')
-    setError('')
-    const input = lookupText.trim().toLowerCase()
-    if (!/^@[a-z0-9][a-z0-9.]{2,30}$/.test(input)) {
-      setError('Enter an exact VibeChat ID, for example @mumbi.4821')
-      return
-    }
-    setLooking(true)
-    try {
-      const { data, error: lookupError } = await getSupabaseClient().rpc('vibechat_lookup_handle', { p_handle: input })
-      if (lookupError) throw lookupError
-      if (!data?.length) setNotice('Contact not found or not available to you.')
-      else setFound(data[0] as Lookup)
-    } catch {
-      setError('Could not search for this contact. Try again.')
-    } finally {
-      setLooking(false)
-    }
-  }
-
-  async function invite() {
-    if (!found || busy) return
-    setBusy('invite')
-    setError('')
-    try {
-      const { error: requestError } = await getSupabaseClient().rpc('vibechat_request_contact', { p_handle: found.handle })
-      if (requestError) throw requestError
-      setNotice('Connection request recorded. Chat opens after acceptance.')
-      setFound(null)
-      await refresh()
-    } catch {
-      setError('Could not send this request. It may already exist or your request limit was reached.')
-    } finally {
-      setBusy(null)
-    }
-  }
 
   async function respond(connection: Connection, accept: boolean) {
     if (busy || connection.direction !== 'incoming' || connection.status !== 'pending') return
@@ -149,26 +106,12 @@ export default function VibeChatContacts({
         </div>
         <small className={styles.subtitle}>Sharing your ID does not give strangers permission to message you.</small>
       </div>
-      {mayInvite ? <form onSubmit={e=>void lookup(e)} className={styles.contactBlock}>
-        <label htmlFor="vc-handle"><strong>Find someone by ID</strong></label>
-        <p className={styles.subtitle}>Available contacts include published tutors and authorized colleagues in your school.</p>
-        <div className={styles.contactRow}>
-          <input id="vc-handle" type="search" className={styles.search} style={{margin:0,flex:1,minWidth:0,width:'auto'}}
-            placeholder="@username.1234" autoComplete="off" value={lookupText}
-            maxLength={40} onChange={e=>setLookupText(e.target.value)} />
-          <button className={styles.primary} disabled={looking || !lookupText.trim()}>
-            <Search size={17} aria-hidden/> {looking?'Finding…':'Find'}
-          </button>
-        </div>
-        {found && <div className={styles.contactRow}>
-          <VibeChatAvatar name={found.display_name} avatarUrl={found.avatar_url}/>
-          <div style={{flex:1}}><strong>{found.display_name}</strong>
-            <div className={styles.subtitle}>{found.handle} · {found.account_role}</div></div>
-          <button type="button" className={styles.primary} disabled={busy==='invite'} onClick={()=>void invite()}>
-            <UserPlus size={16} aria-hidden/> Connect
-          </button>
-        </div>}
-      </form> : <p className={styles.subtitle}>To connect with a new tutor, use your parent or guardian account. Existing approved learning conversations remain available.</p>}
+      {mayInvite ? <div className={styles.contactBlock}>
+        <label htmlFor="vc-handle"><strong>Find by username</strong></label>
+        <input id="vc-handle" type="search" className={styles.search} placeholder="Search username"
+          autoComplete="off" value={lookupText} maxLength={32} onChange={e=>setLookupText(e.target.value)} />
+        <VibeChatUsernameSearch query={lookupText} role={role} onRequested={()=>void refresh()} />
+      </div> : <p className={styles.subtitle}>To connect with a new tutor, use your parent or guardian account. Existing approved learning conversations remain available.</p>}
       <section aria-label="Connection requests">
         <h3>Connections</h3>
         {connections.filter(c=>c.status!=='declined').length===0 ? <p className={styles.subtitle}>No connections or requests yet.</p> :
