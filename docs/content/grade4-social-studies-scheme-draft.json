@@ -8,12 +8,13 @@
     "url": "https://kicd.ac.ke/wp-content/uploads/2024/10/Grade-4-Social-Studies-20.6.2024-Revised-1.pdf",
     "edition": "Revised 2024",
     "summaryPrintedPage": "xii",
-    "rights": "Source locator only; no verbatim source reproduction or certification is asserted."
+    "rights": "Official source locator only; original lesson objectives; no verbatim outcome text or certification is asserted.",
+    "summaryPdfPage": 12
   },
   "planning": {
     "lessonsPerWeek": 3,
     "totalLessons": 90,
-    "notes": "Flexible instructional sequence. No automatic term placement or timetable creation. All objectives and tasks are original VibeSchool planning proposals, not official KICD wording. Review source outcome-by-outcome before linking or publishing."
+    "notes": "Flexible instructional sequence. No automatic term placement or timetable creation. All objectives and tasks are original VibeSchool proposals. SourceOutcomeReferences identify 72 official source positions without copying source wording or claiming that an official outcome record has been imported; mapping is an editorial candidate requiring review."
   },
   "units": [
     {
@@ -28,42 +29,93 @@
           "title": "Meet the compass",
           "objective": "Label a blank compass with N, E, S and W",
           "activity": "Make a paper compass and compare it with a classroom compass",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "1.1.a"
+          ]
         },
         {
           "sequence": 2,
           "title": "Facing different ways",
           "objective": "Find the other three directions when north is marked",
           "activity": "Turn a paper arrow on a floor grid",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "1.1.a"
+          ]
         },
         {
           "sequence": 3,
           "title": "Reading a simple map",
           "objective": "Describe where three landmarks lie from a marked point",
           "activity": "Use a fictional village map",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "1.1.b"
+          ]
         },
         {
           "sequence": 4,
           "title": "Giving clear directions",
           "objective": "Guide a partner through two map steps",
           "activity": "Exchange directions on a drawn grid",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "1.1.b"
+          ]
         },
         {
           "sequence": 5,
           "title": "Planning a safe route",
           "objective": "Choose a route between two places and describe its direction",
           "activity": "Compare routes on a school map without leaving the classroom",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "1.1.b"
+          ]
         },
         {
           "sequence": 6,
           "title": "Compass challenge",
-          "objective": "Solve four new direction problems and explain one use outside school",
-          "activity": "Complete an individual map puzzle",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "objective": "Solve new direction problems and explain how a compass can help during a journey",
+          "activity": "Complete a map puzzle and write a travel example",
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "1.1.c"
+          ]
+        }
+      ],
+      "sourceHeading": "Compass Direction",
+      "sourceOutcomeReferences": [
+        {
+          "code": "1.1.a",
+          "printedPage": 1,
+          "pdfPage": 13,
+          "lessonSequences": [
+            1,
+            2
+          ],
+          "reviewStatus": "candidate-alignment"
+        },
+        {
+          "code": "1.1.b",
+          "printedPage": 1,
+          "pdfPage": 13,
+          "lessonSequences": [
+            3,
+            4,
+            5
+          ],
+          "reviewStatus": "candidate-alignment"
+        },
+        {
+          "code": "1.1.c",
+          "printedPage": 1,
+          "pdfPage": 13,
+          "lessonSequences": [
+            6
+          ],
+          "reviewStatus": "candidate-alignment"
         }
       ]
     },
@@ -76,38 +128,93 @@
       "lessons": [
         {
           "sequence": 7,
-          "title": "My county and its subdivisions",
-          "objective": "Find the county and its administrative subdivisions using a current approved map",
+          "title": "Sub-counties",
+          "objective": "Find and name the sub-counties on a current approved map of the learner's county",
           "activity": "Annotate a printed county map",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "1.2.a"
+          ]
         },
         {
           "sequence": 8,
           "title": "Counties next door",
           "objective": "Name neighbouring counties using the map legend",
           "activity": "Trace shared boundaries with coloured pencils",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "1.2.b"
+          ]
         },
         {
           "sequence": 9,
           "title": "Where is our county?",
           "objective": "Describe the position of two neighbours relative to the county",
           "activity": "Use a north arrow on an outline map",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "1.2.b"
+          ]
         },
         {
           "sequence": 10,
           "title": "Comparing county sizes",
           "objective": "Make and explain a reasonable area comparison on same-scale maps",
           "activity": "Compare outline shapes on squared paper",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "1.2.c"
+          ]
         },
         {
           "sequence": 11,
           "title": "County map exhibition",
           "objective": "Present a sketch with the county name, neighbours and a direction arrow",
           "activity": "Peer-check maps against a reference",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "1.2.d"
+          ]
+        }
+      ],
+      "sourceHeading": "Location and size of the County",
+      "sourceOutcomeReferences": [
+        {
+          "code": "1.2.a",
+          "printedPage": 3,
+          "pdfPage": 15,
+          "lessonSequences": [
+            7
+          ],
+          "reviewStatus": "candidate-alignment"
+        },
+        {
+          "code": "1.2.b",
+          "printedPage": 3,
+          "pdfPage": 15,
+          "lessonSequences": [
+            8,
+            9
+          ],
+          "reviewStatus": "candidate-alignment"
+        },
+        {
+          "code": "1.2.c",
+          "printedPage": 3,
+          "pdfPage": 15,
+          "lessonSequences": [
+            10
+          ],
+          "reviewStatus": "candidate-alignment"
+        },
+        {
+          "code": "1.2.d",
+          "printedPage": 3,
+          "pdfPage": 15,
+          "lessonSequences": [
+            11
+          ],
+          "reviewStatus": "candidate-alignment"
         }
       ]
     },
@@ -123,35 +230,90 @@
           "title": "Reading the landscape",
           "objective": "Distinguish hills, plains, rivers and other locally relevant features",
           "activity": "Sort local landscape pictures",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "1.3.a"
+          ]
         },
         {
           "sequence": 13,
           "title": "Investigating local features",
           "objective": "Locate examples of two features on an approved local map",
           "activity": "Mark locations using symbols",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "1.3.a"
+          ]
         },
         {
           "sequence": 14,
           "title": "Why landscapes matter",
           "objective": "Connect a feature to a possible community benefit",
           "activity": "Discuss water, farming or transport examples",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "1.3.b"
+          ]
         },
         {
           "sequence": 15,
           "title": "Making a landscape model",
           "objective": "Create a labelled drawing or model of a nearby feature",
           "activity": "Use recycled paper and safe modelling materials",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "1.3.c"
+          ]
         },
         {
           "sequence": 16,
           "title": "Our landscape gallery",
           "objective": "Explain two local features and ways to value them",
           "activity": "Present a drawing with a spoken caption",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "1.3.d"
+          ]
+        }
+      ],
+      "sourceHeading": "Physical features in the County",
+      "sourceOutcomeReferences": [
+        {
+          "code": "1.3.a",
+          "printedPage": 5,
+          "pdfPage": 17,
+          "lessonSequences": [
+            12,
+            13
+          ],
+          "reviewStatus": "candidate-alignment"
+        },
+        {
+          "code": "1.3.b",
+          "printedPage": 5,
+          "pdfPage": 17,
+          "lessonSequences": [
+            14
+          ],
+          "reviewStatus": "candidate-alignment"
+        },
+        {
+          "code": "1.3.c",
+          "printedPage": 5,
+          "pdfPage": 17,
+          "lessonSequences": [
+            15
+          ],
+          "reviewStatus": "candidate-alignment"
+        },
+        {
+          "code": "1.3.d",
+          "printedPage": 5,
+          "pdfPage": 17,
+          "lessonSequences": [
+            16
+          ],
+          "reviewStatus": "candidate-alignment"
         }
       ]
     },
@@ -167,28 +329,89 @@
           "title": "Weather through the year",
           "objective": "Recognise hot, cold, dry and rainy conditions using observations",
           "activity": "Sort fictional weather records",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "1.4.a"
+          ]
         },
         {
           "sequence": 18,
           "title": "Changing daily routines",
           "objective": "Explain how weather changes clothing, farming and travel",
           "activity": "Compare two illustrated family days",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "1.4.b"
+          ]
         },
         {
           "sequence": 19,
           "title": "Safe travel in rain",
           "objective": "Choose safer actions for wet roads and flooded paths",
           "activity": "Evaluate illustrated road-safety situations",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "1.4.c"
+          ]
         },
         {
           "sequence": 20,
           "title": "Recording weather",
-          "objective": "Build a weather chart and explain what it shows",
-          "activity": "Record safe indoor or schoolyard observations",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "objective": "Create a chart of the county's weather conditions and describe a useful feature of each season",
+          "activity": "Use a safe weather log and compare entries",
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "1.4.d",
+            "1.4.e"
+          ]
+        }
+      ],
+      "sourceHeading": "Seasons in the County",
+      "sourceOutcomeReferences": [
+        {
+          "code": "1.4.a",
+          "printedPage": 7,
+          "pdfPage": 19,
+          "lessonSequences": [
+            17
+          ],
+          "reviewStatus": "candidate-alignment"
+        },
+        {
+          "code": "1.4.b",
+          "printedPage": 7,
+          "pdfPage": 19,
+          "lessonSequences": [
+            18
+          ],
+          "reviewStatus": "candidate-alignment"
+        },
+        {
+          "code": "1.4.c",
+          "printedPage": 7,
+          "pdfPage": 19,
+          "lessonSequences": [
+            19
+          ],
+          "reviewStatus": "candidate-alignment"
+        },
+        {
+          "code": "1.4.d",
+          "printedPage": 7,
+          "pdfPage": 19,
+          "lessonSequences": [
+            20
+          ],
+          "reviewStatus": "candidate-alignment"
+        },
+        {
+          "code": "1.4.e",
+          "printedPage": 7,
+          "pdfPage": 19,
+          "lessonSequences": [
+            20
+          ],
+          "reviewStatus": "candidate-alignment"
         }
       ]
     },
@@ -204,35 +427,90 @@
           "title": "Places that tell our story",
           "objective": "Recognise a museum, monument and cultural centre from examples",
           "activity": "Sort photographs with captions",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "1.5.a"
+          ]
         },
         {
           "sequence": 22,
           "title": "Investigating local heritage",
           "objective": "Find a local historic place using a trusted reference",
           "activity": "Make a short fact card",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "1.5.a"
+          ]
         },
         {
           "sequence": 23,
           "title": "Why preserve history?",
           "objective": "Explain how a historic place helps people learn about the past",
           "activity": "Compare an old and a recent picture",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "1.5.b"
+          ]
         },
         {
           "sequence": 24,
           "title": "Caring for heritage",
-          "objective": "Suggest safe ways to protect a historic site",
-          "activity": "Design a visitor code of conduct",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "objective": "Take part in a safe, adult-supervised action that protects a local heritage place or its learning display",
+          "activity": "Plan with the teacher and carry out an approved tidy-up or awareness activity",
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "1.5.c"
+          ]
         },
         {
           "sequence": 25,
           "title": "Heritage showcase",
           "objective": "Explain a local site's importance and one conservation action",
           "activity": "Create a small heritage exhibit; any visit requires adult supervision",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "1.5.d"
+          ]
+        }
+      ],
+      "sourceHeading": "Historic Built Environments in the County",
+      "sourceOutcomeReferences": [
+        {
+          "code": "1.5.a",
+          "printedPage": 9,
+          "pdfPage": 21,
+          "lessonSequences": [
+            21,
+            22
+          ],
+          "reviewStatus": "candidate-alignment"
+        },
+        {
+          "code": "1.5.b",
+          "printedPage": 9,
+          "pdfPage": 21,
+          "lessonSequences": [
+            23
+          ],
+          "reviewStatus": "candidate-alignment"
+        },
+        {
+          "code": "1.5.c",
+          "printedPage": 9,
+          "pdfPage": 21,
+          "lessonSequences": [
+            24
+          ],
+          "reviewStatus": "candidate-alignment"
+        },
+        {
+          "code": "1.5.d",
+          "printedPage": 9,
+          "pdfPage": 21,
+          "lessonSequences": [
+            25
+          ],
+          "reviewStatus": "candidate-alignment"
         }
       ]
     },
@@ -248,42 +526,103 @@
           "title": "From farm to kitchen",
           "objective": "Trace the people involved in bringing food to a home",
           "activity": "Build a picture chain",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "2.1.a"
+          ]
         },
         {
           "sequence": 27,
           "title": "Goods and services",
           "objective": "Match community jobs to needs they help meet",
           "activity": "Sort shop, clinic and transport scenarios",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "2.1.a"
+          ]
         },
         {
           "sequence": 28,
           "title": "Community support",
           "objective": "Describe a helpful role played by local community institutions",
           "activity": "Discuss fictional neighbourhood examples",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "2.1.a"
+          ]
         },
         {
           "sequence": 29,
           "title": "When a link is missing",
           "objective": "Predict what happens when one service in a chain stops",
           "activity": "Solve a group story problem",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "2.1.b"
+          ]
         },
         {
           "sequence": 30,
           "title": "Connections chart",
-          "objective": "Draw a network showing how four people or services support one another",
-          "activity": "Use arrows and short labels",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "objective": "Show how community cooperation improves daily life using a diagram",
+          "activity": "Draw links among farmers, traders, health workers and other local services",
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "2.1.c"
+          ]
         },
         {
           "sequence": 31,
           "title": "Working together",
           "objective": "Explain how cooperation benefits a community",
           "activity": "Complete a paired problem-solving task",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "2.1.b",
+            "2.1.d"
+          ]
+        }
+      ],
+      "sourceHeading": "Interdependence of people",
+      "sourceOutcomeReferences": [
+        {
+          "code": "2.1.a",
+          "printedPage": 12,
+          "pdfPage": 24,
+          "lessonSequences": [
+            26,
+            27,
+            28
+          ],
+          "reviewStatus": "candidate-alignment"
+        },
+        {
+          "code": "2.1.b",
+          "printedPage": 12,
+          "pdfPage": 24,
+          "lessonSequences": [
+            29,
+            31
+          ],
+          "reviewStatus": "candidate-alignment"
+        },
+        {
+          "code": "2.1.c",
+          "printedPage": 12,
+          "pdfPage": 24,
+          "lessonSequences": [
+            30
+          ],
+          "reviewStatus": "candidate-alignment"
+        },
+        {
+          "code": "2.1.d",
+          "printedPage": 12,
+          "pdfPage": 24,
+          "lessonSequences": [
+            31
+          ],
+          "reviewStatus": "candidate-alignment"
         }
       ]
     },
@@ -299,35 +638,84 @@
           "title": "Counting people in places",
           "objective": "Explain the difference between how many people live somewhere and where they live",
           "activity": "Compare fictional village diagrams",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "2.2.a"
+          ]
         },
         {
           "sequence": 33,
           "title": "Crowded and less crowded areas",
           "objective": "Describe differences in settlement density using dot maps",
           "activity": "Count symbols in equal-size squares",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "2.2.a"
+          ]
         },
         {
           "sequence": 34,
           "title": "Patterns on a map",
           "objective": "Distinguish clustered, scattered and line-shaped settlements",
           "activity": "Sort three invented map patterns",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "2.2.a"
+          ]
         },
         {
           "sequence": 35,
           "title": "Why people settle differently",
           "objective": "Suggest reasonable factors for settlement patterns without stereotypes",
           "activity": "Discuss water, roads and available land",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "2.2.a"
+          ]
         },
         {
           "sequence": 36,
           "title": "Population map challenge",
-          "objective": "Interpret and draw a settlement pattern using a key",
-          "activity": "Complete an individual fictional map task",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "objective": "Interpret a verified county settlement map and draw a pattern with a key",
+          "activity": "Use a teacher-approved county map and respect differences in settlement",
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "2.2.b",
+            "2.2.c"
+          ]
+        }
+      ],
+      "sourceHeading": "Population Distribution",
+      "sourceOutcomeReferences": [
+        {
+          "code": "2.2.a",
+          "printedPage": 14,
+          "pdfPage": 26,
+          "lessonSequences": [
+            32,
+            33,
+            34,
+            35
+          ],
+          "reviewStatus": "candidate-alignment"
+        },
+        {
+          "code": "2.2.b",
+          "printedPage": 14,
+          "pdfPage": 26,
+          "lessonSequences": [
+            36
+          ],
+          "reviewStatus": "candidate-alignment"
+        },
+        {
+          "code": "2.2.c",
+          "printedPage": 14,
+          "pdfPage": 26,
+          "lessonSequences": [
+            36
+          ],
+          "reviewStatus": "candidate-alignment"
         }
       ]
     },
@@ -343,28 +731,71 @@
           "title": "Culture in everyday life",
           "objective": "Recognise examples of inherited foods, dress, housing and celebrations",
           "activity": "Sort diverse illustrated cultural examples",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "3.1.a"
+          ]
         },
         {
           "sequence": 38,
           "title": "Games, objects and stories",
           "objective": "Describe the use or meaning of an example from a trusted account",
           "activity": "Create a respectful picture caption",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "3.1.a"
+          ]
         },
         {
           "sequence": 39,
           "title": "Recording community traditions",
           "objective": "Illustrate a tradition with its context and source",
           "activity": "Ask a willing adult or use an approved resource",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "3.1.b"
+          ]
         },
         {
           "sequence": 40,
-          "title": "Celebrating diversity",
-          "objective": "Explain why different traditions deserve respect",
-          "activity": "Present an optional drawing or story without requiring personal disclosure",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "title": "Celebrating local heritage",
+          "objective": "Explain how a local tradition helps preserve identity and belonging while respecting other traditions",
+          "activity": "Present a short illustration or story using an approved reference",
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "3.1.c"
+          ]
+        }
+      ],
+      "sourceHeading": "Aspects of Traditional Culture in the County",
+      "sourceOutcomeReferences": [
+        {
+          "code": "3.1.a",
+          "printedPage": 17,
+          "pdfPage": 29,
+          "lessonSequences": [
+            37,
+            38
+          ],
+          "reviewStatus": "candidate-alignment"
+        },
+        {
+          "code": "3.1.b",
+          "printedPage": 17,
+          "pdfPage": 29,
+          "lessonSequences": [
+            39
+          ],
+          "reviewStatus": "candidate-alignment"
+        },
+        {
+          "code": "3.1.c",
+          "printedPage": 17,
+          "pdfPage": 29,
+          "lessonSequences": [
+            40
+          ],
+          "reviewStatus": "candidate-alignment"
         }
       ]
     },
@@ -377,24 +808,73 @@
       "lessons": [
         {
           "sequence": 41,
-          "title": "Our school community",
-          "objective": "Recognise important roles and groups within a school",
-          "activity": "Make a role-matching chart",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "title": "Our school's story",
+          "objective": "Tell the story of the school's founding and one later change using a checked account",
+          "activity": "Create a simple timeline from a school-approved source or a fictional example for independent learners",
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "3.2.a"
+          ]
         },
         {
           "sequence": 42,
-          "title": "How the school works",
-          "objective": "Describe how school leaders, staff and learners work together",
-          "activity": "Trace a fictional request for classroom supplies",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "title": "Our school's values",
+          "objective": "Connect two school values to specific everyday decisions",
+          "activity": "Discuss school-approved values and make a poster",
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "3.2.b"
+          ]
         },
         {
           "sequence": 43,
-          "title": "School organisation chart",
-          "objective": "Draw a simple school structure and explain why cooperation matters",
-          "activity": "Compare a draft chart with the school's approved structure",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "title": "Our motto and school rules",
+          "objective": "Say the school motto and explain why two school rules support a safe, orderly learning environment",
+          "activity": "Use the actual school motto or a clearly labelled fictional one and make a classroom pledge",
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "3.2.c",
+            "3.2.d"
+          ]
+        }
+      ],
+      "sourceHeading": "The School",
+      "sourceOutcomeReferences": [
+        {
+          "code": "3.2.a",
+          "printedPage": 19,
+          "pdfPage": 31,
+          "lessonSequences": [
+            41
+          ],
+          "reviewStatus": "candidate-alignment"
+        },
+        {
+          "code": "3.2.b",
+          "printedPage": 19,
+          "pdfPage": 31,
+          "lessonSequences": [
+            42
+          ],
+          "reviewStatus": "candidate-alignment"
+        },
+        {
+          "code": "3.2.c",
+          "printedPage": 19,
+          "pdfPage": 31,
+          "lessonSequences": [
+            43
+          ],
+          "reviewStatus": "candidate-alignment"
+        },
+        {
+          "code": "3.2.d",
+          "printedPage": 19,
+          "pdfPage": 31,
+          "lessonSequences": [
+            43
+          ],
+          "reviewStatus": "candidate-alignment"
         }
       ]
     },
@@ -410,28 +890,89 @@
           "title": "Resources around us",
           "objective": "Recognise local natural or human-made resources and possible uses",
           "activity": "Make a resource-to-use chart",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "4.1.a"
+          ]
         },
         {
           "sequence": 45,
           "title": "Work in our county",
           "objective": "Group examples of local jobs into production, trade and services",
           "activity": "Sort fictional community enterprise cards",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "4.1.b"
+          ]
         },
         {
           "sequence": 46,
           "title": "Why work matters",
           "objective": "Explain how economic activity supports families and communities",
           "activity": "Follow a simple goods-and-income story",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "4.1.c"
+          ]
         },
         {
           "sequence": 47,
           "title": "Contributing responsibly",
-          "objective": "Carry out an age-appropriate supervised task and explain its value",
-          "activity": "Organise reusable classroom materials without handling hazardous objects or money",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "objective": "Join an appropriate supervised school or local productive activity and explain its benefit",
+          "activity": "Choose a safe classroom growing, sorting or craft task without commercial labour",
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "4.1.d",
+            "4.1.e"
+          ]
+        }
+      ],
+      "sourceHeading": "Economic activities in the County",
+      "sourceOutcomeReferences": [
+        {
+          "code": "4.1.a",
+          "printedPage": 22,
+          "pdfPage": 34,
+          "lessonSequences": [
+            44
+          ],
+          "reviewStatus": "candidate-alignment"
+        },
+        {
+          "code": "4.1.b",
+          "printedPage": 22,
+          "pdfPage": 34,
+          "lessonSequences": [
+            45
+          ],
+          "reviewStatus": "candidate-alignment"
+        },
+        {
+          "code": "4.1.c",
+          "printedPage": 22,
+          "pdfPage": 34,
+          "lessonSequences": [
+            46
+          ],
+          "reviewStatus": "candidate-alignment"
+        },
+        {
+          "code": "4.1.d",
+          "printedPage": 22,
+          "pdfPage": 34,
+          "lessonSequences": [
+            47
+          ],
+          "reviewStatus": "candidate-alignment"
+        },
+        {
+          "code": "4.1.e",
+          "printedPage": 22,
+          "pdfPage": 34,
+          "lessonSequences": [
+            47
+          ],
+          "reviewStatus": "candidate-alignment"
         }
       ]
     },
@@ -447,42 +988,101 @@
           "title": "Raw materials and products",
           "objective": "Match familiar finished goods to their raw materials",
           "activity": "Investigate safe household packaging",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "4.2.a"
+          ]
         },
         {
           "sequence": 49,
           "title": "Local industries",
           "objective": "Recognise industries using locally checked examples",
           "activity": "Make a picture classification board",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "4.2.a"
+          ]
         },
         {
           "sequence": 50,
           "title": "From input to output",
           "objective": "Describe three stages in a simple production process",
           "activity": "Sequence cards for a fictional bakery",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "4.2.b"
+          ]
         },
         {
           "sequence": 51,
           "title": "Industries and community life",
           "objective": "Explain benefits such as jobs and useful products",
           "activity": "Discuss a fictional small workshop",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "4.2.b"
+          ]
         },
         {
           "sequence": 52,
-          "title": "Responsible production",
-          "objective": "Identify ways an industry can reduce waste and protect workers",
-          "activity": "Compare two fictional factory practices",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "title": "Where industries are found",
+          "objective": "Locate two industries on a checked county map and describe a safe way to learn about their work",
+          "activity": "Annotate a map or consult a teacher-approved directory",
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "4.2.c"
+          ]
         },
         {
           "sequence": 53,
           "title": "Industry showcase",
           "objective": "Explain one county industry and its value using a process diagram",
           "activity": "Present an illustrated fact sheet",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "4.2.d"
+          ]
+        }
+      ],
+      "sourceHeading": "Industries in the County",
+      "sourceOutcomeReferences": [
+        {
+          "code": "4.2.a",
+          "printedPage": 24,
+          "pdfPage": 36,
+          "lessonSequences": [
+            48,
+            49
+          ],
+          "reviewStatus": "candidate-alignment"
+        },
+        {
+          "code": "4.2.b",
+          "printedPage": 24,
+          "pdfPage": 36,
+          "lessonSequences": [
+            50,
+            51
+          ],
+          "reviewStatus": "candidate-alignment"
+        },
+        {
+          "code": "4.2.c",
+          "printedPage": 24,
+          "pdfPage": 36,
+          "lessonSequences": [
+            52
+          ],
+          "reviewStatus": "candidate-alignment"
+        },
+        {
+          "code": "4.2.d",
+          "printedPage": 24,
+          "pdfPage": 36,
+          "lessonSequences": [
+            53
+          ],
+          "reviewStatus": "candidate-alignment"
         }
       ]
     },
@@ -498,49 +1098,104 @@
           "title": "What could we make?",
           "objective": "Generate three practical school project ideas",
           "activity": "Brainstorm safe low-cost examples",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "4.3.a"
+          ]
         },
         {
           "sequence": 55,
           "title": "Choosing a project",
           "objective": "Compare ideas using usefulness, cost and safety",
           "activity": "Vote on a hypothetical classroom project",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "4.3.a"
+          ]
         },
         {
           "sequence": 56,
           "title": "Making a project plan",
           "objective": "List materials, steps and responsibilities",
           "activity": "Prepare a simple group planning sheet",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "4.3.b"
+          ]
         },
         {
           "sequence": 57,
           "title": "Estimating costs",
           "objective": "Add small fictional costs and decide what can be reused",
           "activity": "Use sample price cards rather than collecting money",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "4.3.b"
+          ]
         },
         {
           "sequence": 58,
           "title": "Making a prototype",
           "objective": "Produce a safe sample with adult supervision",
           "activity": "Make a paper bookmark or similar item",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "4.3.b"
+          ]
         },
         {
           "sequence": 59,
           "title": "Explaining our product",
           "objective": "Present the sample and explain its intended users",
           "activity": "Hold a mock classroom exhibition",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "4.3.b"
+          ]
         },
         {
           "sequence": 60,
-          "title": "Reviewing the project",
-          "objective": "Explain one achievement and one improvement for next time",
-          "activity": "Complete a short team reflection",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "title": "Reviewing the project fairly",
+          "objective": "Explain how the group shared duties, used materials honestly and can improve its project",
+          "activity": "Use a team reflection sheet with a record of shared decisions",
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "4.3.c"
+          ]
+        }
+      ],
+      "sourceHeading": "Enterprise Project at School",
+      "sourceOutcomeReferences": [
+        {
+          "code": "4.3.a",
+          "printedPage": 25,
+          "pdfPage": 37,
+          "lessonSequences": [
+            54,
+            55
+          ],
+          "reviewStatus": "candidate-alignment"
+        },
+        {
+          "code": "4.3.b",
+          "printedPage": 25,
+          "pdfPage": 37,
+          "lessonSequences": [
+            56,
+            57,
+            58,
+            59
+          ],
+          "reviewStatus": "candidate-alignment"
+        },
+        {
+          "code": "4.3.c",
+          "printedPage": 25,
+          "pdfPage": 37,
+          "lessonSequences": [
+            60
+          ],
+          "reviewStatus": "candidate-alignment"
         }
       ]
     },
@@ -556,28 +1211,71 @@
           "title": "Being a responsible class member",
           "objective": "Distinguish helpful and unhelpful school behaviour",
           "activity": "Discuss fictional classroom situations",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "5.1.a"
+          ]
         },
         {
           "sequence": 62,
           "title": "Fairness and honesty",
           "objective": "Choose a fair and honest response to a problem",
           "activity": "Role-play returning a misplaced pencil",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "5.1.a"
+          ]
         },
         {
           "sequence": 63,
           "title": "Responsibility in action",
           "objective": "Demonstrate a helpful classroom responsibility",
           "activity": "Complete a safe shared task",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "5.1.b"
+          ]
         },
         {
           "sequence": 64,
           "title": "Our citizenship pledge",
           "objective": "Explain why respectful conduct benefits others",
           "activity": "Write a personal commitment without public ranking",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "5.1.c"
+          ]
+        }
+      ],
+      "sourceHeading": "Good Citizenship in School",
+      "sourceOutcomeReferences": [
+        {
+          "code": "5.1.a",
+          "printedPage": 28,
+          "pdfPage": 40,
+          "lessonSequences": [
+            61,
+            62
+          ],
+          "reviewStatus": "candidate-alignment"
+        },
+        {
+          "code": "5.1.b",
+          "printedPage": 28,
+          "pdfPage": 40,
+          "lessonSequences": [
+            63
+          ],
+          "reviewStatus": "candidate-alignment"
+        },
+        {
+          "code": "5.1.c",
+          "printedPage": 28,
+          "pdfPage": 40,
+          "lessonSequences": [
+            64
+          ],
+          "reviewStatus": "candidate-alignment"
         }
       ]
     },
@@ -593,28 +1291,71 @@
           "title": "What peaceful school life looks like",
           "objective": "Recognise peaceful behaviour in everyday situations",
           "activity": "Compare two illustrated playground scenes",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "5.2.a"
+          ]
         },
         {
           "sequence": 66,
           "title": "Handling disagreement",
           "objective": "Identify calm words and ways to listen to others",
           "activity": "Practise a fictional disagreement with a partner",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "5.2.b"
+          ]
         },
         {
           "sequence": 67,
           "title": "Getting help when needed",
           "objective": "Choose a safe response to bullying or conflict",
           "activity": "Identify a trusted adult using fictional scenarios",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "5.2.b"
+          ]
         },
         {
           "sequence": 68,
           "title": "Building a peaceful class",
-          "objective": "Suggest and demonstrate a constructive conflict resolution strategy",
-          "activity": "Create a shared classroom agreement",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "objective": "Carry out a peaceful class activity and suggest how to continue it",
+          "activity": "Create a shared peace corner or classroom agreement",
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "5.2.c"
+          ]
+        }
+      ],
+      "sourceHeading": "Peace",
+      "sourceOutcomeReferences": [
+        {
+          "code": "5.2.a",
+          "printedPage": 30,
+          "pdfPage": 42,
+          "lessonSequences": [
+            65
+          ],
+          "reviewStatus": "candidate-alignment"
+        },
+        {
+          "code": "5.2.b",
+          "printedPage": 30,
+          "pdfPage": 42,
+          "lessonSequences": [
+            66,
+            67
+          ],
+          "reviewStatus": "candidate-alignment"
+        },
+        {
+          "code": "5.2.c",
+          "printedPage": 30,
+          "pdfPage": 42,
+          "lessonSequences": [
+            68
+          ],
+          "reviewStatus": "candidate-alignment"
         }
       ]
     },
@@ -627,31 +1368,82 @@
       "lessons": [
         {
           "sequence": 69,
-          "title": "Every child deserves care",
-          "objective": "Recognise basic rights and protective responsibilities",
-          "activity": "Match fictional situations to rights",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "title": "Every child deserves protection",
+          "objective": "Identify different kinds of unsafe treatment using non-graphic fictional situations",
+          "activity": "Match age-appropriate safety scenarios to trusted adult help; never ask for personal disclosures",
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "5.3.a"
+          ]
         },
         {
           "sequence": 70,
-          "title": "Recognising unsafe treatment",
-          "objective": "Identify age-appropriate examples of harmful treatment without graphic descriptions",
-          "activity": "Sort fictional safe and unsafe situations with a teacher",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "title": "Why children can face harm",
+          "objective": "Explain in simple terms how unsafe adult choices, exploitation and harmful social practices can endanger children; children are never to blame",
+          "activity": "Discuss fictional scenarios and practise identifying responsible adults",
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "5.3.b"
+          ]
         },
         {
           "sequence": 71,
           "title": "How harm affects children",
-          "objective": "Explain why neglect, exploitation and other abuse can harm well-being",
+          "objective": "Explain how unsafe treatment may affect a child's health, feelings and education",
           "activity": "Discuss non-graphic fictional examples without asking for disclosures",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "5.3.c"
+          ]
         },
         {
           "sequence": 72,
           "title": "Getting protection and support",
-          "objective": "Choose a safe trusted-adult reporting route and explain why every child deserves protection",
-          "activity": "Practise help-seeking words; never require personal experiences",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "objective": "Describe safe help-seeking and take part in a classroom activity promoting child safety and respectful responsibilities",
+          "activity": "Create a safeguarding poster and practise help-seeking words; include authorised school transport",
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "5.3.d"
+          ]
+        }
+      ],
+      "sourceHeading": "Child Rights",
+      "sourceOutcomeReferences": [
+        {
+          "code": "5.3.a",
+          "printedPage": 32,
+          "pdfPage": 44,
+          "lessonSequences": [
+            69
+          ],
+          "reviewStatus": "candidate-alignment"
+        },
+        {
+          "code": "5.3.b",
+          "printedPage": 32,
+          "pdfPage": 44,
+          "lessonSequences": [
+            70
+          ],
+          "reviewStatus": "candidate-alignment"
+        },
+        {
+          "code": "5.3.c",
+          "printedPage": 32,
+          "pdfPage": 44,
+          "lessonSequences": [
+            71
+          ],
+          "reviewStatus": "candidate-alignment"
+        },
+        {
+          "code": "5.3.d",
+          "printedPage": 32,
+          "pdfPage": 44,
+          "lessonSequences": [
+            72
+          ],
+          "reviewStatus": "candidate-alignment"
         }
       ]
     },
@@ -667,21 +1459,70 @@
           "title": "Having a voice",
           "objective": "Recognise ways pupils can contribute to school decisions",
           "activity": "Discuss fictional class meeting choices",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "5.4.a"
+          ]
         },
         {
           "sequence": 74,
           "title": "Fair decisions",
           "objective": "Explain why listening, equal participation and clear rules matter",
           "activity": "Compare inclusive and unfair decisions",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "5.4.b"
+          ]
         },
         {
           "sequence": 75,
           "title": "A practice election",
           "objective": "Take part in a fictional secret ballot and respect its result",
           "activity": "Choose a class project through a supervised mock vote",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "5.4.c",
+            "5.4.d"
+          ]
+        }
+      ],
+      "sourceHeading": "Democracy in school",
+      "sourceOutcomeReferences": [
+        {
+          "code": "5.4.a",
+          "printedPage": 35,
+          "pdfPage": 47,
+          "lessonSequences": [
+            73
+          ],
+          "reviewStatus": "candidate-alignment"
+        },
+        {
+          "code": "5.4.b",
+          "printedPage": 35,
+          "pdfPage": 47,
+          "lessonSequences": [
+            74
+          ],
+          "reviewStatus": "candidate-alignment"
+        },
+        {
+          "code": "5.4.c",
+          "printedPage": 35,
+          "pdfPage": 47,
+          "lessonSequences": [
+            75
+          ],
+          "reviewStatus": "candidate-alignment"
+        },
+        {
+          "code": "5.4.d",
+          "printedPage": 35,
+          "pdfPage": 47,
+          "lessonSequences": [
+            75
+          ],
+          "reviewStatus": "candidate-alignment"
         }
       ]
     },
@@ -697,28 +1538,81 @@
           "title": "Learner leadership",
           "objective": "Recognise pupil leadership roles in a school",
           "activity": "Match fictional roles to responsibilities",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "5.5.a"
+          ]
         },
         {
           "sequence": 77,
           "title": "Serving other learners",
           "objective": "Describe how learner leaders can represent classmates",
           "activity": "Discuss a fictional class improvement request",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "5.5.b"
+          ]
         },
         {
           "sequence": 78,
           "title": "Organising a learner council",
           "objective": "Represent a suitable school leadership structure",
           "activity": "Create a simple organisation diagram using verified local arrangements",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "5.5.a"
+          ]
         },
         {
           "sequence": 79,
-          "title": "Responsible leadership",
-          "objective": "Demonstrate a respectful leadership response and explain its importance",
-          "activity": "Role-play a council meeting",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "title": "Supporting pupil leadership",
+          "objective": "Take part in a supervised learner-council role play and explain how to support its work respectfully",
+          "activity": "Hold a fictional council meeting with fair turn-taking",
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "5.5.c",
+            "5.5.d"
+          ]
+        }
+      ],
+      "sourceHeading": "Children’s Government in school",
+      "sourceOutcomeReferences": [
+        {
+          "code": "5.5.a",
+          "printedPage": 37,
+          "pdfPage": 49,
+          "lessonSequences": [
+            76,
+            78
+          ],
+          "reviewStatus": "candidate-alignment"
+        },
+        {
+          "code": "5.5.b",
+          "printedPage": 37,
+          "pdfPage": 49,
+          "lessonSequences": [
+            77
+          ],
+          "reviewStatus": "candidate-alignment"
+        },
+        {
+          "code": "5.5.c",
+          "printedPage": 37,
+          "pdfPage": 49,
+          "lessonSequences": [
+            79
+          ],
+          "reviewStatus": "candidate-alignment"
+        },
+        {
+          "code": "5.5.d",
+          "printedPage": 37,
+          "pdfPage": 49,
+          "lessonSequences": [
+            79
+          ],
+          "reviewStatus": "candidate-alignment"
         }
       ]
     },
@@ -732,37 +1626,92 @@
         {
           "sequence": 80,
           "title": "Leaders in the community",
-          "objective": "Identify examples of local leadership roles",
-          "activity": "Use role cards without naming current officeholders",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "objective": "Recognise locally relevant religious, clan and village leadership roles",
+          "activity": "Use checked community-role examples without assuming every community has the same structure",
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "5.6.a"
+          ]
         },
         {
           "sequence": 81,
           "title": "What leaders do",
           "objective": "Explain how local leaders help organise community services",
           "activity": "Match community needs to appropriate roles",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "5.6.b"
+          ]
         },
         {
           "sequence": 82,
           "title": "Qualities of helpful leaders",
           "objective": "Distinguish responsible and unfair leadership choices",
           "activity": "Discuss fictional neighbourhood scenarios",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "5.6.c"
+          ]
         },
         {
           "sequence": 83,
           "title": "Solving a shared problem",
           "objective": "Show how a leader can consult and support others",
           "activity": "Role-play a safe community clean-up planning meeting",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "5.6.c"
+          ]
         },
         {
           "sequence": 84,
           "title": "Community leadership chart",
           "objective": "Explain an appropriate local leadership role and why accountability matters",
           "activity": "Present a checked diagram or short report",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "5.6.d"
+          ]
+        }
+      ],
+      "sourceHeading": "Community Leadership",
+      "sourceOutcomeReferences": [
+        {
+          "code": "5.6.a",
+          "printedPage": 39,
+          "pdfPage": 51,
+          "lessonSequences": [
+            80
+          ],
+          "reviewStatus": "candidate-alignment"
+        },
+        {
+          "code": "5.6.b",
+          "printedPage": 39,
+          "pdfPage": 51,
+          "lessonSequences": [
+            81
+          ],
+          "reviewStatus": "candidate-alignment"
+        },
+        {
+          "code": "5.6.c",
+          "printedPage": 39,
+          "pdfPage": 51,
+          "lessonSequences": [
+            82,
+            83
+          ],
+          "reviewStatus": "candidate-alignment"
+        },
+        {
+          "code": "5.6.d",
+          "printedPage": 39,
+          "pdfPage": 51,
+          "lessonSequences": [
+            84
+          ],
+          "reviewStatus": "candidate-alignment"
         }
       ]
     },
@@ -778,42 +1727,101 @@
           "title": "Why counties have governments",
           "objective": "Explain the purpose of county-level government in everyday life",
           "activity": "Identify familiar county services using checked examples",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "5.7.a"
+          ]
         },
         {
           "sequence": 86,
           "title": "Parts of county government",
           "objective": "Distinguish the county executive and county assembly",
           "activity": "Make a two-part organisation diagram",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "5.7.a"
+          ]
         },
         {
           "sequence": 87,
           "title": "Governor and executive",
           "objective": "Describe the governor's role using an age-appropriate source",
           "activity": "Match fictional service decisions to executive functions",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "5.7.b"
+          ]
         },
         {
           "sequence": 88,
           "title": "County assembly and MCAs",
           "objective": "Describe the role of county assembly members in representation and oversight",
           "activity": "Discuss a fictional ward concern",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "5.7.c"
+          ]
         },
         {
           "sequence": 89,
           "title": "County services and participation",
           "objective": "Explain how residents can respectfully raise a local concern",
           "activity": "Practise a fictional request for a safe public facility",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "5.7.d"
+          ]
         },
         {
           "sequence": 90,
           "title": "County government review",
-          "objective": "Draw the county government structure and explain key roles and services",
-          "activity": "Complete an individual diagram and scenario task",
-          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback."
+          "objective": "Draw the county government structure, explain key responsibilities and describe one benefit to residents",
+          "activity": "Complete an individual diagram and service scenario",
+          "assessment": "Check the learner's completed task against the stated objective; provide specific feedback.",
+          "sourceOutcomeCodes": [
+            "5.7.d"
+          ]
+        }
+      ],
+      "sourceHeading": "The County Governments in Kenya",
+      "sourceOutcomeReferences": [
+        {
+          "code": "5.7.a",
+          "printedPage": 41,
+          "pdfPage": 53,
+          "lessonSequences": [
+            85,
+            86
+          ],
+          "reviewStatus": "candidate-alignment"
+        },
+        {
+          "code": "5.7.b",
+          "printedPage": 41,
+          "pdfPage": 53,
+          "lessonSequences": [
+            87
+          ],
+          "reviewStatus": "candidate-alignment"
+        },
+        {
+          "code": "5.7.c",
+          "printedPage": 41,
+          "pdfPage": 53,
+          "lessonSequences": [
+            88
+          ],
+          "reviewStatus": "candidate-alignment"
+        },
+        {
+          "code": "5.7.d",
+          "printedPage": 41,
+          "pdfPage": 53,
+          "lessonSequences": [
+            89,
+            90
+          ],
+          "reviewStatus": "candidate-alignment"
         }
       ]
     }
