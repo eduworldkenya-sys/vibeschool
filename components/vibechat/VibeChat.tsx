@@ -12,6 +12,7 @@ import VibeChatUsernameSearch from './VibeChatUsernameSearch'
 import VibeChatSchool from './VibeChatSchool'
 import { useVibeChatTyping } from './useVibeChatTyping'
 import { useVibeChatInboxUpdates } from './useVibeChatInboxUpdates'
+import { useVibeChatOutbox } from './useVibeChatOutbox'
 import styles from './VibeChat.module.css'
 
 type Tab = 'chats' | 'contacts' | 'enquiries' | 'notices' | 'school'
@@ -89,7 +90,7 @@ export default function VibeChat() {
       const { data: auth, error: authError } = await db.auth.getUser()
       if (authError) throw authError
       const user = auth.user
-      if (!user) { setSignedIn(false); setChats([]); setNotices([]); return }
+      if (!user) { setUid('');setSignedIn(false);setChats([]);setNotices([]);setMessages([]);return }
       setUid(user.id)
       setSignedIn(true)
 
@@ -332,30 +333,29 @@ export default function VibeChat() {
     } finally { setSafetyBusy(false) }
   }
 
+  const outbox=useVibeChatOutbox(uid,item=>{
+    if(item.owner!==uid)return
+    const chat=chats.find(c=>c.key===item.kind+':'+item.room)
+    if(chat&&selectedRef.current===chat.key)void loadMessages(chat,uid)
+    void load(true)
+  })
+  const pending=selected?outbox.items.filter(item=>item.room===selected.id&&item.kind===(selected.kind==='school'?'vc':'tuition')):[]
+
   async function sendMessage(event: React.FormEvent) {
     event.preventDefault()
     if (!selected || !uid || !safety || safety.blocked || sending || !body.trim() || body.trim().length > 1500) return
     setSending(true)
     sendTyping(false)
     setMessageError('')
-    const text = body.trim()
-    const db = getSupabaseClient()
     try {
-      if (selected.kind === 'tuition') {
-        const { error: rpcError } = await db.rpc('vibetutor_send_lesson_message', { p_invitation:selected.id, p_body:text })
-        if (rpcError) throw rpcError
-      } else {
-        const { error: insertError } = await db.from('vc_messages').insert({
-          thread_id:selected.id, school_id:selected.schoolId, sender_id:uid, body:text,
-        })
-        if (insertError) throw insertError
-        // Inbox metadata is derived from committed messages on the server.
+      if(!outbox.enqueue(selected.kind==='school'?'vc':'tuition',selected.id,body)){
+        setMessageError('Could not queue this message. Your draft is preserved.')
+        return
       }
-      if(selectedRef.current===selected.key) {setBody('');await loadMessages(selected, uid)}
-      void load(true)
-    } catch {
-      setMessageError('Message not sent. Please retry.')
-    } finally { setSending(false) }
+      setBody('')
+    }catch{
+      setMessageError('Could not queue this message. Your draft is preserved.')
+    }finally{setSending(false)}
   }
 
   async function acknowledge(notice: Notice) {
@@ -449,11 +449,21 @@ export default function VibeChat() {
             </div>
             <div className={styles.messages} aria-live="polite" aria-relevant="additions text">
               {messagesLoading&&<p className={styles.empty} role="status">Loading messages…</p>}
-              {!messagesLoading&&messages.length===0&&<p className={styles.empty}>No messages yet. Start the conversation.</p>}
+              {!messagesLoading&&messages.length===0&&pending.length===0&&<p className={styles.empty}>No messages yet. Start the conversation.</p>}
               {messages.map(m=><div key={m.id} className={styles.bubble+(m.mine?' '+styles.mine:'')}>
                 {m.body}<time className={styles.time} dateTime={m.created_at}>{stamp(m.created_at)}{m.mine && <span className={styles.receipt}> · {selected.peerReadAt && Date.parse(selected.peerReadAt)>=Date.parse(m.created_at)?'Read':selected.peerDeliveredAt && Date.parse(selected.peerDeliveredAt)>=Date.parse(m.created_at)?'Delivered':'Sent'}</span>}</time>
               </div>)}
+              {pending.map(item=><div key={item.id} className={styles.bubble+' '+styles.mine}>
+                {item.body}
+                <time className={styles.time} dateTime={new Date(item.createdAt).toISOString()}>{stamp(new Date(item.createdAt).toISOString())} · {item.failed?'Needs attention':!outbox.online?'Queued offline':item.attempts>0?'Retrying…':'Sending…'}</time>
+                {item.failed&&<div className={styles.actionRow}>
+                  <button type="button" className={styles.back} disabled={!safety||safety.blocked} onClick={()=>outbox.retry(item.id)}>Retry</button>
+                  <button type="button" className={styles.back} onClick={()=>outbox.discard(item.id)}>Remove</button>
+                </div>}
+              </div>)}
             </div>
+            {!outbox.online&&<p className={styles.subtitle} role="status">Offline · messages will send when you reconnect.</p>}
+            {!outbox.storageAvailable&&pending.length>0&&<p className={styles.error} role="alert">Messages are queued in memory only. Keep this tab open until they send.</p>}
             {otherTyping && !safety?.blocked && <p className={styles.typing} role="status" aria-live="polite"><span className={styles.typingDots} aria-hidden="true">● ● ●</span> Typing…</p>}
             {reportOpen && <div className={styles.actionRow}>
               <label htmlFor="vc-report-reason" className={styles.subtitle}>Why are you reporting this conversation?</label>
