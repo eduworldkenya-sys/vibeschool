@@ -30,3 +30,21 @@ export function decodeSlide(body:string):PublishedSlide|null {
  }catch{return null}
 }
 export function diagramLabel(d:SlideDiagram){return d==='none'?'Text only':d.replaceAll('-',' ').replace(/^./,s=>s.toUpperCase())}
+
+/** Find a publishable neighbour without exposing unsaved or invalid content.
+ * Empty draft placeholders are skipped, but the published numbering is retained.
+ * A changed deck must be explicitly presented again before navigation resumes.
+ */
+export function adjacentSlide(deck: readonly LiveSlide[], current: PublishedSlide, direction: -1 | 1): number | null {
+ if(deck.length!==current.total || current.number<1 || current.number>deck.length)return null
+ const active=deck[current.number-1]
+ if(!active)return null
+ const encoded=encodeSlide(active,current.number,deck.length)
+ if(!encoded)return null
+ const canonical=decodeSlide(encoded)
+ if(!canonical || JSON.stringify(canonical)!==JSON.stringify(current))return null
+ for(let i=current.number-1+direction;i>=0&&i<deck.length;i+=direction){
+  if(encodeSlide(deck[i],i+1,deck.length))return i
+ }
+ return null
+}
