@@ -33,7 +33,8 @@ type Chat = {
   updated: string | null
   schoolId: string | null
 }
-type Message = { id: string; body: string; mine: boolean; created_at: string }
+type Message = { id: string; body: string; mine: boolean; created_at: string; deleted_at?: string | null; edited_at?: string | null; reply_to_id?: string | null; reply_excerpt?: string | null; reactions?: {reaction:string;mine:boolean}[] }
+const reactionLabels:Record<string,string>={like:'👍',love:'❤️',laugh:'😂',wow:'😮',thanks:'🙏'}
 type Notice = { id: string; recipientId: string; title: string; body: string; sentAt: string; requiresAck: boolean; acked: boolean }
 type TutorInvite = { id: string; status: string; student?: string | null; tutor?: string | null }
 type SchoolThread = { id: string; school_id: string | null; type: string; subject: string | null; context_tag: string | null; last_message_at: string | null; last_message_preview: string | null; created_at: string | null }
@@ -59,6 +60,11 @@ export default function VibeChat() {
   const [active, setActive] = useState<string | null>(requestedChat)
   const [messages, setMessages] = useState<Message[]>([])
   const [body, setBody] = useState('')
+  const [reply,setReply]=useState<{room:string;message:Message}|null>(null)
+  const [edit,setEdit]=useState<{room:string;message:Message;body:string}|null>(null)
+  const [messageMenu,setMessageMenu]=useState<string|null>(null)
+  const [deleteTarget,setDeleteTarget]=useState<{room:string;message:Message}|null>(null)
+  const [changing,setChanging]=useState(false)
   const [search, setSearch] = useState('')
   const [chatFilter, setChatFilter] = useState<'all' | 'school' | 'tuition'>('all')
   const [moreOpen, setMoreOpen] = useState(false)
@@ -223,7 +229,10 @@ export default function VibeChat() {
     const read=++messageReadRef.current
     try {
       let rows: Message[]
-      if (chat.kind === 'tuition') {
+      const rich=await db.rpc('vibechat_rich_messages',{p_kind:chat.kind==='school'?'vc':'tuition',p_room:chat.id})
+      if(!rich.error && Array.isArray(rich.data)) rows=rich.data
+      else if(rich.error && rich.error.code!=='PGRST202' && rich.error.code!=='42883') throw rich.error
+      else if (chat.kind === 'tuition') {
         const { data, error: rpcError } = await db.rpc('vibetutor_my_lesson_messages', { p_invitation: chat.id })
         if (rpcError) throw rpcError
         rows = ((Array.isArray(data) ? data : []) as Message[]).map(m => ({
@@ -240,7 +249,7 @@ export default function VibeChat() {
       if (selectedRef.current !== chat.key || read!==messageReadRef.current) return
       setMessages(rows)
       setMessageError('')
-      const incoming=[...rows].reverse().find(message=>!message.mine)
+      const incoming=[...rows].reverse().find(message=>!message.mine&&!message.deleted_at)
       if(incoming){
         const visible=document.visibilityState==='visible' && document.hasFocus()
         const receipt=await db.rpc('vibechat_ack_message',{p_kind:chat.kind==='school'?'vc':'tuition',p_room:chat.id,p_message:incoming.id,p_read:visible})
@@ -339,6 +348,9 @@ export default function VibeChat() {
     if(chat&&selectedRef.current===chat.key)void loadMessages(chat,uid)
     void load(true)
   })
+  const replyMessage=reply?.room===selected?.key?reply.message:null
+  const editing=edit?.room===selected?.key?edit:null
+  const deleting=deleteTarget?.room===selected?.key?deleteTarget:null
   const pending=selected?outbox.items.filter(item=>item.room===selected.id&&item.kind===(selected.kind==='school'?'vc':'tuition')):[]
 
   async function sendMessage(event: React.FormEvent) {
@@ -348,14 +360,35 @@ export default function VibeChat() {
     sendTyping(false)
     setMessageError('')
     try {
-      if(!outbox.enqueue(selected.kind==='school'?'vc':'tuition',selected.id,body)){
+      if(!outbox.enqueue(selected.kind==='school'?'vc':'tuition',selected.id,body,replyMessage?.id??null)){
         setMessageError('Could not queue this message. Your draft is preserved.')
         return
       }
       setBody('')
+      setReply(null)
     }catch{
       setMessageError('Could not queue this message. Your draft is preserved.')
     }finally{setSending(false)}
+  }
+
+  async function changeMessage(message:Message,action:'edit'|'delete'|'react',value:string|null=null){
+    if(!selected||!uid||!safety||safety.blocked||changing||message.deleted_at)return
+    if((action==='edit'||action==='delete')&&!message.mine)return
+    const chat=selected
+    setChanging(true)
+    setMessageError('')
+    try{
+      const {data,error}=await getSupabaseClient().rpc('vibechat_change_message',{p_kind:chat.kind==='school'?'vc':'tuition',p_room:chat.id,p_message:message.id,p_action:action,p_value:value})
+      if(error||!data)throw error
+      if(selectedRef.current===chat.key){
+        setEdit(null);setDeleteTarget(null);setMessageMenu(null)
+        if(action==='delete')setReply(previous=>previous?.message.id===message.id?null:previous)
+        await loadMessages(chat,uid)
+      }
+      void load(true)
+    }catch{
+      if(selectedRef.current===chat.key)setMessageError('Could not update this message. It may no longer be available.')
+    }finally{setChanging(false)}
   }
 
   async function acknowledge(notice: Notice) {
@@ -451,10 +484,22 @@ export default function VibeChat() {
               {messagesLoading&&<p className={styles.empty} role="status">Loading messages…</p>}
               {!messagesLoading&&messages.length===0&&pending.length===0&&<p className={styles.empty}>No messages yet. Start the conversation.</p>}
               {messages.map(m=><div key={m.id} className={styles.bubble+(m.mine?' '+styles.mine:'')}>
-                {m.body}<time className={styles.time} dateTime={m.created_at}>{stamp(m.created_at)}{m.mine && <span className={styles.receipt}> · {selected.peerReadAt && Date.parse(selected.peerReadAt)>=Date.parse(m.created_at)?'Read':selected.peerDeliveredAt && Date.parse(selected.peerDeliveredAt)>=Date.parse(m.created_at)?'Delivered':'Sent'}</span>}</time>
+                {m.reply_excerpt&&!m.deleted_at&&<div className={styles.replyQuote}>{m.reply_excerpt}</div>}
+                <span className={m.deleted_at?styles.deletedMessage:undefined}>{m.body}</span>
+                <time className={styles.time} dateTime={m.created_at}>{stamp(m.created_at)}{m.edited_at&&!m.deleted_at?' · Edited':''}{m.mine&&!m.deleted_at && <span className={styles.receipt}> · {selected.peerReadAt && Date.parse(selected.peerReadAt)>=Date.parse(m.created_at)?'Read':selected.peerDeliveredAt && Date.parse(selected.peerDeliveredAt)>=Date.parse(m.created_at)?'Delivered':'Sent'}</span>}</time>
+                {!m.deleted_at&&<>
+                  {!!m.reactions?.length&&<div className={styles.reactions}>{m.reactions.map((rx,i)=><button key={i} type="button" aria-label={rx.mine?'Remove '+rx.reaction:rx.reaction} disabled={!rx.mine||!safety||safety.blocked||changing} onClick={()=>void changeMessage(m,'react',null)}>{reactionLabels[rx.reaction]??rx.reaction}</button>)}</div>}
+                  {safety&&!safety.blocked&&<button type="button" className={styles.messageOptions} aria-expanded={messageMenu===m.id} aria-label="Message actions" onClick={()=>setMessageMenu(previous=>previous===m.id?null:m.id)}><MoreVertical size={16}/></button>}
+                  {messageMenu===m.id&&safety&&!safety.blocked&&<div className={styles.messageActions}>
+                    <button type="button" onClick={()=>{setReply({room:selected.key,message:m});setMessageMenu(null);setEdit(null)}}>Reply</button>
+                    {m.mine&&Date.now()-Date.parse(m.created_at)<15*60*1000&&<button type="button" onClick={()=>{setEdit({room:selected.key,message:m,body:m.body});setMessageMenu(null)}}>Edit</button>}
+                    {m.mine&&<button type="button" onClick={()=>{setDeleteTarget({room:selected.key,message:m});setMessageMenu(null)}}>Delete</button>}
+                    <div className={styles.reactions}>{Object.entries(reactionLabels).map(([key,label])=><button type="button" key={key} aria-label={'React '+key} disabled={changing} aria-pressed={m.reactions?.some(rx=>rx.mine&&rx.reaction===key)??false} onClick={()=>void changeMessage(m,'react',m.reactions?.some(rx=>rx.mine&&rx.reaction===key)?null:key)}>{label}</button>)}</div>
+                  </div>}
+                </>}
               </div>)}
               {pending.map(item=><div key={item.id} className={styles.bubble+' '+styles.mine}>
-                {item.body}
+                {item.replyTo&&<div className={styles.replyQuote}>Reply</div>}{item.body}
                 <time className={styles.time} dateTime={new Date(item.createdAt).toISOString()}>{stamp(new Date(item.createdAt).toISOString())} · {item.failed?'Needs attention':!outbox.online?'Queued offline':item.attempts>0?'Retrying…':'Sending…'}</time>
                 {item.failed&&<div className={styles.actionRow}>
                   <button type="button" className={styles.back} disabled={!safety||safety.blocked} onClick={()=>outbox.retry(item.id)}>Retry</button>
@@ -480,6 +525,12 @@ export default function VibeChat() {
             {!safety && <p role="status" className={styles.subtitle}>Checking messaging permissions…</p>}
             {safetyError && <p role="status" className={styles.error}>{safetyError}</p>}
             {messageError && <p className={styles.error} role="alert">{messageError}</p>}
+            {deleting&&<div className={styles.actionPanel} role="alert">Delete this message for everyone? <button type="button" disabled={changing} onClick={()=>void changeMessage(deleting.message,'delete')}>Delete</button><button type="button" onClick={()=>setDeleteTarget(null)}>Cancel</button></div>}
+            {editing&&<form className={styles.actionPanel} onSubmit={e=>{e.preventDefault();void changeMessage(editing.message,'edit',editing.body)}}>
+              <label htmlFor="vc-edit">Edit message</label><textarea id="vc-edit" value={editing.body} maxLength={1500} onChange={e=>setEdit(previous=>previous?{...previous,body:e.target.value}:previous)}/>
+              <button type="submit" disabled={changing||!editing.body.trim()||!safety||safety.blocked}>Save</button><button type="button" onClick={()=>setEdit(null)}>Cancel</button>
+            </form>}
+            {replyMessage&&<div className={styles.replyQuote}>Replying to: {replyMessage.body}<button type="button" onClick={()=>setReply(null)} aria-label="Cancel reply">×</button></div>}
             <form className={styles.compose} onSubmit={e=>void sendMessage(e)}>
               <label htmlFor="vc-message" className="sr-only">Message</label>
               <textarea id="vc-message" value={body} maxLength={1500} rows={2}
