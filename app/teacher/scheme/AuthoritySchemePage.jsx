@@ -1252,7 +1252,7 @@ function Inner({ curriculumView = false }) {
     if(!selectedClass||!selectedSubject||!selectedTermId||!weeks.some(w=>w.week_number===selectedWeek)||!subStrandId||(!isGrade5CRE&&!isGrade4SocialStudies&&!outcomeIds?.length))return
     setSavingGrade4CreCa(true);setError(null)
     try{
-      const rpc = isGrade4SocialStudies ? 'commit_grade4_social_studies_scheme_unit' : isGrade5CRE ? 'commit_grade5_cre_scheme_unit' : 'commit_grade4_cre_ca_scheme_lesson'
+      const rpc = isGrade5CRE ? 'commit_grade5_cre_scheme_unit' : isGrade4SocialStudies ? 'commit_grade4_social_studies_scheme_unit' : 'commit_grade4_cre_ca_scheme_lesson'
       const result=await supabase.rpc(rpc,{
         p_class_id:selectedClass,p_subject_id:selectedSubject,
         p_academic_term_id:selectedTermId,p_week:selectedWeek,
@@ -1379,7 +1379,7 @@ function Inner({ curriculumView = false }) {
       error={annualCalendarError||mappedCatalogError}
     />}
     {(isGrade4CRE || isGrade5CRE || isGrade4CreativeArts || isGrade4SocialStudies) && <Grade4CreCaMap
-      kind={isGrade4SocialStudies ? 'social' : isGrade5CRE ? 'grade5cre' : isGrade4CRE ? 'cre' : 'arts'}
+      kind={isGrade5CRE ? 'grade5cre' : isGrade4CRE ? 'cre' : isGrade4SocialStudies ? 'social' : 'arts'}
       subjectId={selectedSubject}
       selectedUnitId={initial.current.unitId}
       mode={curriculumView ? 'curriculum' : 'scheme'}
