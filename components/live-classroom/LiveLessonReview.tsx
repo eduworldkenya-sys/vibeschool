@@ -21,11 +21,12 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 /** Review-only bridge: never interprets Live joins as official attendance or
  * learner responses as scored mastery. Formal completion stays in Lesson Notes. */
 export default function LiveLessonReview({
-  roomId, roomStatus, preparedPlanId, classId, savedPlans, onSelectPlan,
+  roomId, roomStatus, preparedPlanId, selectedPlanId, classId, savedPlans, onSelectPlan,
 }: {
   roomId: string
   roomStatus: 'active' | 'paused' | 'ended'
   preparedPlanId: string | null
+  selectedPlanId: string | null
   classId: string
   savedPlans: Array<{id:string;title:string}>
   onSelectPlan: (id:string)=>void
@@ -71,12 +72,15 @@ export default function LiveLessonReview({
     setError('')
     const action = preparedPlanId ? 'bind' : 'review'
     void request(action).then(result => {
-      if (!cancelled) setReview(result)
+      if (!cancelled) {
+        setReview(result)
+        if (result.lessonPlanId && !selectedPlanId) onSelectPlan(result.lessonPlanId)
+      }
     }).catch(cause => {
       if (!cancelled) setError(cause instanceof Error ? cause.message : 'Could not link Live Lesson.')
     })
     return () => { cancelled = true }
-  }, [request, roomStatus, retry])
+  }, [request, roomStatus, retry, selectedPlanId, onSelectPlan])
 
   async function saveEvidence() {
     if (roomStatus !== 'ended' || !review?.lessonPlanId || saving) return
