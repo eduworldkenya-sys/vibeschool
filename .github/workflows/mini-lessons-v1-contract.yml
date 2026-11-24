@@ -6,6 +6,8 @@ on:
     paths:
       - 'app/explore/**'
       - 'app/api/hq/minis/**'
+      - 'app/api/minis/**'
+      - 'components/hq/HQShell.tsx'
       - 'app/hq/minis/**'
       - 'app/student/explore/page.tsx'
       - 'components/public/MiniLive*'
@@ -13,7 +15,9 @@ on:
       - 'lib/minis/**'
       - 'supabase/migrations/*mini_lessons*.sql'
       - 'supabase/migrations/*mini_lesson_requests*.sql'
+      - 'supabase/migrations/*mini_open_creator*.sql'
       - 'scripts/test-mini-requests-contract.mjs'
+      - 'scripts/test-mini-open-publishing-contract.mjs'
       - 'scripts/test-mini-lessons-contract.mjs'
       - '.github/workflows/mini-lessons-v1-contract.yml'
 
@@ -34,3 +38,4 @@ jobs:
       - run: npm ci
       - run: node --import ./scripts/register-typescript.mjs scripts/test-mini-lessons-contract.mjs
       - run: node scripts/test-mini-requests-contract.mjs
+      - run: node --test scripts/test-mini-open-publishing-contract.mjs

@@ -63,3 +63,15 @@
 @media(max-width:680px){.learningGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.learningTile{min-height:108px}.moreNav{grid-template-columns:repeat(2,minmax(0,1fr))}.resumeContent{padding:18px}.topBar{gap:8px}}
 @media(max-width:380px){.findLink{padding:8px 10px;font-size:11px}.heading{gap:7px}.grade{padding-left:7px;font-size:10px}.learningTile{padding:12px}.creativeLinks a{padding:9px 10px;font-size:11px}}
 @media(prefers-reduced-motion:reduce){.learningTile{transition:none}}
+
+/* Personal Learn and the public catalogue share the same subject-first journey. */
+.subjectSection{display:grid;gap:12px;min-width:0}
+.subjectHead{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.subjectHead a{display:inline-flex;align-items:center;gap:4px;min-height:40px;color:var(--vs-accent);font-size:12px;font-weight:800;text-decoration:none}
+.subjectGrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}
+.subjectTile{min-width:0;min-height:109px;padding:13px 9px;display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between;gap:14px;border:1px solid var(--vs-border);background:var(--vs-card);border-radius:11px;color:var(--vs-text);font-size:12px;font-weight:780;text-decoration:none;overflow-wrap:anywhere}
+.subjectTileIcon{display:grid;place-items:center;width:40px;height:40px;background:var(--vs-accent-soft);color:var(--vs-accent);border-radius:10px}
+.subjectTile:hover,.subjectTile:focus-visible,.chooseGrade:hover,.chooseGrade:focus-visible{border-color:var(--vs-accent);background:var(--vs-accent-soft)}
+.chooseGrade{display:flex;align-items:center;justify-content:space-between;min-height:49px;padding:12px;border:1px solid var(--vs-border);border-radius:10px;background:var(--vs-card);color:var(--vs-text);font-size:13px;font-weight:750;text-decoration:none}
+@media(max-width:680px){.subjectGrid{grid-template-columns:repeat(3,minmax(0,1fr))}.subjectTile{min-height:100px;padding:11px 8px;font-size:11px}}
+@media(max-width:340px){.subjectGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}

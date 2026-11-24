@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { currentMiniUser } from '@/lib/minis/actions'
 import { fetchMiniRequestAnswers, loadMiniCovers, type MiniPost } from '@/lib/minis/data'
 import { changeRequestSupport, fetchMiniRequests, fetchMiniRequestSupports,
-  fetchMyMiniRequests, submitMiniRequest, type MiniPublicRequest, type MiniOwnRequest } from '@/lib/minis/requests'
+  fetchMyMiniRequests, submitMiniRequest, reportMiniRequest, type MiniPublicRequest, type MiniOwnRequest } from '@/lib/minis/requests'
 import styles from './MiniExplore.module.css'
 
 type Props = {
@@ -24,6 +24,7 @@ export function MiniLiveRequests({ mode='feed', query='', onBack, onExplain }: P
   const [tags,setTags] = useState('')
   const [viewer,setViewer] = useState<string|null>(null)
   const [busy,setBusy] = useState(false)
+  const [reportReason,setReportReason] = useState<'unsafe'|'spam'|'harassment'|'personal_information'|'other'>('unsafe')
   const [error,setError] = useState('')
   const [notice,setNotice] = useState('')
   const [loading,setLoading] = useState(true)
@@ -63,6 +64,18 @@ export function MiniLiveRequests({ mode='feed', query='', onBack, onExplain }: P
       setCovers(await loadMiniCovers(list))
     }catch{setError('Explanations are temporarily unavailable.')}
   }
+  async function report(request:MiniPublicRequest){
+    if(!viewer){window.location.assign('/login?redirect=%2Fexplore');return}
+    if(busy)return
+    setBusy(true);setError('')
+    try{
+      await reportMiniRequest(request.id,reportReason)
+      setNotice('Report received. Unsafe requests can be hidden automatically after independent reports.')
+      setSelected(null)
+      await refresh()
+    }catch(e){setError(e instanceof Error?e.message:'Unable to report request.')}
+    finally{setBusy(false)}
+  }
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if(busy)return
@@ -71,8 +84,8 @@ export function MiniLiveRequests({ mode='feed', query='', onBack, onExplain }: P
     try {
       await submitMiniRequest(question,tags)
       setQuestion('');setTags('')
-      setNotice('Request submitted for review. It will appear publicly only after moderation.')
-      setNotice('Request submitted privately for review. It is not yet public.')
+      setNotice('Your request is public after passing an automatic safety check. No HQ approval needed.')
+      await refresh()
     }catch(e){setError(e instanceof Error?e.message:'Unable to submit request.')}
     finally{setBusy(false)}
   }
@@ -98,10 +111,10 @@ export function MiniLiveRequests({ mode='feed', query='', onBack, onExplain }: P
       <input id="mini-request-tags" className={styles.field} required maxLength={160} value={tags}
         onChange={event=>setTags(event.target.value)} placeholder="#Mathematics #Grade9"/>
       <button type="submit" className={styles.primary} disabled={busy||question.trim().length<12||!tags.trim()}>
-        {busy?'Submitting…':'Submit request for review'}</button>
+        {busy?'Checking safety…':'Post request'}</button>
     </form>
     {(error||notice)&&<p role={error?'alert':'status'} className={styles.formNote}>{error||notice}</p>}
-    <p className={styles.previewNote}>Never include your name, phone number, contacts or school identity. Requests are reviewed before public discovery.</p>
+    <p className={styles.previewNote}>Never include your name, phone number, contacts or school identity. Requests pass an automatic safety check before public discovery.</p>
   </section>
 
   if(mine) return <section className={styles.requestDetail}>
@@ -109,7 +122,7 @@ export function MiniLiveRequests({ mode='feed', query='', onBack, onExplain }: P
     <h2>My requests</h2>
     {mine.length?mine.map(p=><div key={p.id} className={styles.comment}>
       <strong>{p.question}</strong>
-      <span>{p.status==='approved'?'Public':p.status==='pending'?'Awaiting review':p.status} · {p.explanations} approved explanations</span>
+      <span>{p.status==='approved'?'Public':p.status==='pending'?'Safety check pending':p.status} · {p.explanations} approved explanations</span>
     </div>):<p>No requests yet.</p>}
     {error&&<p role="alert">{error}</p>}
   </section>
@@ -123,6 +136,17 @@ export function MiniLiveRequests({ mode='feed', query='', onBack, onExplain }: P
       <button type="button" disabled={busy} aria-pressed={supports.has(selected.id)} onClick={()=>void support(selected)}>
         {supports.has(selected.id)?'✓ Me too':'+ Me too'}</button>
       <button type="button" className={styles.primary} onClick={()=>onExplain(selected)}>Explain this</button>
+    </div>
+    <div className={styles.requestActions}>
+      <label htmlFor="mini-request-report-reason">Report this request</label>
+      <select id="mini-request-report-reason" className={styles.field}
+        value={reportReason} onChange={event=>setReportReason(event.target.value as typeof reportReason)}>
+        <option value="unsafe">Unsafe</option><option value="spam">Spam</option>
+        <option value="harassment">Harassment</option>
+        <option value="personal_information">Personal information</option>
+        <option value="other">Other</option>
+      </select>
+      <button type="button" disabled={busy} onClick={()=>void report(selected)}>Report request</button>
     </div>
     <h3>{answers.length} {answers.length===1?'explanation':'explanations'}</h3>
     {answers.map(post=><article key={post.id} className={styles.localReply}>
