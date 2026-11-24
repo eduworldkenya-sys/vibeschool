@@ -19,6 +19,7 @@ import { LiveClassChat } from './LiveClassChat'
 import { LiveVoice } from './LiveVoice'
 import { LiveReadingSurface } from './LiveReadingSurface'
 import { teacherLivePlan } from '@/lib/live/lessonPlanPresentation'
+import { validLessonId } from '@/lib/teaching/liveLessonLinks'
 import LiveLessonReview from './LiveLessonReview'
 import TeachingKit from '@/components/teacher/TeachingKit'
 import { liveAnswerChoices, addWorkToPrivateNotes } from '@/lib/live/learnerActivity'
@@ -223,6 +224,10 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
   const preparedDeck=useRef<{title:string;slides:LiveSlide[]}|null>(null)
   const [preparedTitle,setPreparedTitle]=useState('')
   const [linkedPlan,setLinkedPlan]=useState<{id:string;schemeId:string|null;title:string;steps:LessonDeliveryStep[]}|null>(null)
+  const [selectedPlanId,setSelectedPlanId]=useState<string|null>(null)
+  const [savedPlans,setSavedPlans]=useState<{id:string;title:string}[]>([])
+  const [plansError,setPlansError]=useState('')
+  const [plansLoading,setPlansLoading]=useState(false)
   const [linkedPlanError,setLinkedPlanError]=useState('')
   const [planPhase,setPlanPhase]=useState(0)
   const [workspaceRevision,setWorkspaceRevision]=useState<number|null>(null)
@@ -510,12 +515,43 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
       if(channel)void supabase.removeChannel(channel)
     }
   },[room?.id,room?.status,refresh])
-  // A saved Lesson Plan is guidance for the authenticated teacher only.
-  // Never send the plan body or private assessment to the learner-facing RPC.
+  // Teacher-only plan picker. Live guests cannot select or read private
+  // Lesson Plans. A plan is never published simply because it is selected.
   useEffect(()=>{
     if(!teacher||!classId)return
-    const planId=new URLSearchParams(window.location.search).get('lessonPlanId')
-    if(!planId||!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(planId))return
+    setSelectedPlanId(new URLSearchParams(window.location.search).get('lessonPlanId')??'')
+  },[teacher,classId])
+  useEffect(()=>{
+    if(!teacher||!classId)return
+    let cancelled=false
+    const load=async()=>{
+      setPlansLoading(true);setPlansError('')
+      try{
+        const auth=await supabase.auth.getUser()
+        if(auth.error||!auth.data.user)throw Error('Sign in to view saved lessons.')
+        const result=await supabase.from('lesson_plans')
+          .select('id,title,topic,created_at')
+          .eq('teacher_id',auth.data.user.id).eq('class_id',classId)
+          .order('created_at',{ascending:false}).limit(24)
+        if(result.error)throw result.error
+        if(!cancelled)setSavedPlans((result.data??[])
+          .filter((item:{id:string})=>validLessonId(item.id))
+          .map((item:{id:string;topic?:string|null;title?:string|null})=>({id:item.id,title:String(item.topic||item.title||'Untitled lesson').slice(0,120)})))
+      }catch{
+        if(!cancelled){setSavedPlans([]);setPlansError('Saved Lesson Plans are unavailable. You can still teach without linking a plan.')}
+      }finally{if(!cancelled)setPlansLoading(false)}
+    }
+    void load()
+    return()=>{cancelled=true}
+  },[teacher,classId])
+  // Saved plan content stays private to the teacher; only approved resources
+  // are explicitly published through the existing Live command.
+  useEffect(()=>{
+    if(!teacher||!classId||selectedPlanId===null)return
+    setLinkedPlan(null);setLinkedPlanError('');setPlanPhase(0)
+    if(!selectedPlanId)return
+    if(!validLessonId(selectedPlanId)){setLinkedPlanError('Invalid lesson link. Choose a saved Lesson Plan.');return}
+    const planId=selectedPlanId
     let cancelled=false
     const load=async()=>{
       try{
@@ -533,12 +569,12 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
         const topic=String(result.data.topic||'Lesson Plan').trim().slice(0,120)||'Lesson Plan'
         setLinkedPlan({id:result.data.id,schemeId:result.data.scheme_id??null,title:topic,steps:projection.steps})
         setLinkedPlanError('');setPlanPhase(0)
-        if(!active.current)setTitle(previous=>previous||topic)
+        if(!active.current)setTitle(topic)
       }catch(e){if(!cancelled)setLinkedPlanError(e instanceof Error?e.message:'Could not read the saved Lesson Plan.')}
     }
     void load()
     return()=>{cancelled=true}
-  },[teacher,classId])
+  },[teacher,classId,selectedPlanId])
   useEffect(()=>{
     if(!teacher||room?.mode!=='open'||!room.id)return
     let cancelled=false
@@ -587,8 +623,23 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
         if(latest.status!=='active'||!latest.teacher)throw new Error('The lesson is no longer active.')
         next=await call('publish',room.id,latest.version,requestPayload) as Room
       }
+      // Bind a selected saved plan before presenting the newly created
+      // room as ready. Recovery/re-entry remains idempotent via the same RPC.
+      // A failed bind must never be reported as a successfully linked lesson.
+      let startLinkFailure=''
+      if(action==='start'&&next.mode==='school'&&selectedPlanId&&linkedPlan?.id===selectedPlanId){
+        const suppliedOccurrence=new URLSearchParams(window.location.search).get('occurrenceId')
+        const {error:bindError}=await supabase.rpc('vibe_live_lesson_bridge',{
+          p_action:'bind',
+          p_session_id:next.id,
+          p_lesson_plan_id:linkedPlan.id,
+          p_occurrence_id:validLessonId(suppliedOccurrence)?suppliedOccurrence:null,
+        })
+        if(bindError)startLinkFailure='Live started, but the Lesson Plan link could not be saved. '+(bindError.message||'Retry from lesson review.')
+      }
       if(!mounted.current||generation.current!==stamp)return
       accept(next)
+      if(startLinkFailure)setLinkedPlanError(startLinkFailure)
       if(action==='publish'){
         pendingPublish.current=null;setReviewId(null)
         if(panel==='compose'){delete composerDrafts.current[mode];setBody('');setKey('')}
@@ -909,7 +960,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
   if(immersive&&room){
     const stage=<main ref={immersiveRef} tabIndex={-1} className={styles.immersive} role="dialog" aria-modal="true" aria-label="Live classroom" onKeyDown={e=>{if(e.key==='Escape'){if(panel)setPanel(null);else if(focusMode)toggleFocus()}if(e.key==='Tab'&&immersiveRef.current){const controls=Array.from(immersiveRef.current.querySelectorAll<HTMLElement>('button:not(:disabled),a[href],input:not(:disabled),textarea:not(:disabled),select:not(:disabled)')).filter(el=>el.offsetParent!==null);const first=controls[0],last=controls[controls.length-1];if(first&&last){if(e.shiftKey&&(document.activeElement===first||document.activeElement===immersiveRef.current)){e.preventDefault();last.focus()}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}}}}}>
     <header className={styles.liveTop}><button type="button" onClick={leave} disabled={busy} aria-label="Leave classroom"><X size={19}/></button><div className={styles.liveTitle}><strong>{room.title}</strong><small><span className={styles.liveDot} data-paused={room.status==='paused'}/>{!online||error?<WifiOff size={13} aria-hidden="true"/>:<Wifi size={13} aria-hidden="true"/>}{room.status==='active'?'LIVE':'PAUSED'} · {classroomLabels[room.mode]} · {!online?'Offline':error?'Reconnecting':lastSync?'Connected':'Syncing'}</small></div><div className={styles.headerActions}><button type="button" aria-label={focusMode?'Exit full screen':'Full screen'} aria-pressed={focusMode} onClick={toggleFocus}>{focusMode?<Minimize size={20}/>:<Maximize size={20}/>}</button>{focusMode&&<button type="button" aria-label={focusDock?'Hide classroom controls':'Show classroom controls'} aria-pressed={focusDock} onClick={()=>setFocusDock(v=>!v)}><MoreHorizontal size={20}/></button>}</div><div className={styles.voiceSlot}><LiveVoice key={room.id} enabled={process.env.NEXT_PUBLIC_VIBE_LIVE_VOICE_ENABLED==='true'} roomId={room.id} classId={classId} teacher={teacher} status={room.status} learners={participants} onAcknowledge={async studentId=>{const next=await call('ack',room.id,null,{studentId}) as Room;accept(next)}}/></div></header>
-    {teacher&&room.mode==='school'&&<LiveLessonReview roomId={room.id} roomStatus={room.status} preparedPlanId={linkedPlan?.id??null}/>}
+    {teacher&&room.mode==='school'&&<LiveLessonReview roomId={room.id} roomStatus={room.status} preparedPlanId={linkedPlan?.id??null} selectedPlanId={selectedPlanId} classId={classId??''} savedPlans={savedPlans} onSelectPlan={setSelectedPlanId}/>}
     {error&&<div role="alert" className={styles.liveAlert}>{error} <button onClick={()=>void refresh()}>Retry</button></div>}
     {draftWarning&&teacher&&<div role="status" className={styles.liveAlert}>Local recovery unavailable. Shared pages are saved on the server.</div>}
     {teacher&&linkedPlanError&&<div role="alert" className={styles.liveAlert}>{linkedPlanError}</div>}
@@ -1055,12 +1106,27 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
     {loading&&!room&&<p role="status">Connecting…</p>}
     {!room&&!loading&&<section className={styles.panel}>
       {teacher&&<><button type="button" aria-expanded={beforeLibrary} onClick={()=>setBeforeLibrary(v=>!v)}>My presentations</button>{beforeLibrary&&<TeachingLibrary command={call} currentDeck={null} onUse={useMaterial}/>} {preparedTitle&&<p>Ready for next lesson: {preparedTitle} <button type="button" onClick={()=>{preparedDeck.current=null;setPreparedTitle('')}}>Remove</button></p>}</>}
+      {teacher&&classId&&<section aria-label="Prepare Live Lesson" style={{padding:'12px 0',display:'grid',gap:6}}>
+        <label>Saved Lesson Plan
+          <select aria-label="Saved Lesson Plan" value={selectedPlanId??''}
+            onChange={e=>setSelectedPlanId(e.target.value)} disabled={busy||plansLoading}>
+            <option value="">Teach without a saved plan</option>
+            {savedPlans.map(p=><option key={p.id} value={p.id}>{p.title}</option>)}
+            {selectedPlanId&&validLessonId(selectedPlanId)&&!savedPlans.some(p=>p.id===selectedPlanId)&&
+              <option value={selectedPlanId}>Linked Lesson Plan</option>}
+          </select>
+        </label>
+        {plansLoading&&<small>Loading saved plans…</small>}
+        {plansError&&<small role="status">{plansError}</small>}
+        {linkedPlanError&&<small role="alert">{linkedPlanError}</small>}
+        {linkedPlan&&<small>Private teacher plan ready · {linkedPlan.steps.length} teaching phases</small>}
+      </section>}
       {teacher&&<form onSubmit={e=>{e.preventDefault();void act('start',null,{title:hostMode==='open'?`${publicGrade} · ${publicSubject} · ${title.trim()}`:title,mode:hostMode,groupId:classId||hostMode!=='tuition'?null:groupId||null})}}>
         {!classId&&hostModes.length>1&&<div className={styles.controls} aria-label="Classroom type">{hostModes.map(item=><button type="button" key={item} aria-pressed={hostMode===item} onClick={()=>{setHostMode(item);setGroupId('')}}>{classroomLabels[item]}</button>)}</div>}
         {!classId&&hostMode==='tuition'&&<label>Learners<select value={groupId} onChange={e=>setGroupId(e.target.value)}><option value="">All connected learners</option>{groups.map(g=><option key={g.id} value={g.id}>{g.title}</option>)}</select></label>}
         {hostMode==='open'&&<><div className={styles.controls}><label>Grade<select value={publicGrade} onChange={e=>setPublicGrade(e.target.value)}>{grades.map(g=><option key={g} value={g}>{g}</option>)}</select></label><label>Subject<select value={publicSubject} onChange={e=>setPublicSubject(e.target.value)}>{subjects.map(g=><option key={g} value={g}>{g}</option>)}</select></label></div><small>Visible to eligible VibeSchool learners. You approve each request before they enter.</small></>}
         <label>Lesson title<input required maxLength={hostMode==='open'?80:120} value={title} onChange={e=>setTitle(e.target.value)} placeholder={hostMode==='open'?'Lesson topic':'Grade 4 · Mathematics'}/></label>
-        <button className={styles.primary} disabled={busy||!title.trim()}>Go Live</button>
+        <button className={styles.primary} disabled={busy||!title.trim()||!!selectedPlanId&&linkedPlan?.id!==selectedPlanId}>Go Live</button>
       </form>}
       {!teacher&&<div className={styles.controls}>
         <label>Find live lessons<input type="search" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search lessons or teachers"/></label>
@@ -1089,6 +1155,9 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
         </button>)}</div>}
       </section>}
     </section>}
+    {teacher&&room?.status==='ended'&&room.mode==='school'&&
+      <LiveLessonReview roomId={room.id} roomStatus={room.status}
+        preparedPlanId={linkedPlan?.id??null} selectedPlanId={selectedPlanId} classId={classId??''} savedPlans={savedPlans} onSelectPlan={setSelectedPlanId}/>}
     {room?.status==='ended'&&<section className={styles.panel}><h2>{room.title}</h2><p>This session has ended.</p><LessonNavigation items={history} reviewId={reviewId} onReview={setReviewId} ended/>
        <section aria-label="Saved teaching materials" className={styles.savedMaterials}><strong>Lesson materials</strong><p>Review the pages, diagrams and board work your teacher presented. Access still follows your current class or tuition permission.</p>
        <div className={styles.savedMaterialList}>{history.filter(item=>item.kind==='teach'||item.kind==='board').map(item=><button type="button" key={item.id} aria-pressed={viewedPrompt?.id===item.id} onClick={()=>setReviewId(item.id)}>{item.kind==='board'?'Shared whiteboard':decodeLiveFileRef(item.body)?'Shared PDF or photo':decodeSlide(item.body)?.title??item.body.split('\n')[0]?.slice(0,85)??'Lesson page'}</button>)}</div>
