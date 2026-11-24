@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Stage only the certified VibeChat account search and realtime migration set."""
+"""Stage only the certified VibeChat integrated text messaging migration set."""
 import argparse
 import subprocess
 import importlib.util
@@ -18,7 +18,12 @@ TARGETS = {
     "20261123110000_unified_identity_authority_hardening.sql": "6178e10bc86f627c3e510416a812f3a34f63c351",
     "20261124075100_vibechat_username_search.sql": "6a0ece2aaeefcf1158490033ec522904183d944c",
     "20261124235000_vibechat_discovery_identity_repair.sql": "db5b8b3dc349f083f7dea750adea04c4c57c7ec2",
-    "20261124235100_vibechat_realtime_receipts.sql": "d9ea8a072b640024eb3a478ab82465598f654979"
+    "20261124235100_vibechat_realtime_receipts.sql": "d9ea8a072b640024eb3a478ab82465598f654979",
+    "20261124235200_vibechat_idempotent_send.sql": "76ea6b6f0818fd3c251a3beabd541f6d8202dc71",
+    "20261124235300_vibechat_rich_messages.sql": "417b15b5360e2cce33c7418f67cb97f1f50994d7",
+    "20261124235400_vibechat_conversation_tools.sql": "e0a6ae49991d8919b1edf558ccfe5d1fd07c2cae",
+    "20261124235500_vibechat_web_push.sql": "adc9eacd8a58695efcb6e034917f6d29c5964326",
+    "20261124235600_vibechat_groups.sql": "0443dbcce0e70b05a14b2b50002cd44fad1531f3"
 }
 VERSIONS = {filename.split("_", 1)[0] for filename in TARGETS}
 MIGRATIONS = Path("supabase/migrations")
