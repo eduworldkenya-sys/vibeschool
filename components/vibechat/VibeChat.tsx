@@ -8,6 +8,7 @@ import { getSupabaseClient } from '@/lib/supabase'
 import Enquiries from './Enquiries'
 import VibeChatAvatar from './VibeChatAvatar'
 import VibeChatContacts from './VibeChatContacts'
+import VibeChatUsernameSearch from './VibeChatUsernameSearch'
 import VibeChatSchool from './VibeChatSchool'
 import { useVibeChatTyping } from './useVibeChatTyping'
 import styles from './VibeChat.module.css'
@@ -19,6 +20,8 @@ type Chat = {
   kind: 'school' | 'tuition'
   title: string
   avatarUrl: string | null
+  handle?: string | null
+  unread?: boolean
   detail: string
   preview: string
   updated: string | null
@@ -90,7 +93,7 @@ export default function VibeChat() {
         db.rpc('vibechat_my_chat_peers'),
         db.rpc('vibechat_my_tuition_peers'),
       ])
-      setRole(profile.data?.role ?? '')
+      setRole(profile.error || !profile.data?.role ? '' : profile.data.role)
       setSchoolMessagingAvailable(Boolean(profile.data?.school_id || schoolMember.data?.[0]?.school_id || teacherProfile.data?.school_id))
       if (participantResult.error) throw participantResult.error
 
@@ -111,6 +114,8 @@ export default function VibeChat() {
           key: 'vc:' + t.id, id: t.id, kind: 'school' as const,
           title: peerMap.get(t.id)?.name ?? t.subject ?? 'School conversation',
           avatarUrl: peerMap.get(t.id)?.avatar_url ?? null,
+          handle: peerMap.get(t.id)?.handle ?? null,
+          unread: Boolean(t.last_message_at && t.last_message_at > (participantResult.data?.find(p=>p.thread_id===t.id)?.last_read_at ?? '')),
           detail: t.context_tag === 'general' ? 'School message' : 'School · ' + (t.context_tag ?? 'message'),
           preview: t.last_message_preview ?? '', updated: t.last_message_at ?? t.created_at,
           schoolId: t.school_id,
@@ -134,6 +139,7 @@ export default function VibeChat() {
         key: 'tuition:' + item.id, id: item.id, kind: 'tuition' as const,
         title: tuitionPeerMap.get(item.id)?.name ?? item.tutor ?? item.student ?? 'Private tutor',
         avatarUrl: tuitionPeerMap.get(item.id)?.avatar_url ?? null,
+        handle: tuitionPeerMap.get(item.id)?.handle ?? null,
         detail: 'Approved private tuition', preview: '',
         updated: null, schoolId: null,
       }))
@@ -303,7 +309,7 @@ export default function VibeChat() {
     setAcking(null)
   }
 
-  const filtered = useMemo(() => chats.filter(chat => (chatFilter === 'all' || chat.kind === chatFilter) && (chat.title + ' ' + chat.detail).toLowerCase().includes(search.toLowerCase())), [chats,search,chatFilter])
+  const filtered = useMemo(() => chats.filter(chat => (chatFilter === 'all' || chat.kind === chatFilter) && (chat.title + ' ' + chat.detail + ' ' + (chat.handle ?? '')).toLowerCase().includes(search.trim().toLowerCase().replace(/^@/, ''))), [chats,search,chatFilter])
 
   return <main className={styles.shell}>
     <div className={styles.main}>
@@ -343,10 +349,11 @@ export default function VibeChat() {
       {signedIn && tab==='chats' && <section className={styles.layout} aria-label="VibeChat conversations">
         <aside className={styles.sidebar}>
           <div className={styles.searchRow}>
-            <input className={styles.search} type="search" aria-label="Search conversations"
-              placeholder="Search chats" value={search} onChange={e=>setSearch(e.target.value)} />
-            <button type="button" className={styles.newChat} aria-label="Find a contact" title="New conversation" onClick={()=>setTab('contacts')}><SquarePen size={19} aria-hidden/></button>
+            <input className={styles.search} type="search" aria-label="Search chats or username"
+              placeholder="Search chats or username" value={search} onChange={e=>setSearch(e.target.value)} />
+            <button type="button" className={styles.newChat} aria-label="Find a contact" title="New conversation" onClick={()=>{setActive(null);setTab('contacts')}}><SquarePen size={19} aria-hidden/></button>
           </div>
+          <VibeChatUsernameSearch query={search} role={role} onOpenThread={threadId=>{setSearch('');setActive('vc:'+threadId);void load()}} />
           <div className={styles.filters} aria-label="Conversation filters">
             {(['all','school','tuition'] as const).map(filter=><button type="button" key={filter}
               aria-pressed={chatFilter===filter} className={styles.filter + (chatFilter===filter?' '+styles.filterActive:'')}
@@ -358,11 +365,11 @@ export default function VibeChat() {
             {role==='admin'&&<Link className={styles.back} href="/admin/communication">Manage school notices</Link>}
           </div>
           {loading?<p className={styles.empty} role="status">Loading conversations…</p>:
-            filtered.length === 0 ? <div className={styles.empty}>No conversations match. Start a chat from Contacts.</div> :
+            filtered.length === 0 ? <div className={styles.empty}>{search.trim() ? 'No matching conversations' : 'No conversations yet'}</div> :
             filtered.map(chat => <button type="button" className={styles.thread + (active===chat.key?' '+styles.selected:'')}
               key={chat.key} onClick={()=>{setActive(chat.key);setBody('')}} aria-pressed={active===chat.key}>
               <VibeChatAvatar name={chat.title} avatarUrl={chat.avatarUrl}/>
-              <span className={styles.threadText}><span className={styles.threadTop}><strong>{chat.title}</strong><time className={styles.threadDate}>{stamp(chat.updated)}</time></span>
+              <span className={styles.threadText}><span className={styles.threadTop}><strong>{chat.title}{chat.unread && <span className={styles.unreadDot} aria-label="Unread messages"/>}</strong><time className={styles.threadDate}>{stamp(chat.updated)}</time></span>
                 <small>{chat.preview || chat.detail}</small><span className={styles.channel}>{chat.kind==='tuition'?'Tuition':'School'}</span>
               </span>
             </button>)
@@ -415,10 +422,11 @@ export default function VibeChat() {
       </section>}
       {signedIn&&tab==='school'&&role==='teacher'&&<VibeChatSchool onOpenThread={threadId=>{
         setTab('chats')
+        setSearch('')
         setActive('vc:' + threadId)
         void load()
       }}/>}
-      {signedIn&&tab==='contacts'&&<VibeChatContacts role={role} onOpenThread={threadId=>{
+      {signedIn&&tab==='contacts'&&<VibeChatContacts role={role} initialQuery={search} onOpenThread={threadId=>{
         setTab('chats')
         setActive('vc:' + threadId)
         void load()
