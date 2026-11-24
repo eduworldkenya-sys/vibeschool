@@ -9,10 +9,10 @@ type Material={id:string;title:string;revision:number;slideCount:number}
 type Feedback={kind:'quiz'|'poll';selected:number;correct?:boolean;correctOption?:number;explanation?:string}
 type Study={id:string;title:string;slides:LiveSlide[];page:number;visited:number[];answers:Record<string,Feedback>}
 type Props={classId:string|null;teacher:boolean;mode?:'school'|'tuition'|'homeschool'|'open';groupId?:string|null}
-async function command(action:string,classId:string|null,id:string|null=null,payload:Record<string,unknown>={}){
+async function command(action:string,classId:string|null,id:string|null=null,payload:Record<string,unknown>={}):Promise<unknown>{
  const {data,error}=await supabase.rpc('vibe_live_study_command',{p_action:action,p_class:classId,p_id:id,p_payload:payload})
  if(error)throw Error(error.message)
- return data as unknown
+ return data
 }
 function parseStudy(data:unknown):Study{
  const v=data as Study
