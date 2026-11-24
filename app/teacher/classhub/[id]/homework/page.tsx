@@ -7,6 +7,7 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { nairobiDateStr } from "@/lib/time";
 import { isLearnerAssignedHomework } from "@/lib/homework/eligibility";
+import {liveHomeworkDraft,validLiveHomeworkRoom} from "@/lib/live/homeworkHandoff";
 
 type Context = {
   teacher_id: string;
@@ -82,6 +83,7 @@ function HomeworkInner() {
   const sourceGroupId = search.get("groupId")?.trim() || null;
   const sourceStudentId = search.get("studentId")?.trim() || null;
   const lessonLinked = Boolean(sourceLessonPlanId || sourceOccurrenceId);
+  const liveRoomId=search.get('liveRoomId')?.trim()||null;
 
   const [context, setContext] = useState<Context | null>(null);
   const [lessonContext, setLessonContext] = useState<LessonContext | null>(null);
@@ -95,7 +97,7 @@ function HomeworkInner() {
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [draftReady, setDraftReady] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<{ title?: string; dueDate?: string }>({});
-  const [showForm, setShowForm] = useState(lessonLinked || Boolean(sourceGroupId) || Boolean(sourceStudentId));
+  const [showForm, setShowForm] = useState(lessonLinked || Boolean(sourceGroupId) || Boolean(sourceStudentId) || Boolean(liveRoomId));
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -109,9 +111,22 @@ function HomeworkInner() {
       ?? null,
     [classId, context, sourceSubjectId],
   );
-  const storageKey = useMemo(() => draftKey(classId, context?.school_id ?? null, sourceOccurrenceId, sourceGroupId, sourceStudentId), [classId, context?.school_id, sourceGroupId, sourceOccurrenceId, sourceStudentId]);
+  const storageKey = useMemo(() => draftKey(classId, context?.school_id ?? null, sourceOccurrenceId, sourceGroupId, sourceStudentId)+(liveRoomId?':live:'+liveRoomId:''), [classId, context?.school_id, sourceGroupId, sourceOccurrenceId, sourceStudentId,liveRoomId]);
   const authoritativeSubject = lessonLinked ? (lessonContext?.subject || sourceSubjectName || assignment?.subject_name || "") : form.subject;
   const minimumDueDate = lessonContext?.occurrenceDate && lessonContext.occurrenceDate > nairobiDateStr() ? lessonContext.occurrenceDate : nairobiDateStr();
+
+  const readLiveDraft=useCallback(async()=>{
+    if(!liveRoomId)return null;
+    if(!validLiveHomeworkRoom(liveRoomId))throw new Error('Invalid source Live lesson.');
+    const {data,error}=await supabase.rpc('vibe_live_command',{p_action:'get',p_class_id:classId,p_session_id:liveRoomId,p_version:null,p_payload:{host:true}});
+    if(error)throw new Error('This Live lesson is no longer available in your teaching class.');
+    const draft=liveHomeworkDraft(data,liveRoomId);
+    const bridge=await supabase.rpc('vibe_live_lesson_bridge',{p_action:'review',p_session_id:liveRoomId,p_lesson_plan_id:null,p_occurrence_id:null});
+    if(bridge.error||!bridge.data||typeof bridge.data!=='object')throw new Error('Could not verify the source lesson.');
+    const row=bridge.data as unknown as {lessonPlanId:string|null;occurrenceId:string|null};
+    if(row.lessonPlanId!==sourceLessonPlanId||row.occurrenceId!==sourceOccurrenceId)throw new Error('The Live lesson link has changed. Reopen homework from the ended Live lesson.');
+    return draft;
+  },[classId,liveRoomId,sourceLessonPlanId,sourceOccurrenceId]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -131,6 +146,7 @@ function HomeworkInner() {
         return;
       }
       setContext(ctx);
+      const liveDraft=await readLiveDraft();
 
       const [homeworkRes, rosterRes, groupsRes] = await Promise.all([
         supabase.from("homework").select("id,title,subject,instructions,due_date,type,created_at,lesson_plan_id,teaching_occurrence_id,target_group_id,homework_submissions(id,student_id)").eq("school_id", ctx.school_id).eq("class_id", classId).eq("teacher_id", auth.user.id).order("created_at", { ascending: false }),
@@ -203,14 +219,14 @@ function HomeworkInner() {
         setLessonContext(resolvedLesson);
       }
 
-      const key = draftKey(classId, ctx.school_id, sourceOccurrenceId, sourceGroupId, sourceStudentId);
+      const key = draftKey(classId, ctx.school_id, sourceOccurrenceId, sourceGroupId, sourceStudentId)+(liveRoomId?':live:'+liveRoomId:'');
       const recipientSelection = sourceStudentId ? { audience: "learners" as const, groupId: "", studentIds: [sourceStudentId] } : sourceGroupId ? { audience: "group" as const, groupId: sourceGroupId } : {};
       const savedDraft = readDraft(key);
       const defaultSubject = resolvedLesson?.subject || sourceSubjectName || ctx.classes.find((item) => item.class_id === classId && (!sourceSubjectId || item.subject_id === sourceSubjectId))?.subject_name || "";
       if (savedDraft) {
         setForm({ ...EMPTY_FORM, ...savedDraft, subject: lessonLinked ? defaultSubject : savedDraft.subject, ...recipientSelection });
       } else {
-        setForm({ ...EMPTY_FORM, ...recipientSelection, subject: defaultSubject, title: lessonLinked && sourceTopic ? `${sourceTopic} Homework` : "" });
+        setForm({ ...EMPTY_FORM, ...recipientSelection, subject: defaultSubject, title: liveDraft?.title ?? (lessonLinked && sourceTopic ? `${sourceTopic} Homework` : ""), instructions:liveDraft?.instructions??"" });
       }
       setDraftReady(true);
     } catch (loadError) {
@@ -219,7 +235,7 @@ function HomeworkInner() {
     } finally {
       setLoading(false);
     }
-  }, [classId, lessonLinked, router, sourceGroupId, sourceStudentId, sourceLessonPlanId, sourceOccurrenceId, sourceSubjectId, sourceSubjectName, sourceTopic]);
+  }, [classId, lessonLinked, router, sourceGroupId, sourceStudentId, sourceLessonPlanId, sourceOccurrenceId, sourceSubjectId, sourceSubjectName, sourceTopic,liveRoomId,readLiveDraft]);
 
   useEffect(() => { void load(); }, [load]);
   useEffect(() => { if (draftReady && showForm && context?.school_id) writeDraft(storageKey, { ...form, subject: lessonLinked ? authoritativeSubject : form.subject }); }, [authoritativeSubject, context?.school_id, draftReady, form, lessonLinked, showForm, storageKey]);
@@ -270,6 +286,7 @@ function HomeworkInner() {
         if (!occurrence || (sourceSubjectId && occurrence.subject_id !== sourceSubjectId)) throw new Error("The source teaching occurrence no longer matches this class and subject.");
       }
 
+      if(liveRoomId)await readLiveDraft();
       let publishGroupId = activeGroupId;
       if (!sourceGroupId && form.audience === "learners") {
         if (!selectedGroupRequestId.current) selectedGroupRequestId.current = crypto.randomUUID();
@@ -353,6 +370,7 @@ function HomeworkInner() {
 
       {showForm && <section style={{ background: "#fff", color: "var(--teacher-ink, #1c2923)", borderRadius: 18, padding: 15, marginBottom: 12, boxShadow: "0 2px 14px rgba(0,0,0,.05)" }}>
         {targetGroup && <div style={{ background: "#ecfdf5", color: "#065f46", borderRadius: 12, padding: 11, marginBottom: 13, fontSize: 12 }}><strong>Targeted group:</strong> {targetGroup.name} · {targetGroup.memberCount} learners. Learners outside this saved assignment cohort will not receive this work.</div>}
+        {liveRoomId&&<p role="status">From the ended Live lesson. Review the selected questions, choose a due date and audience before publishing.</p>}
         {lessonLinked && <div style={{ background: "#eff6ff", color: "#1e40af", borderRadius: 12, padding: 11, marginBottom: 13, fontSize: 12, lineHeight: 1.45 }}>
           <strong style={{ display: "block", marginBottom: 2 }}>Linked lesson</strong>
           <span>{authoritativeSubject || "Subject"} · {classLabel}{lessonContext?.occurrenceDate ? ` · ${lessonContext.occurrenceDate}` : ""}{lessonTime ? ` · ${lessonTime}` : ""}</span>
