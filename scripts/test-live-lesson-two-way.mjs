@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs'
 import { lessonToLiveHref, liveToLessonHref, validLessonId } from '../lib/teaching/liveLessonLinks.ts'
 
 const read = path=>readFileSync(new URL('../'+path,import.meta.url),'utf8')
-const migration=read('supabase/migrations/20261124070000_live_plan_history_read.sql')
+const migration=read('supabase/migrations/20261124143449_live_plan_history_read.sql')
 const classroom=read('components/live-classroom/LiveClassroom.tsx')
 const review=read('components/live-classroom/LiveLessonReview.tsx')
 const history=read('components/teacher/LiveLessonHistory.tsx')
