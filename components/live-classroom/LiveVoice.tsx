@@ -385,13 +385,13 @@ function DailyLiveVoice({roomId,classId,teacher,enabled,status,learners,onAcknow
   </section>
 }
 
-// Try VibeMesh first. The authenticated database admits only provisioned pilot seats.
+// Live audio defaults to VibeMesh. Daily can be restored explicitly.
 export function LiveVoice(props:Props) {
   const [usingDaily, setUsingDaily] = useState(false)
-  const useMesh = props.enabled && !usingDaily
-    && process.env.NEXT_PUBLIC_VIBE_LIVE_MESH_PILOT_ENABLED !== 'false'
+  const dailyEnabled = process.env.NEXT_PUBLIC_VIBE_LIVE_DAILY_ENABLED === 'true'
+  const meshEnabled = props.enabled && process.env.NEXT_PUBLIC_VIBE_LIVE_MESH_PILOT_ENABLED !== 'false'
+  if (dailyEnabled && (usingDaily || !meshEnabled)) return <DailyLiveVoice {...props} />
 
-  return useMesh
-    ? <MeshLiveVoice {...props} onFallback={() => setUsingDaily(true)} />
-    : <DailyLiveVoice {...props} />
+  return <MeshLiveVoice {...props} enabled={meshEnabled}
+    onFallback={dailyEnabled ? () => setUsingDaily(true) : undefined} />
 }
