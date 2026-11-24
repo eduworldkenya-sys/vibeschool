@@ -63,7 +63,7 @@ export async function fetchMiniPage({ search = '', tag = 'All', offset = 0, crea
 } = {}): Promise<{ posts: MiniPost[]; nextOffset: number | null }> {
   if (creators && !creators.length) return { posts: [], nextOffset: null }
   // Only allow ordinary search characters in the PostgREST OR expression.
-  const term = search.normalize('NFKC').replace(/[^\p{L}\p{N}\s_-]/gu, ' ').replace(/\s+/g, ' ').trim().slice(0, 80)
+  const term = search.normalize('NFKC').replace(new RegExp('[^\\p{L}\\p{N}\\s_-]', 'gu'), ' ').replace(/\s+/g, ' ').trim().slice(0, 80)
   const exactTag = search.trim().replace(/^#/, '').toLowerCase()
   let query = supabase.from('mini_lessons')
     .select('id,creator_id,creator_label,title,body,subject,tags,quiz_question,quiz_options,quiz_correct,quiz_explanation,cover_path,status,request_id,quality_score,like_count,save_count,learned_count,published_at,created_at')
