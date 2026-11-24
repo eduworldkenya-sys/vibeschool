@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase'
 import type { MiniPost } from './data'
+import {parseMiniDeck,miniDeckText,type MiniSlideEntry} from './slides'
 import { miniSubjectFromTags, parseMiniHashtags } from './tags'
 
 export async function currentMiniUser(): Promise<string | null> {
@@ -40,12 +41,13 @@ export async function miniIsVerifiedAdult(userId: string): Promise<boolean> {
 }
 
 export async function submitMini({
-  title, body, hashtags, photo, userId, challenge, requestId,
+  title, body, hashtags, photo, slides, userId, challenge, requestId,
 }: {
   title: string
   body: string
   hashtags: string
-  photo: File
+  photo?: File
+  slides?: MiniSlideEntry[]
   userId: string
   requestId?: string | null
   challenge?: { question: string; options: string[]; correct: number; explanation: string } | null
@@ -66,8 +68,12 @@ export async function submitMini({
     correct === null || !Number.isInteger(correct) || correct<0 || correct>=options.length ||
     !explanation || explanation.length<10 || explanation.length>500))
     throw Error('Complete the quick question, answer choices and explanation.')
-  const ext = ({ 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' } as Record<string,string>)[photo.type]
-  if (!ext || photo.size > 5 * 1024 * 1024 || photo.size < 100)
+  const deck=slides===undefined?null:parseMiniDeck(slides)
+  if(slides!==undefined&&!deck)throw Error('Invalid slides.')
+  if(Boolean(photo)===Boolean(deck))throw Error('Choose photo or slides.')
+  if(deck&&[cleanTitle,cleanBody,...tags,question??'',...options,explanation??'',miniDeckText(deck)].join('\n').length>5000)throw Error('Shorten the presentation or description.')
+  const ext = ({ 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' } as Record<string,string>)[photo?.type??'']
+  if (photo && (!ext || photo.size > 5 * 1024 * 1024 || photo.size < 100))
     throw Error('Choose a JPG, PNG or WebP photo under 5 MB.')
 
   const verified = await currentMiniUser()
@@ -78,17 +84,15 @@ export async function submitMini({
   if (eligibilityError || canSubmit !== true)
     throw Error('Public creators need an opted-in profile and independent age eligibility. Check your public profile settings.')
 
-  const coverPath = userId + '/' + crypto.randomUUID() + '.' + ext
-  const { error: uploadError } = await supabase.storage.from('mini-covers')
-    .upload(coverPath, photo, { contentType: photo.type, cacheControl: '3600', upsert: false })
-  if (uploadError) throw Error('Unable to upload this image. Please try again.')
+  const coverPath=photo?userId+'/'+crypto.randomUUID()+'.'+ext:null
+  if(photo&&coverPath){const {error}=await supabase.storage.from('mini-covers').upload(coverPath,photo,{contentType:photo.type,cacheControl:'3600',upsert:false});if(error)throw Error('Unable to upload image.') }
 
   const { data: submitted, error: publishError } = await supabase.from('mini_lessons')
-    .insert({ creator_id: userId, title: cleanTitle, body: cleanBody, subject, tags, quiz_question:question, quiz_options:options, quiz_correct:correct, quiz_explanation:explanation, cover_path: coverPath, status: 'pending', request_id: requestId ?? null })
+    .insert({ creator_id: userId, title: cleanTitle, body: cleanBody, subject, tags, quiz_question:question, quiz_options:options, quiz_correct:correct, quiz_explanation:explanation, cover_path: coverPath, ...(slides?{slide_deck:slides}:{}), status: 'pending', request_id: requestId ?? null })
     .select('id').single()
   if (publishError || !submitted?.id) {
     // Best-effort rollback of an unused, private file; the DB stays fail-closed.
-    await supabase.storage.from('mini-covers').remove([coverPath])
+    if(coverPath)await supabase.storage.from('mini-covers').remove([coverPath])
     throw Error('The Mini could not be submitted. Your profile may need additional verification.')
   }
   try {await publishMiniSafely('mini',submitted.id as string)}

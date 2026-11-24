@@ -1,4 +1,5 @@
 import 'server-only'
+import {parseMiniDeck,miniDeckText} from '@/lib/minis/slides'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 
@@ -10,7 +11,7 @@ const NO_STORE = { 'Cache-Control':'private, no-store', 'X-Content-Type-Options'
 type Target = 'mini' | 'request' | 'comment'
 type SafetyVerdict = { safe: boolean; reason: string }
 type PendingItem = { id:string; status:string; creator_id?:string; requester_id?:string; author_id?:string;
-  updated_at?:string; title?:string; body?:string; question?:string; cover_path?:string|null; tags?:string[]; request_id?:string|null;
+  slide_deck?:unknown; updated_at?:string; title?:string; body?:string; question?:string; cover_path?:string|null; tags?:string[]; request_id?:string|null;
   quiz_question?:string|null; quiz_options?:string[]; quiz_explanation?:string|null }
 const tables:Record<Target,string> = { mini:'mini_lessons', request:'mini_requests',comment:'mini_comments' }
 const owners:Record<Target,string> = { mini:'creator_id', request:'requester_id',comment:'author_id' }
@@ -146,8 +147,7 @@ export async function POST(request:NextRequest) {
     if(target==='mini'){
       const {data:eligible,error:eligibleError}=await db.rpc('mini_creator_can_submit',{p_user:actor})
       if(eligibleError||eligible!==true)return approved({error:'Public creator eligibility is required.'},403)
-      if(!item.cover_path||!item.cover_path.startsWith(actor+'/'))
-        return approved({error:'A private cover photo is required.'},422)
+      if(item.slide_deck!=null){if(item.cover_path||!parseMiniDeck(item.slide_deck))return approved({error:'Invalid slides.'},422)}else if(!item.cover_path||!item.cover_path.startsWith(actor+'/'))return approved({error:'A private cover photo is required.'},422)
       if(item.request_id){
         const {data:valid}=await db.rpc('mini_request_available',{p_request:item.request_id})
         if(valid!==true)return approved({error:'The linked student request is unavailable.'},422)
@@ -174,7 +174,9 @@ export async function POST(request:NextRequest) {
         photo={data:bytes.toString('base64'),mimeType:download.type}
       }
       const body=target==='request'?item.question??'':item.body??''
-      const text=[body,...(item.tags??[]),item.quiz_question??'',...(item.quiz_options??[]),item.quiz_explanation??''].join('\n')
+      const deck=target==='mini'&&item.slide_deck!=null?parseMiniDeck(item.slide_deck):null
+      if(target==='mini'&&item.slide_deck!=null&&!deck)throw Error('Invalid slides.')
+      const text=[body,...(item.tags??[]),item.quiz_question??'',...(item.quiz_options??[]),item.quiz_explanation??'',...(deck?[miniDeckText(deck)]:[])].join('\n')
       verdict=await moderate({target,title:item.title??'',body:text,photo})
     }catch {
       await db.from('mini_safety_scans').update({

@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import {MiniSlideCover} from './MiniSlideDeck'
 import { useEffect, useState } from 'react'
 import { fetchApprovedMinis, loadMiniCovers, type MiniPost } from '@/lib/minis/data'
 import { miniPublicPath } from '@/lib/minis/public-url'
@@ -38,7 +39,7 @@ export function MiniLiveHome() {
       : items.length ? <div className={styles.homeGrid}>
         {items.map(post=><Link key={post.id} href={miniPublicPath(post.id)}
           className={styles.miniCard}>
-          {covers[post.id] ? <img className={styles.art} style={{width:'100%',objectFit:'cover'}}
+          {post.slide_deck!=null?<MiniSlideCover value={post.slide_deck}/>:covers[post.id] ? <img className={styles.art} style={{width:'100%',objectFit:'cover'}}
             src={covers[post.id]} alt={'Photo for '+post.title}/>
           : <div className={styles.art+' '+styles.literatureArt} aria-hidden="true"/>}
           <div className={styles.miniCardBody}>
