@@ -39,6 +39,13 @@ function readSession(key:string):Session|null {
   } catch { return null }
 }
 export default function TopicPracticePage() {
+  const { identity, loading } = useStudent()
+  // A persisted session belongs to one learner and grade, never a previous account.
+  const learnerKey = JSON.stringify([loading, identity?.studentId ?? null, identity?.className ?? null])
+  return <TopicPracticeSession key={learnerKey} />
+}
+
+function TopicPracticeSession() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const requestedSubject = searchParams.get('subject')?.trim().toLowerCase() ?? ''

@@ -10,7 +10,7 @@ const NO_STORE = { 'Cache-Control':'private, no-store', 'X-Content-Type-Options'
 type Target = 'mini' | 'request' | 'comment'
 type SafetyVerdict = { safe: boolean; reason: string }
 type PendingItem = { id:string; status:string; creator_id?:string; requester_id?:string; author_id?:string;
-  title?:string; body?:string; question?:string; cover_path?:string|null; tags?:string[]; request_id?:string|null;
+  updated_at?:string; title?:string; body?:string; question?:string; cover_path?:string|null; tags?:string[]; request_id?:string|null;
   quiz_question?:string|null; quiz_options?:string[]; quiz_explanation?:string|null }
 const tables:Record<Target,string> = { mini:'mini_lessons', request:'mini_requests',comment:'mini_comments' }
 const owners:Record<Target,string> = { mini:'creator_id', request:'requester_id',comment:'author_id' }
@@ -148,6 +148,9 @@ export async function POST(request:NextRequest) {
         if(valid!==true)return approved({error:'The linked student request is unavailable.'},422)
       }
     }
+    // Missing configuration is not a failed creator attempt.
+    if(!process.env.MINI_GOOGLE_SAFETY_API_KEY?.trim())return approved({error:'Automatic safety checks are not configured. Your submission remains private.'},503)
+    if(target==='mini'&&!item.updated_at)return approved({error:'Cannot verify the submission version.'},503)
     const {data:claimed,error:claimError}=await db.rpc('mini_safety_claim',{
       p_target:target,p_id:id,p_owner:actor,
     })
@@ -166,7 +169,7 @@ export async function POST(request:NextRequest) {
         photo={data:bytes.toString('base64'),mimeType:download.type}
       }
       const body=target==='request'?item.question??'':item.body??''
-      const text=[body,item.quiz_question??'',...(item.quiz_options??[]),item.quiz_explanation??''].join('\n')
+      const text=[body,...(item.tags??[]),item.quiz_question??'',...(item.quiz_options??[]),item.quiz_explanation??''].join('\n')
       verdict=await moderate({target,title:item.title??'',body:text,photo})
     }catch {
       await db.from('mini_safety_scans').update({
@@ -186,9 +189,14 @@ export async function POST(request:NextRequest) {
       changes.moderation_note=verdict.safe?null:'Automated safety filter declined publication'
       changes.updated_at=timestamp
     }
-    const {data:changed,error:writeError}=await db.from(tables[target])
-      .update(changes).eq('id',id).eq(owners[target],actor).eq('status','pending').select('id').maybeSingle()
-    if(writeError||!changed)return approved({error:'Unable to complete safety review. Content remains private.'},503)
+    let write=db.from(tables[target]).update(changes).eq('id',id).eq(owners[target],actor).eq('status','pending')
+    // A creator can edit a pending Mini during a scan; never approve the changed version.
+    if(target==='mini')write=write.eq('updated_at',item.updated_at!)
+    const {data:changed,error:writeError}=await write.select('id').maybeSingle()
+    if(writeError||!changed){
+      await db.from('mini_safety_scans').update({verdict:'unavailable',reason:'Version changed or write unavailable',lease_until:new Date().toISOString()}).eq('target',target).eq('target_id',id).eq('owner_id',actor)
+      return approved({error:'Unable to complete safety review. Content remains private; retry the current version.'},503)
+    }
     await db.from('mini_safety_scans').update({
       verdict:verdict.safe?'approved':'rejected',
       reason:verdict.reason,
