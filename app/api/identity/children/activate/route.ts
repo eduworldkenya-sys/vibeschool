@@ -93,6 +93,40 @@ export async function POST(request: NextRequest) {
       password,
     }, 201)
   } catch {
+    // A network failure can occur AFTER PostgreSQL commits. A blind Auth
+    // deletion at that point could orphan a valid child login and its records.
+    // Recover only when an authoritative guardian-scoped RPC confirms the
+    // committed child belongs to the exact Auth user created here.
+    try {
+      const { data: linkedUserId, error: linkedError } = await db.rpc('vs_my_managed_student_login', {
+        p_identity_id: identityId,
+      })
+      if (!linkedError && linkedUserId === newUserId) {
+        const { data: refreshed, error: refreshError } = await db.rpc('vs_list_my_identities')
+        const childrenNow = refreshed && typeof refreshed === 'object' && !Array.isArray(refreshed) &&
+          Array.isArray(refreshed.managed_learners) ? refreshed.managed_learners : []
+        const linked = childrenNow.find((entry: unknown) =>
+          !!entry && typeof entry === 'object' &&
+          (entry as { id?: unknown }).id === identityId &&
+          (entry as { status?: unknown }).status === 'linked' &&
+          typeof (entry as { linked_student_id?: unknown }).linked_student_id === 'string')
+        if (!refreshError && linked) {
+          return response({
+            activated: true,
+            studentId: (linked as { linked_student_id: string }).linked_student_id,
+            loginId: child.username,
+            password,
+          }, 201)
+        }
+      }
+      // An unknown database outcome must be recovered deliberately. Never
+      // delete a potentially committed learner account on a timed-out read.
+      if (linkedError && linkedError.code !== 'PGRST202') {
+        return response({ error: 'Learner setup needs recovery. No password has been disclosed.' }, 503)
+      }
+    } catch {
+      return response({ error: 'Learner setup needs recovery. No password has been disclosed.' }, 503)
+    }
     const { error: rollbackError } = await admin.auth.admin.deleteUser(newUserId)
     if (rollbackError) {
       return response({ error: 'Setup requires support to recover safely. No login details were issued.' }, 503)
