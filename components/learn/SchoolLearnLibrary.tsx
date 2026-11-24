@@ -189,9 +189,16 @@ function SchoolLearnLibraryContent({ mode = 'public', learnerGrade }: Props) {
   const gradeBooks = useMemo(() => books.filter(book => gradeMatches(book.cbc_grade, grade)), [books, grade])
   const subjectGroups: SubjectGroup[] = useMemo(() => {
     const bookSubjects = uniqueNames(gradeBooks.map(book => book.cbc_subject?.trim() || '').filter(Boolean))
+    const seenSubjects = new Set<string>()
     const base = groupsForTextbookShells(grade, registeredSubjects ?? [])
-      .map(group => ({ ...group, subjects: uniqueNames(group.subjects.map(name =>
-        isCreLearnAlias(grade, name) ? 'Religious Education' : name)) }))
+      .map(group => ({ ...group, subjects: group.subjects
+        .map(name => isCreLearnAlias(grade, name) ? 'Religious Education' : name)
+        .filter(name => {
+          const key = subjectKey(name)
+          if (seenSubjects.has(key)) return false
+          seenSubjects.add(key)
+          return true
+        }) }))
       .filter(group => group.subjects.length)
     const existing = new Set(base.flatMap(group => group.subjects).map(subjectKey))
     const extraBooks = bookSubjects
