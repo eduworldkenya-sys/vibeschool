@@ -148,3 +148,28 @@ test('school PIN and managed-child password use one canonical learner login',()=
   assert.match(login,/PIN or password/)
   assert.doesNotMatch(login,/setPassword\(config.email \? e.target.value : e.target.value.replace/)
 })
+
+test('adult independent learning has no school or guardian dependency',()=>{
+  const provisioning=readFileSync('supabase/migrations/20261124091000_independent_adult_provisioning_guard.sql','utf8')
+  const api=readFileSync('app/api/learner/independent/grade/route.ts','utf8')
+  const email=readFileSync('app/signup/student/email/actions.ts','utf8')
+  assert.match(provisioning,/v_identity.age_band is distinct from 'adult'/)
+  assert.match(provisioning,/if v_count=1 then/)
+  assert.match(provisioning,/return v_student_id;/)
+  assert.match(api,/payload\?\.ageBand !== 'adult'/)
+  assert.match(api,/identity.age_band === 'under_18'/)
+  assert.match(email,/form.get\('age_band'\) !== 'adult'/)
+  assert.match(email,/age_band: 'adult'/)
+  assert.doesNotMatch(provisioning,/parent_student_links/)
+})
+
+test('verified parent or teacher can add a child without claiming a public username',()=>{
+  const migration=readFileSync('supabase/migrations/20261124092000_managed_guardian_username_optional.sql','utf8')
+  const setup=readFileSync('app/account/setup/UsernameSetupForm.tsx','utf8')
+  assert.match(migration,/insert into public.vs_identities\(auth_user_id,kind\)/)
+  assert.match(migration,/on conflict\(auth_user_id\) do nothing/)
+  assert.match(migration,/guardian_confirmed is distinct from true/)
+  assert.match(migration,/coalesce\(v_access->>'role',''\) not in \('parent','teacher'\)/)
+  assert.doesNotMatch(migration,/Set up username first/)
+  assert.match(setup,/Skip for now/)
+})
