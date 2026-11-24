@@ -7,14 +7,23 @@ const home = read('components/public/MiniHomeSection.tsx')
 const page = read('app/explore/page.tsx')
 const examples = read('lib/public/mini-examples.ts')
 const live = read('components/public/MiniLiveRequests.tsx')
+const explore = read('components/public/MiniLiveExplore.tsx')
 
 function assertAuthenticUnavailable(source) {
   assert.match(source, /Publishing is not yet available/)
   assert.doesNotMatch(source, /MINI_EXAMPLES|EXAMPLE_REQUESTS|local-request-|local-answer-|Add to preview|setComments\(|setLiked\(|setRequests\(|<article|<button/)
 }
 test('Uncommissioned public surfaces show availability, never fabricated posts or actions', () => {
-  assertAuthenticUnavailable(mini)
+  assert.match(mini, /<MiniLiveExplore enabled=\{false\}/)
   assertAuthenticUnavailable(home)
+  for(const source of [explore,live]) assert.doesNotMatch(source,/MINI_EXAMPLES|EXAMPLE_REQUESTS|local-request-|local-answer-|Add to preview/)
+  for(const label of ['+ Create','Search Mini Lessons','For You','Following','New','Create Mini Lesson','Request an explanation']) assert.ok(explore.includes(label))
+  assert.match(explore,/if \(!enabled\) return\s+let mounted/)
+  assert.match(explore,/if \(!enabled \|\| !identityReady/)
+  assert.match(explore,/event.preventDefault\(\)\s+if \(!enabled\) return/)
+  assert.match(explore,/disabled=\{!enabled \|\| !viewer/)
+  assert.match(live,/if\(!enabled\|\|busy\)return/)
+  assert.match(live,/disabled=\{!enabled\|\|busy/)
   assert.doesNotMatch(examples, /MINI_EXAMPLES|Example History teacher|example-algebra-request/)
 })
 test('Live requests retain real actions and identity privacy behind existing gate', () => {
@@ -26,6 +35,6 @@ test('Live requests retain real actions and identity privacy behind existing gat
   assert.match(live, /Never include your name/)
 })
 test('Negative control rejects reintroduced sample content or simulated engagement', () => {
-  assert.throws(() => assertAuthenticUnavailable(mini+'\nconst MINI_EXAMPLES = []'))
-  assert.throws(() => assertAuthenticUnavailable(mini+'\nsetLiked([])'))
+  assert.throws(() => assertAuthenticUnavailable(home+'\nconst MINI_EXAMPLES = []'))
+  assert.throws(() => assertAuthenticUnavailable(home+'\nsetLiked([])'))
 })
