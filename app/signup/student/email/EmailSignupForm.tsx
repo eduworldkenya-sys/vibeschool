@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, type FormEvent } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { checkLearnerEmailSession, sendLearnerEmail, signOutLearnerEmail, verifyLearnerEmail, saveIndependentEmailGrade } from './actions'
 import styles from './signup.module.css'
@@ -110,7 +111,7 @@ export default function EmailSignupForm({ linkFailed }: { linkFailed: boolean })
         <label style={{display:'block'}}><input type="radio" checked={ageBand==='adult'} onChange={()=>setAgeBand('adult')}/> I am 18 or older</label>
         <label style={{display:'block'}}><input type="radio" checked={ageBand==='under_18'} onChange={()=>setAgeBand('under_18')}/> I am under 18</label>
       </fieldset>
-      {ageBand==='under_18' && <p role="status">You can read public lessons now. An adult can create your private learning account when needed. <a href="/learn">Open Learn</a> · <a href="/join?role=parent">Set up with an adult</a></p>}
+      {ageBand==='under_18' && <p role="status">You can read public lessons now. An adult can create your private learning account when needed. <Link href="/learn">Open Learn</Link> · <Link href="/join?role=parent">Set up with an adult</Link></p>}
       <LearningLevelSelect level={level} choice={choice} onLevelChange={setLevel} onChoiceChange={setChoice} disabled={busy}/>
       <button className={styles.primary} type="button" disabled={!level || !choice || busy || ageBand !== 'adult'} onClick={()=>void saveGrade()}>{busy?'Saving…':'Continue'}</button>
       <button className={styles.secondary} type="button" disabled={busy} onClick={() => void signOut()}>Sign out</button>
