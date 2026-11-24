@@ -535,8 +535,8 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
           .order('created_at',{ascending:false}).limit(24)
         if(result.error)throw result.error
         if(!cancelled)setSavedPlans((result.data??[])
-          .filter(item=>validLessonId(item.id))
-          .map(item=>({id:item.id,title:String(item.topic||item.title||'Untitled lesson').slice(0,120)})))
+          .filter((item:{id:string})=>validLessonId(item.id))
+          .map((item:{id:string;topic?:string|null;title?:string|null})=>({id:item.id,title:String(item.topic||item.title||'Untitled lesson').slice(0,120)})))
       }catch{
         if(!cancelled){setSavedPlans([]);setPlansError('Saved Lesson Plans are unavailable. You can still teach without linking a plan.')}
       }finally{if(!cancelled)setPlansLoading(false)}
