@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase'
+import {miniSlidesEnabled} from './slide-release'
 import type { MiniPost } from './data'
 import {parseMiniDeck,miniDeckText,type MiniSlideEntry} from './slides'
 import { miniSubjectFromTags, parseMiniHashtags } from './tags'
@@ -68,6 +69,7 @@ export async function submitMini({
     correct === null || !Number.isInteger(correct) || correct<0 || correct>=options.length ||
     !explanation || explanation.length<10 || explanation.length>500))
     throw Error('Complete the quick question, answer choices and explanation.')
+  if(slides!==undefined&&!miniSlidesEnabled())throw Error('Slide publishing is not yet available.')
   const deck=slides===undefined?null:parseMiniDeck(slides)
   if(slides!==undefined&&!deck)throw Error('Invalid slides.')
   if(Boolean(photo)===Boolean(deck))throw Error('Choose photo or slides.')

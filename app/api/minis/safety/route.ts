@@ -1,4 +1,5 @@
 import 'server-only'
+import {miniSlidesEnabled} from '@/lib/minis/slide-release'
 import {parseMiniDeck,miniDeckText} from '@/lib/minis/slides'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
@@ -147,7 +148,7 @@ export async function POST(request:NextRequest) {
     if(target==='mini'){
       const {data:eligible,error:eligibleError}=await db.rpc('mini_creator_can_submit',{p_user:actor})
       if(eligibleError||eligible!==true)return approved({error:'Public creator eligibility is required.'},403)
-      if(item.slide_deck!=null){if(item.cover_path||!parseMiniDeck(item.slide_deck))return approved({error:'Invalid slides.'},422)}else if(!item.cover_path||!item.cover_path.startsWith(actor+'/'))return approved({error:'A private cover photo is required.'},422)
+      if(item.slide_deck!=null){if(!miniSlidesEnabled()||process.env.MINI_LESSON_SLIDES_PUBLISHING_ENABLED!=='true')return approved({error:'Slide publishing is not yet available.'},503);if(item.cover_path||!parseMiniDeck(item.slide_deck))return approved({error:'Invalid slides.'},422)}else if(!item.cover_path||!item.cover_path.startsWith(actor+'/'))return approved({error:'A private cover photo is required.'},422)
       if(item.request_id){
         const {data:valid}=await db.rpc('mini_request_available',{p_request:item.request_id})
         if(valid!==true)return approved({error:'The linked student request is unavailable.'},422)

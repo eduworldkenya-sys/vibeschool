@@ -1,5 +1,6 @@
 import 'server-only'
 import { createClient } from '@supabase/supabase-js'
+import {miniSlideColumns} from './slide-release'
 import { MINI_ID } from './public-url'
 
 export const minisPublicEnabled = () => process.env.NEXT_PUBLIC_MINI_LESSONS_BACKEND_ENABLED === 'true'
@@ -17,9 +18,9 @@ export async function readPublicMini(id: string) {
   const client = publicClient()
   if (!client) return null
   const { data, error } = await client.from('mini_lessons')
-    .select('id,title,body,creator_label,tags,cover_path,slide_deck,published_at')
+    .select('id,title,body,creator_label,tags,cover_path,published_at'+miniSlideColumns())
     .eq('id', id).eq('status','approved').maybeSingle()
-  return error || !data ? null : data as { id:string;title:string;body:string;creator_label:string;tags:string[];cover_path:string|null;slide_deck:unknown;published_at:string }
+  return error || !data ? null : data as { id:string;title:string;body:string;creator_label:string;tags:string[];cover_path:string|null;slide_deck?:unknown;published_at:string }
 }
 export async function publicMiniCover(id: string) {
   const mini = await readPublicMini(id)

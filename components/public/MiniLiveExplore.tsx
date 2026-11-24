@@ -11,6 +11,7 @@ import { currentMiniUser, miniIsVerifiedAdult, changeMiniFollow, changeMiniInter
   addMiniComment, reportMini, recordMiniLearningSignal, publishMiniSafely, MiniSubmissionSavedError } from '@/lib/minis/actions'
 import { miniTagLabel, parseMiniHashtags } from '@/lib/minis/tags'
 import {MiniSlideEditor,MiniSlideReader,MiniSlideCover,blankMiniSlide} from './MiniSlideDeck'
+import {miniSlidesEnabled,miniSlideColumns} from '@/lib/minis/slide-release'
 import {buildMiniDeck} from '@/lib/minis/slides'
 import { prepareMiniPhoto } from '@/lib/minis/photo'
 import { MiniLiveRequests } from './MiniLiveRequests'
@@ -168,7 +169,7 @@ export function MiniLiveExplore({ enabled = true }: { enabled?: boolean } = {}) 
         if (id) {
           {
             const { data } = await supabase.from('mini_lessons')
-              .select('id,creator_id,creator_label,title,body,subject,tags,quiz_question,quiz_options,quiz_correct,quiz_explanation,cover_path,status,request_id,quality_score,like_count,save_count,learned_count,published_at,created_at,slide_deck')
+              .select('id,creator_id,creator_label,title,body,subject,tags,quiz_question,quiz_options,quiz_correct,quiz_explanation,cover_path,status,request_id,quality_score,like_count,save_count,learned_count,published_at,created_at'+miniSlideColumns())
               .eq('id',id).eq('status','approved').maybeSingle()
             if (data && mounted) {
               const newPost = data as MiniPost
@@ -637,7 +638,7 @@ export function MiniLiveExplore({ enabled = true }: { enabled?: boolean } = {}) 
         {enabled && viewer && !draftPreview && <button type="button" className={styles.linkButton+' '+styles.compactNotice} disabled={busy||previewBusy} onClick={()=>void editProfile()}>Creator profile</button>}
         {answerRequest&&<p className={styles.compactNotice}>{answerRequest.question}</p>}
         <fieldset className={styles.composerFields} disabled={previewBusy||busy} hidden={!!draftPreview}>
-          <div role="group" aria-label="Mini Lesson format"><button type="button" aria-pressed={format==='photo'} onClick={()=>setFormat('photo')}>Photo</button><button type="button" aria-pressed={format==='slides'} onClick={()=>setFormat('slides')}>Slides</button></div>
+          {miniSlidesEnabled()&&<div role="group" aria-label="Mini Lesson format"><button type="button" aria-pressed={format==='photo'} onClick={()=>setFormat('photo')}>Photo</button><button type="button" aria-pressed={format==='slides'} onClick={()=>setFormat('slides')}>Slides</button></div>}
           {format==='slides'?<MiniSlideEditor slides={slides} onChange={setSlides} disabled={busy||previewBusy}/>:<>
           <label className={styles.photoPicker} htmlFor="mini-photo">
             <span aria-hidden="true" className={styles.photoPlus}>＋</span>
