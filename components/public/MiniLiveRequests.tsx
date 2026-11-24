@@ -71,8 +71,8 @@ export function MiniLiveRequests({ mode='feed', query='', onBack, onExplain }: P
     try {
       await submitMiniRequest(question,tags)
       setQuestion('');setTags('')
-      setNotice('Request submitted for review. It will appear publicly only after moderation.')
-      setNotice('Request submitted privately for review. It is not yet public.')
+      setNotice('Your request is public after passing an automatic safety check. No HQ approval needed.')
+      await refresh()
     }catch(e){setError(e instanceof Error?e.message:'Unable to submit request.')}
     finally{setBusy(false)}
   }
@@ -98,10 +98,10 @@ export function MiniLiveRequests({ mode='feed', query='', onBack, onExplain }: P
       <input id="mini-request-tags" className={styles.field} required maxLength={160} value={tags}
         onChange={event=>setTags(event.target.value)} placeholder="#Mathematics #Grade9"/>
       <button type="submit" className={styles.primary} disabled={busy||question.trim().length<12||!tags.trim()}>
-        {busy?'Submitting…':'Submit request for review'}</button>
+        {busy?'Checking safety…':'Post request'}</button>
     </form>
     {(error||notice)&&<p role={error?'alert':'status'} className={styles.formNote}>{error||notice}</p>}
-    <p className={styles.previewNote}>Never include your name, phone number, contacts or school identity. Requests are reviewed before public discovery.</p>
+    <p className={styles.previewNote}>Never include your name, phone number, contacts or school identity. Requests pass an automatic safety check before public discovery.</p>
   </section>
 
   if(mine) return <section className={styles.requestDetail}>
@@ -109,7 +109,7 @@ export function MiniLiveRequests({ mode='feed', query='', onBack, onExplain }: P
     <h2>My requests</h2>
     {mine.length?mine.map(p=><div key={p.id} className={styles.comment}>
       <strong>{p.question}</strong>
-      <span>{p.status==='approved'?'Public':p.status==='pending'?'Awaiting review':p.status} · {p.explanations} approved explanations</span>
+      <span>{p.status==='approved'?'Public':p.status==='pending'?'Safety check pending':p.status} · {p.explanations} approved explanations</span>
     </div>):<p>No requests yet.</p>}
     {error&&<p role="alert">{error}</p>}
   </section>
