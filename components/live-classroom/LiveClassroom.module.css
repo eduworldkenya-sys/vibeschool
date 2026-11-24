@@ -365,3 +365,7 @@
 .photoSlideSurface{position:relative;width:100%;aspect-ratio:16/9;background:#fff;border:1px solid #a9c7bc;border-radius:4px;overflow:hidden;flex-shrink:0}.photoSlideSurface>div{display:grid;place-items:center;color:#173c35;background:#e5f0ea}.photoSlideSurface img{display:block}.presentationCanvas[data-mini=true] .photoSlideSurface{max-height:36px;font-size:6px}
 
 .selfPaced{display:grid;gap:12px;min-width:0}.selfPaced progress{width:100%;accent-color:#087e72}.selfPacedPractice{display:grid;gap:10px;white-space:pre-wrap;overflow-wrap:anywhere}.selfPacedPractice fieldset{display:grid;gap:8px;padding:8px;border:1px solid currentColor;border-radius:8px}.selfPacedPractice fieldset label{display:flex;gap:8px;align-items:center}.selfPacedPractice fieldset input{width:auto}.selfPacedPractice textarea{min-height:80px;width:100%}
+
+.board[data-reveal-motion=true] g[data-object]{animation:slideObjectArrival .22s ease-out both}@keyframes slideObjectArrival{from{opacity:0}to{opacity:1}}@media(prefers-reduced-motion:reduce){.board[data-reveal-motion=true] g[data-object]{animation:none}}
+
+.multiDemoGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:10px;width:100%;align-items:start}.multiDemoGrid>section{min-width:0}.multiDemoGrid svg{width:100%;height:auto}.presentationCanvas[data-mini=true] .multiDemoGrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:2px}.presentationCanvas[data-mini=true] .multiDemoGrid svg{max-height:28px}

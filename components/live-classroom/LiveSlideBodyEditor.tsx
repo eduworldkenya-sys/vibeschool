@@ -2,9 +2,10 @@
 import {useState} from 'react'
 import {ObjectBoard} from './LiveObjectBoard'
 import {BOARD_COLORS,emptyBoard,encodeBoard,decodeBoard} from './LiveBoardProtocol'
-import {encodeSlide,visualSlideBody,visualSlidePayload,decodeDemo,encodeDemo,defaultDemo,DEMO_RANGES,diagramLabel,decodeAssessment,decodePhotoSlide,type DemoKind,type LiveSlide} from './LiveSlideProtocol'
+import {encodeSlide,visualSlideBody,visualSlidePayload,decodeDemo,encodeDemo,defaultDemo,DEMO_RANGES,diagramLabel,decodeAssessment,decodePhotoSlide,decodeMultiDemo,encodeMultiDemo,type DemoKind,type LiveSlide} from './LiveSlideProtocol'
 import {PhotoEditor} from './LiveSlidePhotos'
 import {AssessmentEditor} from './LiveSlideAssessmentEditor'
+import {MultiDiagramEditor} from './LiveMultiDiagram'
 import {DemoControls} from './LiveAdjustableDiagram'
 import styles from './LiveClassroom.module.css'
 
@@ -45,11 +46,13 @@ export function SlideBodyEditor({slide,disabled,onChange,roomId,roomStatus}:Prop
  const [activityOpen,setActivityOpen]=useState(false)
  const assessment=decodeAssessment(slide.body)
  const demo=decodeDemo(slide.body)
- if((photoOpen||photos)&&roomId&&roomStatus)return <PhotoEditor doc={photos} roomId={roomId} status={roomStatus} disabled={disabled} onChange={body=>{onChange(body);if(!body)setPhotoOpen(false)}}/>
- if(photos)return <p>This photo slide is bound to its original classroom. <button type="button" disabled={disabled} onClick={()=>{if(window.confirm('Remove classroom photos from this draft?'))onChange('')}}>Remove photos</button></p>
+ const multi=decodeMultiDemo(slide.body)
+ if(multi)return <MultiDiagramEditor items={multi} disabled={disabled} onChange={onChange}/>
+ if((photoOpen||photos)&&roomId&&roomStatus&&(!photos||photos.roomId===roomId))return <PhotoEditor doc={photos} roomId={roomId} status={roomStatus} disabled={disabled} onChange={body=>{onChange(body);if(!body)setPhotoOpen(false)}}/>
+ if(photos)return <p>Saved photo layout. The original photos remain protected; prepare copies in the current classroom before presenting. <button type="button" disabled={disabled} onClick={()=>{if(window.confirm('Remove classroom photos from this draft?'))onChange('')}}>Remove photos</button></p>
  if(activityOpen)return <AssessmentEditor initial={assessment??{kind:'quiz',question:'',options:['','']}} disabled={disabled} onApply={body=>{onChange(body);setActivityOpen(false)}} onCancel={()=>setActivityOpen(false)}/>
  if(assessment)return <div className={styles.slideToolbar}><button type="button" disabled={disabled} onClick={()=>setActivityOpen(true)}>Edit quiz / poll</button><button type="button" disabled={disabled} onClick={()=>{if(window.confirm('Replace the activity with a text slide?'))onChange('')}}>Switch to text</button></div>
- if(demo)return <section aria-label="Adjustable teaching diagram"><DemoControls demo={demo} disabled={disabled} onChange={d=>onChange(encodeDemo(d))}/><button type="button" disabled={disabled} onClick={()=>{if(window.confirm('Replace this demonstration with text?'))onChange('')}}>Switch to text</button></section>
+ if(demo)return <section aria-label="Adjustable teaching diagram"><DemoControls demo={demo} disabled={disabled} onChange={d=>onChange(encodeDemo(d))}/><button type="button" disabled={disabled} onClick={()=>onChange(encodeMultiDemo([{id:crypto.randomUUID(),demo}]))}>Add more diagrams</button><button type="button" disabled={disabled} onClick={()=>{if(window.confirm('Replace this demonstration with text?'))onChange('')}}>Switch to text</button></section>
  if(visualSlidePayload(slide.body)!==null)return <VisualEditor slide={slide} disabled={disabled} onChange={onChange}/>
  function convert(){
   const text=slide.body.trim()

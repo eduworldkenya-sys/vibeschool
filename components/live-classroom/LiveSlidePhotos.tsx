@@ -4,9 +4,9 @@ import {LiveClassFiles} from './LiveClassFiles'
 import {LiveFilePresentation} from './LiveFilePresentation'
 import {encodePhotoSlide,updatePhoto,type PhotoSlide,type SlidePhoto} from './LiveSlideProtocol'
 import styles from './LiveClassroom.module.css'
-export function PhotoSurface({doc,roomId,mini=false}:{doc:PhotoSlide;roomId?:string;mini?:boolean}){
- if(roomId!==doc.roomId)return <p role="status">This photo slide belongs to its original classroom.</p>
- return <div className={styles.photoSlideSurface} aria-label="Photo slide">{doc.photos.map((photo,i)=><div key={photo.id} style={{position:'absolute',left:photo.x+'%',top:photo.y+'%',width:photo.w+'%',height:photo.h+'%',overflow:'hidden'}}>{mini?<span>Photo {i+1}</span>:<LiveFilePresentation roomId={roomId} fileId={photo.id} photoFit={photo.fit}/>}</div>)}</div>
+export function PhotoSurface({doc,roomId,mini=false,ownerPreview=false}:{doc:PhotoSlide;roomId?:string;mini?:boolean;ownerPreview?:boolean}){
+ if(roomId!==doc.roomId&&!ownerPreview)return <p role="status">This photo slide belongs to its original classroom.</p>
+ return <div className={styles.photoSlideSurface} aria-label="Photo slide">{doc.photos.map((photo,i)=><div key={photo.id} style={{position:'absolute',left:photo.x+'%',top:photo.y+'%',width:photo.w+'%',height:photo.h+'%',overflow:'hidden'}}>{mini?<span>Photo {i+1}</span>:<LiveFilePresentation roomId={doc.roomId} fileId={photo.id} photoFit={photo.fit}/>}</div>)}</div>
 }
 export function PhotoEditor({doc,roomId,status,disabled,onChange}:{doc:PhotoSlide|null;roomId:string;status:'active'|'paused'|'ended';disabled:boolean;onChange:(body:string)=>void}){
  const [picker,setPicker]=useState(!doc),[selected,setSelected]=useState(0),[message,setMessage]=useState('')
@@ -26,7 +26,7 @@ export function PhotoEditor({doc,roomId,status,disabled,onChange}:{doc:PhotoSlid
   apply([...photos,{id,x:photos.length*8,y:photos.length*8,w:60,h:60,fit:'contain'}]);setSelected(photos.length);setPicker(false)
  }
  return <section className={styles.slideFields} aria-label="Photo objects">
- <small>Photos are shared from this classroom only. They cannot be exported or reused in another classroom.</small>
+ <small>Save this layout in My Presentations to reuse it later. Original photos must remain accessible. Copy them to a new classroom before sharing.</small>
  <div className={styles.slideToolbar}>{photos.map((p,i)=><button type="button" key={p.id} aria-pressed={i===selected} onClick={()=>setSelected(i)}>Photo {i+1}</button>)}<button type="button" disabled={locked||photos.length>=4} onClick={()=>setPicker(v=>!v)}>{picker?'Hide photos':'Add photo'}</button><button type="button" disabled={locked} onClick={()=>{if(window.confirm('Remove photo objects from the draft? Shared lesson history remains.'))onChange('')}}>Switch to text</button></div>
  {photo&&<div className={styles.demoControls}>{(['x','y','w','h'] as const).map(field=><label key={field}>{({x:'Left',y:'Top',w:'Width',h:'Height'})[field]}: {photo[field]}%<input type="range" min={field==='w'||field==='h'?20:0} max={field==='x'?100-photo.w:field==='y'?100-photo.h:100} value={photo[field]} disabled={locked} onChange={e=>apply(photos.map(p=>p.id===photo.id?updatePhoto(p,{[field]:Number(e.target.value)}):p))}/></label>)}<label>Image fit<select value={photo.fit} disabled={locked} onChange={e=>apply(photos.map(p=>p.id===photo.id?updatePhoto(p,{fit:e.target.value==='cover'?'cover':'contain'}):p))}><option value="contain">Fit entire image</option><option value="cover">Fill and crop</option></select></label><button type="button" disabled={locked} onClick={()=>{apply(photos.filter(p=>p.id!==photo.id));setSelected(0)}}>Remove selected photo</button></div>}
  {message&&<p role="status">{message}</p>}

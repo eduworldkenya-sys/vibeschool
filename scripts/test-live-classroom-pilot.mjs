@@ -1,4 +1,4 @@
-import {exportDeck,importDeck,MAX_DECK_FILE_BYTES,defaultDemo,decodeDemo,encodeDemo,changeDemo,buildTextRevealSlides,DEMO_RANGES,encodeAssessment,decodeAssessment,assessmentPrompt,encodePhotoSlide,decodePhotoSlide,updatePhoto} from '../components/live-classroom/LiveSlideProtocol.ts'
+import {exportDeck,importDeck,MAX_DECK_FILE_BYTES,defaultDemo,decodeDemo,encodeDemo,changeDemo,buildTextRevealSlides,DEMO_RANGES,encodeAssessment,decodeAssessment,assessmentPrompt,encodePhotoSlide,decodePhotoSlide,updatePhoto,prepareAssessment,preparedAssessment,presenterNotes,setPresenterNotes,encodeMultiDemo,decodeMultiDemo} from '../components/live-classroom/LiveSlideProtocol.ts'
 // Install the pinned test-only engine outside the repo: npm install --prefix /tmp/live-test --no-audit --no-fund @electric-sql/pglite@0.3.14
 import {createLiveFixture} from './live-classroom-test-fixture.mjs'
 import {readFileSync} from 'node:fs'
@@ -10,12 +10,19 @@ assert.equal(liveSyncDelay('paused',0),4000)
 assert.equal(liveSyncDelay('ended',0),15000)
 assert.deepEqual([1,2,3,4,100].map(n=>liveSyncDelay('active',n)),[5000,10000,20000,30000,30000])
 import {encodeSlide,decodeSlide,validSlide,SLIDE_DIAGRAMS,adjacentSlide,visualSlideBody,visualSlidePayload} from '../components/live-classroom/LiveSlideProtocol.ts'
-import {emptyBoard,encodeBoard,decodeBoard,boardFromLegacy,BOARD_DIAGRAMS} from '../components/live-classroom/LiveBoardProtocol.ts'
+import {emptyBoard,encodeBoard,decodeBoard,boardFromLegacy,BOARD_DIAGRAMS,revealBoard,boardRevealCount} from '../components/live-classroom/LiveBoardProtocol.ts'
 const shape={id:'fixture-rect',kind:'rectangle',x:20,y:25,w:90,h:60,angle:15,color:'#1865c0',stroke:3,locked:true}
 const drawnBoard={...emptyBoard(2,3),background:'grid',objects:[shape,{...shape,id:'fixture-note',kind:'text',text:'2 + 3 = 5'},{...shape,id:'fixture-diagram',kind:'diagram',diagram:'fraction-bars'},{...shape,id:'fixture-arrow',kind:'arrow',points:[0,0,1000,1000]}]}
 const objectBoard=encodeBoard(drawnBoard)
 assert.ok(objectBoard)
 assert.deepEqual(decodeBoard(objectBoard),drawnBoard)
+const firstObject=revealBoard(objectBoard,1)
+assert.equal(decodeBoard(firstObject).objects.length,1)
+assert.ok(!firstObject.includes('fixture-note'))
+assert.equal(boardRevealCount(objectBoard,firstObject),1)
+assert.equal(boardRevealCount(objectBoard,revealBoard(objectBoard,0)),0)
+assert.equal(revealBoard(objectBoard,5),'')
+assert.equal(boardRevealCount(objectBoard,encodeBoard({...drawnBoard,objects:[drawnBoard.objects[1]]})),null)
 assert.equal(encodeBoard({...drawnBoard,objects:[shape,shape]}),'')
 assert.equal(encodeBoard({...drawnBoard,objects:[{...shape,angle:360}]}),'')
 assert.equal(encodeBoard({...drawnBoard,objects:[{...shape,color:'url(javascript:alert(1))'}]}),'')
@@ -64,6 +71,24 @@ assert.equal(encodePhotoSlide({...photoDoc,photos:[{...photo,url:'https://exampl
 assert.deepEqual(updatePhoto(photo,{x:90}),{...photo,x:40})
 assert.equal(decodeSlide(encodeSlide({title:'Photo',body:photoBody},1,1)).body,photoBody)
 assert.throws(()=>exportDeck('Photo',[{title:'Photo',body:photoBody}]),/Room-specific photos/)
+const quizDraft={title:'Private key',body:activityBody,notes:'Private notes'}
+const notesWithKey=prepareAssessment(quizDraft,0,'Because two equal parts make a whole.')
+assert.ok(notesWithKey)
+const preparedQuiz={...quizDraft,notes:notesWithKey}
+assert.equal(presenterNotes(notesWithKey),'Private notes')
+assert.equal(preparedAssessment(preparedQuiz).option,0)
+assert.ok(preparedAssessment(preparedQuiz).answer.includes('Because two'))
+assert.equal(preparedAssessment({...preparedQuiz,body:encodeAssessment({...activity,question:'Different question?'})}),null)
+assert.equal(preparedAssessment({...preparedQuiz,notes:setPresenterNotes(notesWithKey,'New notes')}).option,0)
+assert.ok(!encodeSlide(preparedQuiz,1,1).includes('Because two'))
+assert.ok(!exportDeck('Quiz',[preparedQuiz]).includes('Because two'))
+assert.equal(prepareAssessment(quizDraft,99,''),null)
+const demos=[{id:'a',demo:defaultDemo('clock')},{id:'b',demo:defaultDemo('ruler')}]
+const multiBody=encodeMultiDemo(demos)
+assert.deepEqual(decodeMultiDemo(multiBody),demos)
+assert.equal(encodeMultiDemo([demos[0],demos[0]]),'')
+assert.equal(decodeSlide(encodeSlide({title:'Compare',body:multiBody},1,1)).body,multiBody)
+assert.equal(buildTextRevealSlides({title:'Compare',body:multiBody},3).length,0)
 const encodedSlide=encodeSlide(privateSlide,2,5)
 assert.ok(encodedSlide)
 assert.ok(!encodedSlide.includes(privateSlide.notes))
@@ -148,7 +173,11 @@ assert.match(liveCss,/\.stageContent \.content\{margin:0;/)
 assert.ok(liveUi.includes("kind:'teach',body:slideText,answerKey:null"))
 assert.ok(liveUi.includes('encodeSlide(item,index+1,slides.length)'))
 assert.ok(liveUi.includes('styles.slideWorkspace'))
-assert.ok(liveUi.includes('Presenter notes (private)'))
+const privateFields=readFileSync(new URL('../components/live-classroom/LivePreparedAssessment.tsx',import.meta.url),'utf8')
+assert.ok(liveUi.includes('<PrivateSlideFields'))
+assert.ok(privateFields.includes('Presenter notes (private)'))
+assert.ok(privateFields.includes('Correct answer (private)'))
+assert.ok(privateFields.includes('prepareAssessment(slide'))
 const privatePlanAdapter=readFileSync(new URL('../lib/live/lessonPlanPresentation.ts',import.meta.url),'utf8')
 const planModal=readFileSync(new URL('../components/teacher/LessonPlanModal.tsx',import.meta.url),'utf8')
 assert.ok(planModal.includes('Teach this plan in Live'))

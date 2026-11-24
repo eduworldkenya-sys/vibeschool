@@ -5,17 +5,19 @@ import { createPortal } from 'react-dom'
 import { Maximize, Minimize, Users, PanelTop, Pencil, HelpCircle, ClipboardList, BarChart3, MoreHorizontal, X, Video, Move, GripHorizontal, Hand, MessageSquare, NotebookPen, History, Wifi, WifiOff, BookOpen } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import styles from './LiveClassroom.module.css'
-import { adjacentSlide, buildTextRevealSlides, decodeAssessment, assessmentPrompt, decodePhotoSlide } from './LiveSlideProtocol'
+import { adjacentSlide, buildTextRevealSlides, decodeAssessment, assessmentPrompt, decodePhotoSlide, visualSlideBody, visualSlidePayload, preparedAssessment } from './LiveSlideProtocol'
 import { SlideCanvas, encodeSlide, decodeSlide, validSlide, diagramLabel, SLIDE_DIAGRAMS, SLIDE_THEMES, type LiveSlide, type SlideDiagram, type SlideTheme } from './LiveSlideCanvas'
 import { ObjectBoard, SharedObjectBoard } from './LiveObjectBoard'
 import {LiveSelfPacedReview} from './LiveSelfPacedReview'
+import {copyPhotoDeck,shareSlidePhotos} from './LivePhotoDeckReuse'
+import {PrivateSlideFields} from './LivePreparedAssessment'
 import {SlideBodyEditor} from './LiveSlideBodyEditor'
 import { TeachingLibrary } from './LiveTeachingLibrary'
 import { LiveResourcePicker } from './LiveResourcePicker'
 import { LiveClassFiles } from './LiveClassFiles'
 import { LiveFilePresentation } from './LiveFilePresentation'
 import { decodeLiveFileRef } from '@/lib/live/filePresentation'
-import { BOARD_LIMIT, decodeBoard, encodeBoard } from './LiveBoardProtocol'
+import { BOARD_LIMIT, decodeBoard, encodeBoard, revealBoard, boardRevealCount } from './LiveBoardProtocol'
 import { liveSyncDelay } from './LiveSyncPolicy'
 import { LivePrivateChat } from './LivePrivateChat'
 import { LiveClassChat } from './LiveClassChat'
@@ -918,14 +920,44 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
   const slide=slides[slideIndex]
   const liveSlide=prompt?.kind==='teach'?decodeSlide(prompt.body):null
   const slideText=slide?encodeSlide(slide,slideIndex+1,slides.length):''
-  const previousLiveSlide=liveSlide?adjacentSlide(slides,liveSlide,-1):null
-  const nextLiveSlide=liveSlide?adjacentSlide(slides,liveSlide,1):null
+  const liveVisualBody=liveSlide?visualSlidePayload(liveSlide.body):null
+  const originalVisual=liveSlide&&liveSlide.total===slides.length&&slides[liveSlide.number-1]?visualSlidePayload(slides[liveSlide.number-1].body):null
+  const visibleObjects=originalVisual!==null&&liveVisualBody!==null?boardRevealCount(originalVisual,liveVisualBody):null
+  const objectTotal=originalVisual!==null?decodeBoard(originalVisual)?.objects.length??0:0
+  const fullVisualMatch=visibleObjects!==null&&liveSlide&&slides[liveSlide.number-1]?decodeSlide(encodeSlide(slides[liveSlide.number-1],liveSlide.number,slides.length)):null
+  const revealMatch=fullVisualMatch&&liveSlide&&JSON.stringify({...fullVisualMatch,body:liveSlide.body})===JSON.stringify(liveSlide)
+  const matchedSlide=revealMatch?fullVisualMatch:liveSlide
+  const previousLiveSlide=matchedSlide?adjacentSlide(slides,matchedSlide,-1):null
+  const nextLiveSlide=matchedSlide?adjacentSlide(slides,matchedSlide,1):null
   const canNavigateSlides=teacher&&!busy&&!draftLoading&&online&&room?.status==='active'
   function editSlide(patch:Partial<LiveSlide>){setSlides(items=>items.map((item,i)=>i===slideIndex?{...item,...patch}:item))}
-  function presentSlide(index:number){
-    const item=slides[index];if(!item||!canNavigateSlides)return
-    const photos=decodePhotoSlide(item.body);if(photos&&photos.roomId!==room?.id){setError('This photo slide belongs to a different classroom.');return}
-    const slideText=encodeSlide(item,index+1,slides.length)
+  const [photoPreparing,setPhotoPreparing]=useState(false)
+  const photoLock=useRef(false)
+  async function preparePhotoSlide(index:number){
+    const item=slides[index],roomId=room?.id
+    if(!item||!roomId||photoLock.current||!canNavigateSlides)return
+    const doc=decodePhotoSlide(item.body);if(!doc)return
+    if(!window.confirm('Prepare these photos and share them with learners when presenting this slide?'))return
+    photoLock.current=true;setPhotoPreparing(true);setError('')
+    const current=()=>active.current?.id===roomId&&active.current?.status==='active'&&active.current?.teacher===true
+    try{
+      const deck=await copyPhotoDeck([item],roomId,current)
+      if(!current())throw Error('Classroom changed.')
+      await shareSlidePhotos(deck[0].body,roomId,current)
+      if(!current())throw Error('Classroom changed.')
+      const next=deck[0];setSlides(items=>items.map((s,i)=>i===index&&s.body===item.body?next:s))
+      const encoded=encodeSlide(next,index+1,slides.length)
+      if(encoded)await act('publish',null,{kind:'teach',body:encoded,answerKey:null})
+    }catch(e){setError(e instanceof Error?e.message:'Could not prepare photos.')}
+    finally{photoLock.current=false;setPhotoPreparing(false)}
+  }
+  function presentSlide(index:number,revealCount?:number){
+    const item=slides[index];if(!item||!canNavigateSlides||photoLock.current)return
+    const photos=decodePhotoSlide(item.body);if(photos){void preparePhotoSlide(index);return}
+    const visual=visualSlidePayload(item.body)
+    const partial=revealCount!==undefined&&visual!==null?revealBoard(visual,revealCount):null
+    if(revealCount!==undefined&&!partial)return
+    const slideText=partial?encodeSlide({...item,body:visualSlideBody(partial)},index+1,slides.length):encodeSlide(item,index+1,slides.length)
     if(slideText)void act('publish',null,{kind:'teach',body:slideText,answerKey:null})
   }
   function moveSlide(delta:number){
@@ -953,7 +985,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
     const question=assessmentPrompt(activity)
     const saved=activity.kind===mode?{body,key}:composerDrafts.current[activity.kind]
     if((saved?.body||saved?.key)&&!window.confirm('Replace the unsent activity draft?'))return
-    chooseMode(activity.kind);setBody(question);setKey('')
+    chooseMode(activity.kind);setBody(question);const draft=liveSlide&&slides[liveSlide.number-1];setKey(draft&&draft.body===liveSlide?.body?preparedAssessment(draft)?.answer??'':'')
   }
   const lastPresentedSlide=[...history].reverse().map(p=>p.kind==='teach'?decodeSlide(p.body):null).find(p=>p!==null)
   const resumeAfterActivity=lastPresentedSlide?adjacentSlide(slides,lastPresentedSlide,1):null
@@ -1017,19 +1049,19 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
         }}>
         {teacher&&panel==='resources'?<div className={styles.resourceWorkspace}><LiveResourcePicker classId={room.mode==='school'?classId:null} lessonPlanId={room.mode==='school'?linkedPlan?.id??null:null} schemeLessonId={room.mode==='school'?linkedPlan?.schemeId??null:null} canPresent={!busy&&online&&room.status==='active'} onPresent={body=>void act('publish',null,{kind:'teach',body,answerKey:null})} onClose={()=>setPanel(null)}/><LiveClassFiles roomId={room.id} teacher status={room.status} onPresentFile={reference=>{if(!busy&&online&&room.status==='active')void act('publish',null,{kind:'teach',body:reference,answerKey:null})}}/></div>:teacher&&panel==='library'?<div className={styles.slideWorkspace}><div className={styles.slideToolbar}><strong>My Presentations</strong><button onClick={openSlides}>Back to slides</button></div><TeachingLibrary command={call} currentDeck={slides} onUse={useMaterial}/></div>:teacher&&panel==='slides'&&slide?<div className={styles.slideWorkspace}>
           <div className={styles.slideToolbar}><strong>Slide editor</strong><span>{slideIndex+1} / {slides.length}</span><button type="button" onClick={()=>setPanel('library')}>My presentations</button><button type="button" onClick={()=>setPanel(null)}>Close</button></div>
-          <SlideCanvas slide={slide} number={slideIndex+1} total={slides.length} roomId={room.id}/>
-          <div className={styles.slideStrip} aria-label="Slide thumbnails">{slides.map((item,i)=><button type="button" key={i} aria-label={'Slide '+(i+1)+(item.title.trim()?': '+item.title:'')} aria-pressed={i===slideIndex} disabled={busy} onClick={()=>setSlideIndex(i)}><SlideCanvas slide={item} number={i+1} total={slides.length} mini roomId={room.id}/></button>)}<button type="button" aria-label="Add slide" disabled={slides.length>=30||busy} onClick={()=>addSlide()}>+ Add</button></div>
-          <div className={styles.slideToolbar}><button type="button" disabled={busy||slideIndex===0} onClick={()=>setSlideIndex(i=>i-1)}>Previous preview</button><button type="button" disabled={busy||slideIndex===slides.length-1} onClick={()=>setSlideIndex(i=>i+1)}>Next preview</button><button className={styles.primary} disabled={busy||!online||room.status!=='active'||!slideText} onClick={()=>presentSlide(slideIndex)}>Present slide</button></div>
+          <SlideCanvas slide={slide} number={slideIndex+1} total={slides.length} roomId={room.id} ownerPhotoPreview/>
+          <div className={styles.slideStrip} aria-label="Slide thumbnails">{slides.map((item,i)=><button type="button" key={i} aria-label={'Slide '+(i+1)+(item.title.trim()?': '+item.title:'')} aria-pressed={i===slideIndex} disabled={busy} onClick={()=>setSlideIndex(i)}><SlideCanvas slide={item} number={i+1} total={slides.length} mini roomId={room.id} ownerPhotoPreview/></button>)}<button type="button" aria-label="Add slide" disabled={slides.length>=30||busy} onClick={()=>addSlide()}>+ Add</button></div>
+          <div className={styles.slideToolbar}><button type="button" disabled={busy||slideIndex===0} onClick={()=>setSlideIndex(i=>i-1)}>Previous preview</button><button type="button" disabled={busy||slideIndex===slides.length-1} onClick={()=>setSlideIndex(i=>i+1)}>Next preview</button><button className={styles.primary} disabled={busy||photoPreparing||!online||room.status!=='active'||!slideText} onClick={()=>presentSlide(slideIndex)}>{photoPreparing?'Preparing photos…':'Present slide'}</button>{slide&&visualSlidePayload(slide.body)!==null&&<button type="button" disabled={busy||!online||room.status!=='active'||!slideText} onClick={()=>presentSlide(slideIndex,0)}>Present with object reveals</button>}</div>
           <div className={styles.slideFields}>
             <label>Title<input value={slide.title} maxLength={120} disabled={busy} onChange={e=>editSlide({title:e.target.value})}/></label>
-            <SlideBodyEditor key={room.id+':'+slideIndex} slide={slide} roomId={room.id} roomStatus={room.status} disabled={busy} onChange={body=>editSlide({body})}/><button type="button" disabled={busy||buildTextRevealSlides(slide,31-slides.length).length===0} onClick={()=>{const steps=buildTextRevealSlides(slide,31-slides.length);if(steps.length&&window.confirm('Replace this slide with '+steps.length+' progressive teaching steps?'))setSlides(items=>[...items.slice(0,slideIndex),...steps,...items.slice(slideIndex+1)])}}>Build reveal steps</button>
+            <SlideBodyEditor key={room.id+':'+slideIndex} slide={slide} roomId={room.id} roomStatus={room.status} disabled={busy||photoPreparing} onChange={body=>editSlide({body})}/><button type="button" disabled={busy||buildTextRevealSlides(slide,31-slides.length).length===0} onClick={()=>{const steps=buildTextRevealSlides(slide,31-slides.length);if(steps.length&&window.confirm('Replace this slide with '+steps.length+' progressive teaching steps?'))setSlides(items=>[...items.slice(0,slideIndex),...steps,...items.slice(slideIndex+1)])}}>Build reveal steps</button>
             <div className={styles.slideOptions}>
               <label>Diagram<select aria-label="Diagram" disabled={busy} value={slide.diagram??'none'} onChange={e=>editSlide({diagram:e.target.value as SlideDiagram})}>{SLIDE_DIAGRAMS.map(d=><option key={d} value={d}>{diagramLabel(d)}</option>)}</select></label>
               <label>Theme<select aria-label="Theme" disabled={busy} value={slide.theme??'paper'} onChange={e=>editSlide({theme:e.target.value as SlideTheme})}>{SLIDE_THEMES.map(t=><option key={t}>{t}</option>)}</select></label>
               <label>Layout<select aria-label="Layout" disabled={busy} value={slide.layout??'wide'} onChange={e=>editSlide({layout:e.target.value==='portrait'?'portrait':'wide'})}><option value="wide">Wide 16:9</option><option value="portrait">Portrait</option></select></label>
               <label>Text size<select aria-label="Text size" disabled={busy} value={slide.font??'normal'} onChange={e=>editSlide({font:e.target.value==='large'?'large':'normal'})}><option value="normal">Normal</option><option value="large">Large</option></select></label>
             </div>
-            <label>Presenter notes (private)<textarea maxLength={2000} value={slide.notes??''} disabled={busy} onChange={e=>editSlide({notes:e.target.value})}/></label>
+            <PrivateSlideFields key={room.id+':private:'+slideIndex} slide={slide} disabled={busy} onChange={notes=>editSlide({notes})}/>
             <div className={styles.slideToolbar}><button type="button" disabled={busy||slideIndex===0} onClick={()=>moveSlide(-1)}>Move left</button><button type="button" disabled={busy||slideIndex===slides.length-1} onClick={()=>moveSlide(1)}>Move right</button><button type="button" disabled={busy||slides.length>=30} onClick={()=>addSlide(true)}>Duplicate</button><button type="button" disabled={busy||slides.length<=1} onClick={deleteSlide}>Delete</button>{deletedSlide&&<button type="button" disabled={busy||slides.length>=30} onClick={undoSlideDelete}>Undo delete</button>}</div>
             {!slideText&&<small role="status">Add content or shorten text to fit the shared slide limit.</small>}
             <small>{workspaceStatus||'Draft'} · published slides remain in lesson history.</small>
@@ -1103,6 +1135,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
     {teacher&&panel===null&&!editingBoard&&reviewId===null&&liveSlide&&(!focusMode||focusDock)&&<div className={styles.presentControls}>
       <button type="button" disabled={!canNavigateSlides||previousLiveSlide===null} onClick={()=>{if(previousLiveSlide!==null)presentSlide(previousLiveSlide)}}>Previous slide</button>
       <span>{liveSlide.number} / {liveSlide.total}</span><button type="button" onClick={openSlides}>Edit slides</button>{decodeAssessment(liveSlide.body)&&<button type="button" disabled={!canNavigateSlides} onClick={launchSlideAssessment}>Launch {decodeAssessment(liveSlide.body)?.kind}</button>}
+      {revealMatch&&visibleObjects!==null&&objectTotal>0&&<><button type="button" disabled={!canNavigateSlides||visibleObjects===0} onClick={()=>presentSlide(liveSlide.number-1,visibleObjects-1)}>Hide last object</button><button type="button" disabled={!canNavigateSlides||visibleObjects>=objectTotal} onClick={()=>presentSlide(liveSlide.number-1,visibleObjects+1)}>Reveal next object</button><small>{visibleObjects}/{objectTotal} objects</small></>}
       <button type="button" disabled={!canNavigateSlides||nextLiveSlide===null} onClick={()=>{if(nextLiveSlide!==null)presentSlide(nextLiveSlide)}}>Next slide</button>
       {canNavigateSlides&&nextLiveSlide!==null&&nextLiveSlide>liveSlide.number&&<small role="status">Blank or invalid draft slides will be skipped.</small>}
       {canNavigateSlides&&nextLiveSlide===null&&liveSlide.number<liveSlide.total&&<small role="status">No matching publishable next slide. Open Edit slides, restore or complete the deck, and present a slide again.</small>}
