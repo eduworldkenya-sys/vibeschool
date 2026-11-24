@@ -2,7 +2,8 @@
 import {useState} from 'react'
 import {ObjectBoard} from './LiveObjectBoard'
 import {BOARD_COLORS,emptyBoard,encodeBoard,decodeBoard} from './LiveBoardProtocol'
-import {encodeSlide,visualSlideBody,visualSlidePayload,type LiveSlide} from './LiveSlideProtocol'
+import {encodeSlide,visualSlideBody,visualSlidePayload,decodeDemo,encodeDemo,defaultDemo,DEMO_RANGES,diagramLabel,type DemoKind,type LiveSlide} from './LiveSlideProtocol'
+import {DemoControls} from './LiveAdjustableDiagram'
 import styles from './LiveClassroom.module.css'
 
 type Props={slide:LiveSlide;disabled:boolean;onChange:(body:string)=>void}
@@ -37,6 +38,8 @@ function VisualEditor({slide,disabled,onChange}:Props){
  </section>
 }
 export function SlideBodyEditor({slide,disabled,onChange}:Props){
+ const demo=decodeDemo(slide.body)
+ if(demo)return <section aria-label="Adjustable teaching diagram"><DemoControls demo={demo} disabled={disabled} onChange={d=>onChange(encodeDemo(d))}/><button type="button" disabled={disabled} onClick={()=>{if(window.confirm('Replace this demonstration with text?'))onChange('')}}>Switch to text</button></section>
  if(visualSlidePayload(slide.body)!==null)return <VisualEditor slide={slide} disabled={disabled} onChange={onChange}/>
  function convert(){
   const text=slide.body.trim()
@@ -47,5 +50,5 @@ export function SlideBodyEditor({slide,disabled,onChange}:Props){
   const body=visualSlideBody(encodeBoard(doc))
   if(encodeSlide({...slide,body},30,30))onChange(body)
  }
- return <><label>Content<textarea value={slide.body} maxLength={3878} disabled={disabled} onChange={e=>onChange(e.target.value)}/></label><button type="button" disabled={disabled} onClick={convert}>Use visual canvas</button></>
+ return <><label>Content<textarea value={slide.body} maxLength={3878} disabled={disabled} onChange={e=>onChange(e.target.value)}/></label><button type="button" disabled={disabled} onClick={convert}>Use visual canvas</button><label>Adjustable demonstration<select disabled={disabled} value="" onChange={e=>{const kind=e.target.value as DemoKind;if(!kind||!Object.prototype.hasOwnProperty.call(DEMO_RANGES,kind))return;if(slide.body.trim()&&!window.confirm('Replace existing content with the demonstration?'))return;onChange(encodeDemo(defaultDemo(kind)))}}><option value="">Choose demonstration</option>{Object.keys(DEMO_RANGES).map(k=><option key={k} value={k}>{diagramLabel(k as DemoKind)}</option>)}</select></label></>
 }

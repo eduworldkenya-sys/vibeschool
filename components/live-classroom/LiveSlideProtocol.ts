@@ -8,7 +8,7 @@ const prefix='VSLIDE1:'
 export function validSlide(s:unknown):s is LiveSlide {
  if(!s||typeof s!=='object')return false
  const x=s as LiveSlide
- return typeof x.title==='string'&&x.title.length<=120&&typeof x.body==='string'&&x.body.length<=3878
+ return typeof x.title==='string'&&x.title.length<=120&&typeof x.body==='string'&&x.body.length<=3878&&(!isDemoBody(x.body)||decodeDemo(x.body)!==null)
  &&(x.diagram===undefined||SLIDE_DIAGRAMS.includes(x.diagram))&&(x.theme===undefined||SLIDE_THEMES.includes(x.theme))
  &&(x.layout===undefined||x.layout==='wide'||x.layout==='portrait')&&(x.font===undefined||x.font==='normal'||x.font==='large')
  &&(x.notes===undefined||(typeof x.notes==='string'&&x.notes.length<=2000))
@@ -96,4 +96,47 @@ export function visualSlidePayload(body:string):string|null{
 }
 export function visualSlideBody(board:string):string{
  return VISUAL_SLIDE_PREFIX+board
+}
+
+export type DemoKind='clock'|'fraction-circle'|'fraction-bars'|'number-line'|'ruler'|'coordinate-grid'|'protractor'
+export type SlideDemo={kind:DemoKind;a:number;b:number}
+const DEMO_PREFIX='VSLIDEDEMO1:'
+export const DEMO_RANGES:Record<DemoKind,{a:[number,number];b:[number,number];labels:[string,string];initial:[number,number]}>={
+ clock:{a:[1,12],b:[0,59],labels:['Hour','Minute'],initial:[3,30]},
+ 'fraction-circle':{a:[0,12],b:[1,12],labels:['Shaded parts','Total parts'],initial:[2,4]},
+ 'fraction-bars':{a:[0,12],b:[1,12],labels:['Shaded parts','Total parts'],initial:[2,4]},
+ 'number-line':{a:[-10,10],b:[-10,10],labels:['Start','End'],initial:[-3,4]},
+ ruler:{a:[0,10],b:[0,10],labels:['Start (cm)','End (cm)'],initial:[2,7]},
+ 'coordinate-grid':{a:[-4,4],b:[-4,4],labels:['x','y'],initial:[2,3]},
+ protractor:{a:[0,180],b:[0,0],labels:['Angle (degrees)','Unused'],initial:[60,0]}
+}
+export function validDemo(value:unknown):value is SlideDemo {
+ if(!value||typeof value!=='object'||Array.isArray(value))return false
+ const d=value as SlideDemo
+ if(!Object.prototype.hasOwnProperty.call(DEMO_RANGES,d.kind)||Object.keys(d).some(k=>!['kind','a','b'].includes(k)))return false
+ const r=DEMO_RANGES[d.kind]
+ return Number.isInteger(d.a)&&d.a>=r.a[0]&&d.a<=r.a[1]&&Number.isInteger(d.b)&&d.b>=r.b[0]&&d.b<=r.b[1]&&(!d.kind.startsWith('fraction-')||d.a<=d.b)
+}
+export function isDemoBody(body:string):boolean{return body.startsWith(DEMO_PREFIX)}
+export function decodeDemo(body:string):SlideDemo|null{
+ if(!isDemoBody(body)||body.length>200)return null
+ try{const d:unknown=JSON.parse(body.slice(DEMO_PREFIX.length));return validDemo(d)?{kind:d.kind,a:d.a,b:d.b}:null}catch{return null}
+}
+export function encodeDemo(d:SlideDemo):string{return validDemo(d)?DEMO_PREFIX+JSON.stringify({kind:d.kind,a:d.a,b:d.b}):''}
+export function defaultDemo(kind:DemoKind):SlideDemo{
+ const [a,b]=DEMO_RANGES[kind].initial;return {kind,a,b}
+}
+export function changeDemo(d:SlideDemo,field:'a'|'b',value:number):SlideDemo{
+ const range=DEMO_RANGES[d.kind][field]
+ if(!Number.isFinite(value))return d
+ const next={...d,[field]:Math.min(range[1],Math.max(range[0],Math.round(value)))}
+ if(next.kind.startsWith('fraction-'))next.a=Math.min(next.a,next.b)
+ return next
+}
+export function buildTextRevealSlides(slide:LiveSlide,available:number):LiveSlide[]{
+ if(isDemoBody(slide.body)||visualSlidePayload(slide.body)!==null)return []
+ const lines=slide.body.split(/\r?\n/).map(line=>line.trim()).filter(Boolean)
+ if(lines.length<2||lines.length>available||lines.length>30)return []
+ const steps=lines.map((_,i)=>({...slide,body:lines.slice(0,i+1).join('\n')}))
+ return steps.every((s,i)=>Boolean(encodeSlide(s,i+1,steps.length)))?steps:[]
 }

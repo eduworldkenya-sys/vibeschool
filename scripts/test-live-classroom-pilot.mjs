@@ -1,4 +1,4 @@
-import {exportDeck,importDeck,MAX_DECK_FILE_BYTES} from '../components/live-classroom/LiveSlideProtocol.ts'
+import {exportDeck,importDeck,MAX_DECK_FILE_BYTES,defaultDemo,decodeDemo,encodeDemo,changeDemo,buildTextRevealSlides,DEMO_RANGES} from '../components/live-classroom/LiveSlideProtocol.ts'
 // Install the pinned test-only engine outside the repo: npm install --prefix /tmp/live-test --no-audit --no-fund @electric-sql/pglite@0.3.14
 import {createLiveFixture} from './live-classroom-test-fixture.mjs'
 import {readFileSync} from 'node:fs'
@@ -33,6 +33,19 @@ assert.deepEqual(decodeBoard(visualSlidePayload(decodeSlide(visualEncoded).body)
 assert.ok(!visualEncoded.includes(privateSlide.notes))
 assert.equal(adjacentSlide([visual,privateSlide],decodeSlide(visualEncoded),1),1)
 assert.equal(importDeck(exportDeck('Visual example',[visual])).slides[0].body,visual.body)
+for(const kind of Object.keys(DEMO_RANGES)){
+ const d=defaultDemo(kind),body=encodeDemo(d)
+ assert.deepEqual(decodeDemo(body),d)
+ assert.equal(decodeSlide(encodeSlide({title:'Demo',body},1,1)).body,body)
+ assert.equal(importDeck(exportDeck('Demo',[{title:'Demo',body}])).slides[0].body,body)
+}
+assert.equal(encodeDemo({kind:'clock',a:13,b:0}),'')
+assert.equal(encodeDemo({kind:'fraction-circle',a:5,b:4}),'')
+assert.deepEqual(changeDemo({kind:'fraction-circle',a:3,b:4},'b',2),{kind:'fraction-circle',a:2,b:2})
+const reveals=buildTextRevealSlides({title:'Steps',body:'First\nSecond\nThird',notes:'Private'},3)
+assert.deepEqual(reveals.map(s=>s.body),['First','First\nSecond','First\nSecond\nThird'])
+assert.equal(buildTextRevealSlides({title:'Steps',body:'First\nSecond'},1).length,0)
+assert.ok(!encodeSlide(reveals[0],1,3).includes('Private'))
 const encodedSlide=encodeSlide(privateSlide,2,5)
 assert.ok(encodedSlide)
 assert.ok(!encodedSlide.includes(privateSlide.notes))
