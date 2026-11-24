@@ -8,6 +8,7 @@ import styles from './LiveClassroom.module.css'
 import { adjacentSlide, buildTextRevealSlides, decodeAssessment, assessmentPrompt, decodePhotoSlide } from './LiveSlideProtocol'
 import { SlideCanvas, encodeSlide, decodeSlide, validSlide, diagramLabel, SLIDE_DIAGRAMS, SLIDE_THEMES, type LiveSlide, type SlideDiagram, type SlideTheme } from './LiveSlideCanvas'
 import { ObjectBoard, SharedObjectBoard } from './LiveObjectBoard'
+import {LiveSelfPacedReview} from './LiveSelfPacedReview'
 import {SlideBodyEditor} from './LiveSlideBodyEditor'
 import { TeachingLibrary } from './LiveTeachingLibrary'
 import { LiveResourcePicker } from './LiveResourcePicker'
@@ -298,6 +299,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
   const active=useRef<Room|null>(null)
   const generation=useRef(0)
   const [reviewId,setReviewId]=useState<string|null>(null)
+  const [selfPaced,setSelfPaced]=useState(false)
   const [followingTeacher,setFollowingTeacher]=useState(true)
   const stageScrollRef=useRef<HTMLElement|null>(null)
   const presenterTimer=useRef<number|null>(null)
@@ -767,7 +769,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
   const immersive=!!room&&room.status!=='ended'
   const draftLoading=teacher&&!!room&&draftBinding?.roomId!==room.id&&!draftWarning
   useEffect(()=>{
-    setReviewId(null);setDraftBinding(null);draftKey.current=null;setWorkspaceRevision(null);setWorkspaceStatus('');workspaceSaved.current='';workspaceSaving.current=null;setConflictDraft(null);composerDrafts.current={};pendingPublish.current=null;setDraftWarning(false);setMode('teach');setClock('10:30');boardInitialized.current=false;setBoardPages(['']);setBoardPage(0);setPanel(null);setFocusMode(false);setEditingBoard(false);setShowSticker(true);setEndConfirm(false);setBoard('');setUndoBoards([]);setRedoBoards([]);boardUndoByPage.current={};setFocusDock(false);setSlides([{title:'',body:''}]);setSlideIndex(0);setDeletedSlide(null);setBody('');setKey('')
+    setSelfPaced(false);setReviewId(null);setDraftBinding(null);draftKey.current=null;setWorkspaceRevision(null);setWorkspaceStatus('');workspaceSaved.current='';workspaceSaving.current=null;setConflictDraft(null);composerDrafts.current={};pendingPublish.current=null;setDraftWarning(false);setMode('teach');setClock('10:30');boardInitialized.current=false;setBoardPages(['']);setBoardPage(0);setPanel(null);setFocusMode(false);setEditingBoard(false);setShowSticker(true);setEndConfirm(false);setBoard('');setUndoBoards([]);setRedoBoards([]);boardUndoByPage.current={};setFocusDock(false);setSlides([{title:'',body:''}]);setSlideIndex(0);setDeletedSlide(null);setBody('');setKey('')
   },[room?.id])
   function restoreDraft(draft:DraftState){
     setBoard(draft.board)
@@ -1177,10 +1179,10 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
     {teacher&&room?.status==='ended'&&room.mode==='school'&&
       <LiveLessonReview roomId={room.id} roomStatus={room.status}
         preparedPlanId={linkedPlan?.id??null} selectedPlanId={selectedPlanId} classId={classId??''} savedPlans={savedPlans} onSelectPlan={setSelectedPlanId}/>}
-    {room?.status==='ended'&&<section className={styles.panel}><h2>{room.title}</h2><p>This session has ended.</p><LessonNavigation items={history} reviewId={reviewId} onReview={setReviewId} ended/>
+    {room?.status==='ended'&&<section className={styles.panel}><h2>{room.title}</h2><p>This session has ended.</p>{!teacher&&history.length>0&&<button type="button" onClick={()=>setSelfPaced(v=>!v)}>{selfPaced?'Close self-paced review':'Study independently'}</button>}{!teacher&&selfPaced?<LiveSelfPacedReview key={room.id} items={history} renderPage={item=><SharedPrompt prompt={item} roomId={room.id} learner/>} onClose={()=>setSelfPaced(false)}/>:<><LessonNavigation items={history} reviewId={reviewId} onReview={setReviewId} ended/>
        <section aria-label="Saved teaching materials" className={styles.savedMaterials}><strong>Lesson materials</strong><p>Review the pages, diagrams and board work your teacher presented. Access still follows your current class or tuition permission.</p>
        <div className={styles.savedMaterialList}>{history.filter(item=>item.kind==='teach'||item.kind==='board').map(item=><button type="button" key={item.id} aria-pressed={viewedPrompt?.id===item.id} onClick={()=>setReviewId(item.id)}>{item.kind==='board'?'Shared whiteboard':decodeLiveFileRef(item.body)?'Shared PDF or photo':decodeSlide(item.body)?.title??item.body.split('\n')[0]?.slice(0,85)??'Lesson page'}</button>)}</div>
        {!history.some(item=>item.kind==='teach'||item.kind==='board')&&<p>No teaching materials were presented in this class.</p>}</section>
-       <div aria-label="Saved lesson"><SharedPrompt prompt={viewedPrompt} roomId={room.id} learner={!teacher}/></div><LiveClassFiles roomId={room.id} teacher={teacher} status="ended"/>{!teacher&&room.ownNote&&<div><h3>My notes</h3><p className={styles.content}>{room.ownNote}</p></div>}<button onClick={leave}>Return to live lessons</button></section>}
+       <div aria-label="Saved lesson"><SharedPrompt prompt={viewedPrompt} roomId={room.id} learner={!teacher}/></div></>}<LiveClassFiles roomId={room.id} teacher={teacher} status="ended"/>{!teacher&&room.ownNote&&<div><h3>My notes</h3><p className={styles.content}>{room.ownNote}</p></div>}<button onClick={leave}>Return to live lessons</button></section>}
   </main>
 }
