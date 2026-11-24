@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { fetchApprovedMinis, loadMiniCovers, type MiniPost } from '@/lib/minis/data'
+import { miniPublicPath } from '@/lib/minis/public-url'
 import { rankMiniLessons } from '@/lib/minis/recommendation'
 import styles from './MiniExplore.module.css'
 
@@ -35,7 +36,7 @@ export function MiniLiveHome() {
     </div>
     {loading ? <p role="status">Loading Mini Lessons…</p>
       : items.length ? <div className={styles.homeGrid}>
-        {items.map(post=><Link key={post.id} href={'/explore?mini='+encodeURIComponent(post.id)}
+        {items.map(post=><Link key={post.id} href={miniPublicPath(post.id)}
           className={styles.miniCard}>
           {covers[post.id] ? <img className={styles.art} style={{width:'100%',objectFit:'cover'}}
             src={covers[post.id]} alt={'Photo for '+post.title}/>

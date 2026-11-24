@@ -4,7 +4,8 @@ import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { fetchMiniPage, fetchOwnMiniStatus, loadApprovedComments, loadMiniCovers,
-  type MiniPost, type ApprovedComment } from '@/lib/minis/data'
+  type MiniCursor, type MiniPost, type ApprovedComment } from '@/lib/minis/data'
+import { miniPublicPath, miniExplorePath } from '@/lib/minis/public-url'
 import { rankMiniLessons } from '@/lib/minis/recommendation'
 import { currentMiniUser, miniIsVerifiedAdult, changeMiniFollow, changeMiniInteraction, submitMini,
   addMiniComment, reportMini, recordMiniLearningSignal, publishMiniSafely } from '@/lib/minis/actions'
@@ -20,7 +21,8 @@ type Submission = { id: string; title: string; tags: string[]; status: string; c
 
 const ensureSignIn = (user: string | null) => {
   if (user) return true
-  window.location.assign('/login?redirect=%2Fexplore')
+  const selected = new URLSearchParams(window.location.search).get('mini')
+  window.location.assign('/login?redirect='+encodeURIComponent(miniExplorePath(selected)))
   return false
 }
 
@@ -45,7 +47,7 @@ export function MiniLiveExplore() {
   const [tab, setTab] = useState<Tab>('For You')
   const [tag, setTag] = useState('All')
   const [query, setQuery] = useState('')
-  const [nextOffset, setNextOffset] = useState<number|null>(null)
+  const [nextCursor, setNextCursor] = useState<MiniCursor|null>(null)
   const [pageBusy, setPageBusy] = useState(false)
   const [feedError, setFeedError] = useState('')
   const [refreshKey, setRefreshKey] = useState(0)
@@ -132,7 +134,10 @@ export function MiniLiveExplore() {
           setFollows(new Set((following.data ?? []).map((row: {followed_id:string}) => row.followed_id)))
           setDismissed(new Set((learning.data ?? []).filter((row: {signal:string}) => row.signal === 'not_interested').map((row: {mini_id:string}) => row.mini_id)))
         }
-        const id = new URLSearchParams(window.location.search).get('mini')
+        const params = new URLSearchParams(window.location.search)
+        const initialTag = params.get('tag')
+        if(initialTag && /^[a-z][a-z0-9_]{1,29}$/.test(initialTag)) setTag(initialTag)
+        const id = params.get('mini')
         if (id) {
           {
             const { data } = await supabase.from('mini_lessons')
@@ -171,12 +176,12 @@ export function MiniLiveExplore() {
   useEffect(()=>{
     if (!identityReady || section !== 'feed') return
     const sequence = ++feedSequence.current
-    setLoading(true);setPageBusy(false);setFeedError('');setNextOffset(null)
+    setLoading(true);setPageBusy(false);setFeedError('');setNextCursor(null)
     const timer = window.setTimeout(()=>{
       void fetchMiniPage({search:query,tag,creators:tab==='Following'?[...follows]:undefined})
         .then(page=>{
           if(sequence!==feedSequence.current)return
-          mergePage(page.posts,false);setNextOffset(page.nextOffset)
+          mergePage(page.posts,false);setNextCursor(page.nextCursor)
           void loadMiniCovers(page.posts).then(urls=>{
             if(sequence===feedSequence.current)setCovers(old=>({...old,...urls}))
           }).catch(()=>{})
@@ -188,13 +193,13 @@ export function MiniLiveExplore() {
   },[identityReady,section,query,tag,tab,follows,refreshKey,mergePage])
 
   async function loadMore() {
-    if(pageBusy||loading||nextOffset===null||!feedReady.current)return
+    if(pageBusy||loading||nextCursor===null||!feedReady.current)return
     const sequence=feedSequence.current
     setPageBusy(true);setFeedError('')
     try {
-      const page=await fetchMiniPage({search:query,tag,offset:nextOffset,creators:tab==='Following'?[...follows]:undefined})
+      const page=await fetchMiniPage({search:query,tag,cursor:nextCursor,creators:tab==='Following'?[...follows]:undefined})
       if(sequence!==feedSequence.current)return
-      mergePage(page.posts,true);setNextOffset(page.nextOffset)
+      mergePage(page.posts,true);setNextCursor(page.nextCursor)
       const urls=await loadMiniCovers(page.posts)
       if(sequence===feedSequence.current)setCovers(old=>({...old,...urls}))
     }catch(e){if(sequence===feedSequence.current)setFeedError(e instanceof Error?e.message:'Unable to load more.')}
@@ -416,8 +421,8 @@ export function MiniLiveExplore() {
         <button type="button" aria-pressed={saves.has(post.id)} disabled={busy} onClick={()=>void interact('save',post)}>
           {saves.has(post.id)?'▣ Saved':'▢ Save'}</button>
         <button type="button" onClick={()=>void (navigator.share
-          ? navigator.share({title:post.title,url:window.location.origin+'/explore?mini='+encodeURIComponent(post.id)}).catch(()=>setNotice('Sharing cancelled.'))
-          : navigator.clipboard.writeText(window.location.origin+'/explore?mini='+encodeURIComponent(post.id)).then(()=>setNotice('Link copied.')).catch(()=>setError('Unable to copy the link.')))}>↗ Share</button>
+          ? navigator.share({title:post.title,url:window.location.origin+miniPublicPath(post.id)}).catch(()=>setNotice('Sharing cancelled.'))
+          : navigator.clipboard.writeText(window.location.origin+miniPublicPath(post.id)).then(()=>setNotice('Link copied.')).catch(()=>setError('Unable to copy the link.')))}>↗ Share</button>
       </div>
     </div>
   </article>
@@ -465,7 +470,7 @@ export function MiniLiveExplore() {
           <button type="button" className={styles.primary} onClick={()=>setSection('request')}>Request this topic</button>
           <button type="button" className={styles.secondary} onClick={()=>{setTag('All');setQuery('');setTab('For You')}}>Explore all</button>
         </div>}
-      {!loading && nextOffset!==null && <button type="button" className={styles.loadMore} disabled={pageBusy} onClick={()=>void loadMore()}>{pageBusy?'Loading…':'Load more'}</button>}
+      {!loading && nextCursor!==null && <button type="button" className={styles.loadMore} disabled={pageBusy} onClick={()=>void loadMore()}>{pageBusy?'Loading…':'Load more'}</button>}
     </>}
 
     {section === 'request' && <MiniLiveRequests mode="compose" query={query} onBack={back} onExplain={explainRequest}/>}
@@ -509,13 +514,14 @@ export function MiniLiveExplore() {
             {saves.has(current.id)?'▣ Saved':'▢ Save'}</button>
           <button type="button" onClick={()=>document.getElementById('mini-discussion')?.scrollIntoView({behavior:'smooth'})}>Comments</button>
           <button type="button" onClick={()=>void (navigator.share
-            ? navigator.share({title:current.title,url:window.location.href}).catch(()=>{})
-            : navigator.clipboard?.writeText(window.location.href).catch(()=>{}))}>↗ Share</button>
+            ? navigator.share({title:current.title,url:window.location.origin+miniPublicPath(current.id)}).catch(()=>{})
+            : navigator.clipboard?.writeText(window.location.origin+miniPublicPath(current.id)).catch(()=>{}))}>↗ Share</button>
         </div>
         {adult && <div className={styles.actions}>
           <button type="button" disabled={busy} onClick={()=>void learning('understood')}>I understood this</button>
           <button type="button" disabled={busy} onClick={()=>void learning('not_interested')}>Not interested</button>
         </div>}
+        <div className={styles.actions}><Link href="/learn" className={styles.secondary}>Explore textbooks</Link><Link href="/student/vibelearn/topic-practice" className={styles.secondary}>Practice</Link><Link href="/vibetutor" className={styles.secondary}>Find a tutor</Link></div>
         <section className={styles.comments} id="mini-discussion">
           <h2>Discussion</h2>
           <p className={styles.subline}>Comments appear only after moderation. Learner identities remain private.</p>
