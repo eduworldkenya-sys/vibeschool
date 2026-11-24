@@ -1248,7 +1248,7 @@ function Inner({ curriculumView = false }) {
 
   async function commitScheme(){if(!selectedClass||!selectedSubject||!selectedTermId||!curriculumRows.length)return;setCommitting(true);setError(null);const r=await supabase.rpc('commit_curriculum_scheme',{p_class_id:selectedClass,p_subject_id:selectedSubject,p_academic_term_id:selectedTermId,p_curriculum_ids:curriculumRows.map(x=>x.id)});if(r.error)setError(commitError(r.error.message));else await loadScheme();setCommitting(false)}
   async function addCustom(){if(!selectedClass||!selectedSubject||!selectedTermId||!newTopic.trim())return;setAdding(true);setError(null);const r=await supabase.rpc('commit_custom_scheme_item',{p_class_id:selectedClass,p_subject_id:selectedSubject,p_academic_term_id:selectedTermId,p_week:selectedWeek,p_topic:newTopic.trim(),p_strand:newStrand.trim()||null,p_resource_id:null,p_resource_role:null});if(r.error)setError(commitError(r.error.message));else{setNewTopic('');setNewStrand('');await loadScheme()}setAdding(false)}
-  async function addGrade4CreCaSchemeLesson(subStrandId,outcomeIds){
+  async function addGrade4CreCaSchemeLesson(subStrandId,outcomeIds,lessonSequence){
     if(!selectedClass||!selectedSubject||!selectedTermId||!weeks.some(w=>w.week_number===selectedWeek)||!subStrandId||(!isGrade5CRE&&!outcomeIds?.length))return
     setSavingGrade4CreCa(true);setError(null)
     try{
@@ -1256,7 +1256,8 @@ function Inner({ curriculumView = false }) {
       const result=await supabase.rpc(rpc,{
         p_class_id:selectedClass,p_subject_id:selectedSubject,
         p_academic_term_id:selectedTermId,p_week:selectedWeek,
-        p_sub_strand_id:subStrandId,p_outcome_ids:outcomeIds
+        p_sub_strand_id:subStrandId,p_outcome_ids:outcomeIds,
+        ...(isGrade4SocialStudies ? {p_lesson_sequence:lessonSequence} : {})
       })
       if(result.error)throw new Error(commitError(result.error.message))
       if(!result.data?.id)throw new Error('Linked Scheme lesson was not saved.')
@@ -1385,7 +1386,7 @@ function Inner({ curriculumView = false }) {
       mode={curriculumView ? 'curriculum' : 'scheme'}
       saving={savingGrade4CreCa}
       canSave={Boolean(selectedClass&&selectedSubject&&selectedTermId&&weeks.some(w=>w.week_number===selectedWeek))}
-      onSaveLesson={(unitId,outcomes)=>void addGrade4CreCaSchemeLesson(unitId,outcomes)}
+      onSaveLesson={(unitId,outcomes,lessonSequence)=>void addGrade4CreCaSchemeLesson(unitId,outcomes,lessonSequence)}
       onOpenScheme={unitId=>{
         const p=new URLSearchParams({classId:selectedClass||'',subjectId:selectedSubject||'',week:String(selectedWeek),unitId})
         if(selectedTermId)p.set('termId',selectedTermId)
