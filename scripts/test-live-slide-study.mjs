@@ -64,3 +64,5 @@ try{
  await assert.rejects(study(null,'list',null,{},null,'anon'),/permission denied/)
  console.log('PASS: independent assignment snapshots, current membership, durable progress, quiz feedback and negative access paths')
 }finally{await db.close()}
+
+await import('./test-live-homework-handoff.mjs')
