@@ -348,9 +348,9 @@ export default function VibeChat() {
     if(chat&&selectedRef.current===chat.key)void loadMessages(chat,uid)
     void load(true)
   })
-  const replyMessage=reply?.room===selected?.key?reply.message:null
-  const editing=edit?.room===selected?.key?edit:null
-  const deleting=deleteTarget?.room===selected?.key?deleteTarget:null
+  const replyMessage=reply&&reply.room===selected?.key?reply.message:null
+  const editing=edit&&edit.room===selected?.key?edit:null
+  const deleting=deleteTarget&&deleteTarget.room===selected?.key?deleteTarget:null
   const pending=selected?outbox.items.filter(item=>item.room===selected.id&&item.kind===(selected.kind==='school'?'vc':'tuition')):[]
 
   async function sendMessage(event: React.FormEvent) {
