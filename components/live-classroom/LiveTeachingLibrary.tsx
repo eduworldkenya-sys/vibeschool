@@ -2,7 +2,7 @@
 import {useEffect,useState,useRef} from 'react'
 import {SlideCanvas,validSlide,diagramLabel,SLIDE_DIAGRAMS,SLIDE_THEMES,type LiveSlide,type SlideDiagram,type SlideTheme} from './LiveSlideCanvas'
 import styles from './LiveClassroom.module.css'
-import {exportDeck,importDeck,MAX_DECK_FILE_BYTES} from './LiveDeckTransfer'
+import {exportDeck,importDeck,MAX_DECK_FILE_BYTES} from './LiveSlideProtocol'
 type Summary={id:string;title:string;revision:number;slideCount:number;updatedAt:string}
 type Material={id:string;title:string;revision:number;slides:LiveSlide[]}
 type Command=(action:string,id?:string|null,version?:number|null,payload?:Record<string,unknown>)=>Promise<unknown>
