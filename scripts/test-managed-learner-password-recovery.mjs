@@ -121,4 +121,8 @@ test('database locks the linked child and enforces bounded reset attempts',()=>{
   assert.doesNotMatch(migration,/\bdrop table\b|\btruncate\b|\bdelete from students\b/i)
   assert.match(ui,/Reset learner password/)
   assert.match(ui,/Confirm reset/)
+  assert.match(ui,/await activate\(\{/)
+  assert.match(ui,/createdGrade/)
+  assert.match(ui,/Create learner account/)
+  assert.match(ui,/If activation fails, the saved child remains available/)
 })
