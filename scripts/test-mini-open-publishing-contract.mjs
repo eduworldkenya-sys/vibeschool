@@ -31,7 +31,7 @@ test('user submissions are private until automated safety screening succeeds',()
  assert.match(requestUi,/automatic safety check/)
 })
 test('automatic screening checks text and photos rather than optimistic publishing',()=>{
- for(const word of ["MINI_GOOGLE_SAFETY_API_KEY","documents:moderateText","SAFE_SEARCH_DETECTION","FACE_DETECTION","TEXT_DETECTION","item.cover_path","storage.from('mini-covers').download","faceAnnotations","languageSupported!==true","Harm","response.ok"])
+ for(const word of ["MINI_GOOGLE_SAFETY_API_KEY","documents:moderateText","SAFE_SEARCH_DETECTION","FACE_DETECTION","TEXT_DETECTION","item.cover_path","storage.from('mini-covers').download","faceAnnotations","languageSupported!==true","Harm","language.ok","image.ok"])
    assert.ok(api.includes(word),'Missing safety inspection: '+word)
  assert.match(api,/Missing text safety categories/)
  assert.match(api,/Incomplete image safety analysis/)
