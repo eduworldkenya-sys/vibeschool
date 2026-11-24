@@ -12,6 +12,7 @@ export default function EmailSignupForm({ linkFailed }: { linkFailed: boolean })
   const [signedIn, setSignedIn] = useState(false)
   const [level, setLevel] = useState('')
   const [choice, setChoice] = useState('')
+  const [ageBand, setAgeBand] = useState<''|'adult'|'under_18'>('')
   const appearance = useAuthAppearance()
   const router = useRouter()
   const [checking, setChecking] = useState(true)
@@ -70,11 +71,12 @@ export default function EmailSignupForm({ linkFailed }: { linkFailed: boolean })
   }
 
   async function saveGrade() {
-    if (!level || !choice || busy) return
+    if (!level || !choice || busy || ageBand !== 'adult') return
     setBusy(true); setError('')
     const data = new FormData()
     data.set('level', level)
     data.set('choice', choice)
+    data.set('age_band', ageBand)
     try {
       const result = await saveIndependentEmailGrade(data)
       if (result.error) setError(result.error)
@@ -104,8 +106,13 @@ export default function EmailSignupForm({ linkFailed }: { linkFailed: boolean })
     {error && <p className={styles.error} role="alert">{error}</p>}
     {notice && <p role="status">{notice}</p>}
     {checking ? <p role="status">Checking your session…</p> : signedIn ? <>
+      <fieldset style={{border:0,padding:0,margin:'12px 0'}}><legend>Who is learning?</legend>
+        <label style={{display:'block'}}><input type="radio" checked={ageBand==='adult'} onChange={()=>setAgeBand('adult')}/> I am 18 or older</label>
+        <label style={{display:'block'}}><input type="radio" checked={ageBand==='under_18'} onChange={()=>setAgeBand('under_18')}/> I am under 18</label>
+      </fieldset>
+      {ageBand==='under_18' && <p role="status">You can read public lessons now. An adult can create your private learning account when needed. <a href="/learn">Open Learn</a> · <a href="/join?role=parent">Set up with an adult</a></p>}
       <LearningLevelSelect level={level} choice={choice} onLevelChange={setLevel} onChoiceChange={setChoice} disabled={busy}/>
-      <button className={styles.primary} type="button" disabled={!level || !choice || busy} onClick={()=>void saveGrade()}>{busy?'Saving…':'Continue'}</button>
+      <button className={styles.primary} type="button" disabled={!level || !choice || busy || ageBand !== 'adult'} onClick={()=>void saveGrade()}>{busy?'Saving…':'Continue'}</button>
       <button className={styles.secondary} type="button" disabled={busy} onClick={() => void signOut()}>Sign out</button>
     </> : <form key={email ? 'verify' : 'send'} onSubmit={submit}>
       {email ? <>
