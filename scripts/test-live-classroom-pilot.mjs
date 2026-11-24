@@ -10,12 +10,19 @@ assert.equal(liveSyncDelay('paused',0),4000)
 assert.equal(liveSyncDelay('ended',0),15000)
 assert.deepEqual([1,2,3,4,100].map(n=>liveSyncDelay('active',n)),[5000,10000,20000,30000,30000])
 import {encodeSlide,decodeSlide,validSlide,SLIDE_DIAGRAMS,adjacentSlide,visualSlideBody,visualSlidePayload} from '../components/live-classroom/LiveSlideProtocol.ts'
-import {emptyBoard,encodeBoard,decodeBoard,boardFromLegacy,BOARD_DIAGRAMS} from '../components/live-classroom/LiveBoardProtocol.ts'
+import {emptyBoard,encodeBoard,decodeBoard,boardFromLegacy,BOARD_DIAGRAMS,revealBoard,boardRevealCount} from '../components/live-classroom/LiveBoardProtocol.ts'
 const shape={id:'fixture-rect',kind:'rectangle',x:20,y:25,w:90,h:60,angle:15,color:'#1865c0',stroke:3,locked:true}
 const drawnBoard={...emptyBoard(2,3),background:'grid',objects:[shape,{...shape,id:'fixture-note',kind:'text',text:'2 + 3 = 5'},{...shape,id:'fixture-diagram',kind:'diagram',diagram:'fraction-bars'},{...shape,id:'fixture-arrow',kind:'arrow',points:[0,0,1000,1000]}]}
 const objectBoard=encodeBoard(drawnBoard)
 assert.ok(objectBoard)
 assert.deepEqual(decodeBoard(objectBoard),drawnBoard)
+const firstObject=revealBoard(objectBoard,1)
+assert.equal(decodeBoard(firstObject).objects.length,1)
+assert.ok(!firstObject.includes('fixture-note'))
+assert.equal(boardRevealCount(objectBoard,firstObject),1)
+assert.equal(boardRevealCount(objectBoard,revealBoard(objectBoard,0)),0)
+assert.equal(revealBoard(objectBoard,5),'')
+assert.equal(boardRevealCount(objectBoard,encodeBoard({...drawnBoard,objects:[drawnBoard.objects[1]]})),null)
 assert.equal(encodeBoard({...drawnBoard,objects:[shape,shape]}),'')
 assert.equal(encodeBoard({...drawnBoard,objects:[{...shape,angle:360}]}),'')
 assert.equal(encodeBoard({...drawnBoard,objects:[{...shape,color:'url(javascript:alert(1))'}]}),'')

@@ -47,3 +47,16 @@ export function boardFromLegacy(value:string,page=1,total=1):BoardDocument{
  }
  return {background:'plain',objects,page,total}
 }
+
+/** A live reveal publishes only the visible object prefix. Hidden objects are
+ * omitted, never sent to learner clients. Order is the teacher's layer order. */
+export function revealBoard(value:string,count:number):string{
+ const doc=decodeBoard(value)
+ if(!doc||!Number.isInteger(count)||count<0||count>doc.objects.length)return ''
+ return encodeBoard({...doc,objects:doc.objects.slice(0,count)})
+}
+export function boardRevealCount(full:string,shared:string):number|null{
+ const d=decodeBoard(full),s=decodeBoard(shared)
+ if(!d||!s||s.objects.length>d.objects.length)return null
+ return revealBoard(full,s.objects.length)===encodeBoard(s)?s.objects.length:null
+}

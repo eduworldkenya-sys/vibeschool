@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom'
 import { Maximize, Minimize, Users, PanelTop, Pencil, HelpCircle, ClipboardList, BarChart3, MoreHorizontal, X, Video, Move, GripHorizontal, Hand, MessageSquare, NotebookPen, History, Wifi, WifiOff, BookOpen } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import styles from './LiveClassroom.module.css'
-import { adjacentSlide, buildTextRevealSlides, decodeAssessment, assessmentPrompt, decodePhotoSlide } from './LiveSlideProtocol'
+import { adjacentSlide, buildTextRevealSlides, decodeAssessment, assessmentPrompt, decodePhotoSlide, visualSlideBody, visualSlidePayload } from './LiveSlideProtocol'
 import { SlideCanvas, encodeSlide, decodeSlide, validSlide, diagramLabel, SLIDE_DIAGRAMS, SLIDE_THEMES, type LiveSlide, type SlideDiagram, type SlideTheme } from './LiveSlideCanvas'
 import { ObjectBoard, SharedObjectBoard } from './LiveObjectBoard'
 import {LiveSelfPacedReview} from './LiveSelfPacedReview'
@@ -15,7 +15,7 @@ import { LiveResourcePicker } from './LiveResourcePicker'
 import { LiveClassFiles } from './LiveClassFiles'
 import { LiveFilePresentation } from './LiveFilePresentation'
 import { decodeLiveFileRef } from '@/lib/live/filePresentation'
-import { BOARD_LIMIT, decodeBoard, encodeBoard } from './LiveBoardProtocol'
+import { BOARD_LIMIT, decodeBoard, encodeBoard, revealBoard, boardRevealCount } from './LiveBoardProtocol'
 import { liveSyncDelay } from './LiveSyncPolicy'
 import { LivePrivateChat } from './LivePrivateChat'
 import { LiveClassChat } from './LiveClassChat'
@@ -918,14 +918,24 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
   const slide=slides[slideIndex]
   const liveSlide=prompt?.kind==='teach'?decodeSlide(prompt.body):null
   const slideText=slide?encodeSlide(slide,slideIndex+1,slides.length):''
-  const previousLiveSlide=liveSlide?adjacentSlide(slides,liveSlide,-1):null
-  const nextLiveSlide=liveSlide?adjacentSlide(slides,liveSlide,1):null
+  const liveVisualBody=liveSlide?visualSlidePayload(liveSlide.body):null
+  const originalVisual=liveSlide&&liveSlide.total===slides.length&&slides[liveSlide.number-1]?visualSlidePayload(slides[liveSlide.number-1].body):null
+  const visibleObjects=originalVisual!==null&&liveVisualBody!==null?boardRevealCount(originalVisual,liveVisualBody):null
+  const objectTotal=originalVisual!==null?decodeBoard(originalVisual)?.objects.length??0:0
+  const fullVisualMatch=visibleObjects!==null&&liveSlide&&slides[liveSlide.number-1]?decodeSlide(encodeSlide(slides[liveSlide.number-1],liveSlide.number,slides.length)):null
+  const revealMatch=fullVisualMatch&&liveSlide&&JSON.stringify({...fullVisualMatch,body:liveSlide.body})===JSON.stringify(liveSlide)
+  const matchedSlide=revealMatch?fullVisualMatch:liveSlide
+  const previousLiveSlide=matchedSlide?adjacentSlide(slides,matchedSlide,-1):null
+  const nextLiveSlide=matchedSlide?adjacentSlide(slides,matchedSlide,1):null
   const canNavigateSlides=teacher&&!busy&&!draftLoading&&online&&room?.status==='active'
   function editSlide(patch:Partial<LiveSlide>){setSlides(items=>items.map((item,i)=>i===slideIndex?{...item,...patch}:item))}
-  function presentSlide(index:number){
+  function presentSlide(index:number,revealCount?:number){
     const item=slides[index];if(!item||!canNavigateSlides)return
     const photos=decodePhotoSlide(item.body);if(photos&&photos.roomId!==room?.id){setError('This photo slide belongs to a different classroom.');return}
-    const slideText=encodeSlide(item,index+1,slides.length)
+    const visual=visualSlidePayload(item.body)
+    const partial=revealCount!==undefined&&visual!==null?revealBoard(visual,revealCount):null
+    if(revealCount!==undefined&&!partial)return
+    const slideText=encodeSlide(partial?{...item,body:visualSlideBody(partial)}:item,index+1,slides.length)
     if(slideText)void act('publish',null,{kind:'teach',body:slideText,answerKey:null})
   }
   function moveSlide(delta:number){
@@ -1019,7 +1029,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
           <div className={styles.slideToolbar}><strong>Slide editor</strong><span>{slideIndex+1} / {slides.length}</span><button type="button" onClick={()=>setPanel('library')}>My presentations</button><button type="button" onClick={()=>setPanel(null)}>Close</button></div>
           <SlideCanvas slide={slide} number={slideIndex+1} total={slides.length} roomId={room.id}/>
           <div className={styles.slideStrip} aria-label="Slide thumbnails">{slides.map((item,i)=><button type="button" key={i} aria-label={'Slide '+(i+1)+(item.title.trim()?': '+item.title:'')} aria-pressed={i===slideIndex} disabled={busy} onClick={()=>setSlideIndex(i)}><SlideCanvas slide={item} number={i+1} total={slides.length} mini roomId={room.id}/></button>)}<button type="button" aria-label="Add slide" disabled={slides.length>=30||busy} onClick={()=>addSlide()}>+ Add</button></div>
-          <div className={styles.slideToolbar}><button type="button" disabled={busy||slideIndex===0} onClick={()=>setSlideIndex(i=>i-1)}>Previous preview</button><button type="button" disabled={busy||slideIndex===slides.length-1} onClick={()=>setSlideIndex(i=>i+1)}>Next preview</button><button className={styles.primary} disabled={busy||!online||room.status!=='active'||!slideText} onClick={()=>presentSlide(slideIndex)}>Present slide</button></div>
+          <div className={styles.slideToolbar}><button type="button" disabled={busy||slideIndex===0} onClick={()=>setSlideIndex(i=>i-1)}>Previous preview</button><button type="button" disabled={busy||slideIndex===slides.length-1} onClick={()=>setSlideIndex(i=>i+1)}>Next preview</button><button className={styles.primary} disabled={busy||!online||room.status!=='active'||!slideText} onClick={()=>presentSlide(slideIndex)}>Present slide</button>{slide&&visualSlidePayload(slide.body)!==null&&<button type="button" disabled={busy||!online||room.status!=='active'||!slideText} onClick={()=>presentSlide(slideIndex,0)}>Present with object reveals</button>}</div>
           <div className={styles.slideFields}>
             <label>Title<input value={slide.title} maxLength={120} disabled={busy} onChange={e=>editSlide({title:e.target.value})}/></label>
             <SlideBodyEditor key={room.id+':'+slideIndex} slide={slide} roomId={room.id} roomStatus={room.status} disabled={busy} onChange={body=>editSlide({body})}/><button type="button" disabled={busy||buildTextRevealSlides(slide,31-slides.length).length===0} onClick={()=>{const steps=buildTextRevealSlides(slide,31-slides.length);if(steps.length&&window.confirm('Replace this slide with '+steps.length+' progressive teaching steps?'))setSlides(items=>[...items.slice(0,slideIndex),...steps,...items.slice(slideIndex+1)])}}>Build reveal steps</button>
@@ -1103,6 +1113,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
     {teacher&&panel===null&&!editingBoard&&reviewId===null&&liveSlide&&(!focusMode||focusDock)&&<div className={styles.presentControls}>
       <button type="button" disabled={!canNavigateSlides||previousLiveSlide===null} onClick={()=>{if(previousLiveSlide!==null)presentSlide(previousLiveSlide)}}>Previous slide</button>
       <span>{liveSlide.number} / {liveSlide.total}</span><button type="button" onClick={openSlides}>Edit slides</button>{decodeAssessment(liveSlide.body)&&<button type="button" disabled={!canNavigateSlides} onClick={launchSlideAssessment}>Launch {decodeAssessment(liveSlide.body)?.kind}</button>}
+      {revealMatch&&visibleObjects!==null&&objectTotal>0&&<><button type="button" disabled={!canNavigateSlides||visibleObjects===0} onClick={()=>presentSlide(liveSlide.number-1,visibleObjects-1)}>Hide last object</button><button type="button" disabled={!canNavigateSlides||visibleObjects>=objectTotal} onClick={()=>presentSlide(liveSlide.number-1,visibleObjects+1)}>Reveal next object</button><small>{visibleObjects}/{objectTotal} objects</small></>}
       <button type="button" disabled={!canNavigateSlides||nextLiveSlide===null} onClick={()=>{if(nextLiveSlide!==null)presentSlide(nextLiveSlide)}}>Next slide</button>
       {canNavigateSlides&&nextLiveSlide!==null&&nextLiveSlide>liveSlide.number&&<small role="status">Blank or invalid draft slides will be skipped.</small>}
       {canNavigateSlides&&nextLiveSlide===null&&liveSlide.number<liveSlide.total&&<small role="status">No matching publishable next slide. Open Edit slides, restore or complete the deck, and present a slide again.</small>}
