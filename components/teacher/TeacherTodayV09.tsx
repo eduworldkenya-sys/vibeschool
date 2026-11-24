@@ -1,6 +1,6 @@
 "use client";
 import {useEffect,useState} from "react";
-import {BookOpen,CheckCircle2,ChevronRight,ClipboardCheck,ClipboardList,History,Layers,Library,NotebookPen,Presentation,Radio,SlidersHorizontal,LayoutGrid,Search,CalendarDays,Users,FileText,CheckCheck} from "lucide-react";
+import {BookOpen,CheckCircle2,ChevronRight,ClipboardCheck,ClipboardList,History,Layers,Library,NotebookPen,Presentation,SlidersHorizontal,LayoutGrid,Search,CheckCheck} from "lucide-react";
 import {teacherTools} from "./navigation";
 import type {PulseSnapshot,Slot,PriorityTask} from "@/lib/types";
 import {nairobiDateStr} from "@/lib/time";
@@ -41,7 +41,7 @@ export default function TeacherTodayV09({snap,slot,focusClassId,focusSubjectId,n
  const audience=audienceChoice==="tuition"||audienceChoice==="open"||classes.some(c=>c.class_id===audienceChoice)?audienceChoice:classes.some(c=>c.class_id===focusClassId)?focusClassId:"tuition";
  const schoolLive=audience!=="tuition"&&audience!=="open";
  const liveBase=schoolLive?"/teacher/classhub/"+encodeURIComponent(audience)+"/live":"/teacher/tutoring/live";
- const liveParams=new URLSearchParams(schoolLive?{}:{mode:audience});
+ const liveParams=new URLSearchParams();if(!schoolLive)liveParams.set("mode",audience);
  if(schoolLive&&planId&&slot?.class_id===audience)liveParams.set("lessonPlanId",planId);
  const liveKey=[snap.userId,snap.schoolId,audience].join(":");
  const current=active?.key===liveKey&&!offline?active:null;
@@ -78,7 +78,7 @@ export default function TeacherTodayV09({snap,slot,focusClassId,focusSubjectId,n
   {label:"Plan",Icon:ClipboardList,status:verified?.plan??missing,href:planHref},
   {label:"Notes",Icon:NotebookPen,status:verified?.notes??missing,href:notesHref},
   {label:"Resources",Icon:Library,status:verified?.resources??missing,href:"/teacher/resources?"+context},
-  {label:"Slides",Icon:Presentation,status:"unknown" as Status,href:"/teacher/live-studio"},
+  {label:"Slides",Icon:Presentation,status:"unknown" as Status,href:liveEnabled?liveHref({studio:"1"}):"/teacher/lessonplan?"+occurrence},
  ] as const;
  const complete=stages.filter(s=>s.status==="done").length;
  const attendance=snap.todaySlots.filter(s=>s.attendance_status!=="completed");
@@ -90,6 +90,7 @@ export default function TeacherTodayV09({snap,slot,focusClassId,focusSubjectId,n
  function toolHref(href:string){
   if(href==="/teacher/lessonplan")return planHref;
   if(href==="/teacher/lesson-notes")return notesHref;
+  if(href==="/teacher/live-studio")return liveHref({studio:"1"});
   if(href==="/teacher/attendance")return attendanceHref;
   if(href==="/teacher/assessment/marking"&&firstHomework)return markingHref;
   if(["/teacher/scheme","/teacher/resources","/teacher/teacher-guide","/teacher/progress","/teacher/vibelearn"].includes(href))return href+"?"+context;
@@ -108,7 +109,7 @@ export default function TeacherTodayV09({snap,slot,focusClassId,focusSubjectId,n
    <div className={styles.lessonActions}><button type="button" onClick={()=>onNavigate(firstIncomplete?.href??planHref)}> {complete===5?"View preparation":"Continue preparation"}</button><button type="button" onClick={()=>onNavigate(planHref)}>{primaryLabel} ↗</button></div>
    </div>:<div className={styles.lesson}><strong>No lesson scheduled in this context</strong><div className={styles.lessonActions}><button onClick={()=>onNavigate(planHref)}>Prepare lesson</button><button onClick={()=>onNavigate("/teacher/timetable")}>Timetable</button></div></div>}
   </section>
-  {liveEnabled&&<section className={styles.live} aria-label="VibeSchool Live"><div className={styles.liveRow}><Presentation size={30} aria-hidden="true"/><div><strong>VibeSchool Live</strong><small>{current?current.title:"Online classroom"}</small></div><button type="button" onClick={()=>onNavigate(current?liveHref({resumeRoom:current.id}):liveHref())}>{current?"Resume":"Go Live"}</button></div><div className={styles.liveControls}><select aria-label="Choose live audience" value={audience} onChange={e=>setAudienceChoice(e.target.value)}>{classes.map(c=><option key={c.class_id} value={c.class_id}>{c.class_name}</option>)}<option value="tuition">Invited learners</option><option value="open">Public class</option></select><button type="button" onClick={()=>onNavigate("/teacher/live-studio")}><Presentation size={16}/> Studio</button><button type="button" onClick={()=>onNavigate(liveHref({past:"1"}))}><History size={16}/> Past classes</button></div></section>}
+  {liveEnabled&&<section className={styles.live} aria-label="VibeSchool Live"><div className={styles.liveRow}><Presentation size={30} aria-hidden="true"/><div><strong>VibeSchool Live</strong><small>{current?current.title:"Online classroom"}</small></div><button type="button" onClick={()=>onNavigate(current?liveHref({resumeRoom:current.id}):liveHref())}>{current?"Resume":"Go Live"}</button></div><div className={styles.liveControls}><select aria-label="Choose live audience" value={audience} onChange={e=>setAudienceChoice(e.target.value)}>{classes.map(c=><option key={c.class_id} value={c.class_id}>{c.class_name}</option>)}<option value="tuition">Invited learners</option><option value="open">Public class</option></select><button type="button" onClick={()=>onNavigate(liveHref({studio:"1"}))}><Presentation size={16}/> Studio</button><button type="button" onClick={()=>onNavigate(liveHref({past:"1"}))}><History size={16}/> Past classes</button></div></section>}
   <section className={styles.counts} aria-label="Today's recorded evidence">{[[snap.todaySlots.length,"Lessons","/teacher/timetable"],[toMark,"To mark",markingHref],[attendance.length,"Attendance",attendanceHref]].map(([n,label,href])=><button key={label} type="button" onClick={()=>onNavigate(String(href))}><strong>{n}</strong><span>{label}</span></button>)}</section>
   <section aria-label="Your workspace"><div className={styles.sectionHead}><h2>Your workspace</h2><button type="button" aria-expanded={editing} onClick={()=>setEditing(v=>!v)}><SlidersHorizontal size={18}/>{editing?"Done":"Edit"}</button></div>
   {editing?<div className={styles.filter}><label><Search size={16}/><input type="search" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Find tools" aria-label="Find tools"/></label><small>{pins.length}/11 shortcuts · saved on this device</small><div className={styles.choices}>{registry.filter(t=>t.label.toLowerCase().includes(search.toLowerCase())).map(t=><label key={t.href}><input type="checkbox" checked={pins.includes(t.href)} disabled={!pins.includes(t.href)&&pins.length>=11} onChange={e=>savePins(e.target.checked?[...pins,t.href]:pins.filter(p=>p!==t.href))}/>{t.label}</label>)}</div><button type="button" onClick={()=>savePins(defaults)}>Reset shortcuts</button></div>:<div className={styles.tools}>{pins.map(href=>{const t=registry.find(t=>t.href===href);if(!t)return null;const Icon=t.icon;return <button key={href} type="button" onClick={()=>onNavigate(toolHref(href))}><span><Icon size={21}/></span><small>{labels[href]??t.label}</small></button>})}<button type="button" onClick={()=>onNavigate("/teacher/more")}><span><LayoutGrid size={21}/></span><small>All tools</small></button></div>}
