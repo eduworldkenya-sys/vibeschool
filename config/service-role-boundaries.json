@@ -200,6 +200,17 @@
         "vs_activate_managed_student",
         "admin.auth.admin.deleteUser(newUserId)"
       ]
+    },
+    "app/api/identity/children/reset-password/route.ts": {
+      "authority": "verified_guardian_owned_and_rate_limited_child_password_reset",
+      "requiredEvidence": [
+        "validSameOriginMutation(request)",
+        "db.auth.getUser()",
+        "user?.email_confirmed_at",
+        "vs_authorize_managed_password_reset",
+        "authorityError?.code === '54000'",
+        "admin.auth.admin.updateUserById(childAuthUserId, { password })"
+      ]
     }
   }
 }
