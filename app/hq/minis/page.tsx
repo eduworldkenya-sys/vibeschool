@@ -35,8 +35,9 @@ type Report = {
   description: string | null
   created_at: string
 }
-type Queue = { minis: MiniReview[]; comments: CommentReview[]; reports: Report[] }
-type Selection = { target: 'mini' | 'comment'; id: string }
+type RequestReview = { id:string; requester_id:string; question:string; tags:string[]; status:string; created_at:string }
+type Queue = { minis: MiniReview[]; comments: CommentReview[]; reports: Report[]; requests: RequestReview[] }
+type Selection = { target: 'mini' | 'comment' | 'request'; id: string }
 const colors = { border:'#d6dde8', text:'#172a40', subtle:'#6b7786', bg:'#f9fbfd', primary:'#244a77' }
 const button = {
   minHeight:44, background:'#fff', border:'1px solid #d6dde8', borderRadius:8,
@@ -44,7 +45,7 @@ const button = {
 } as const
 
 export default function MiniModerationPage() {
-  const [queue,setQueue] = useState<Queue>({ minis:[],comments:[],reports:[] })
+  const [queue,setQueue] = useState<Queue>({ minis:[],comments:[],reports:[],requests:[] })
   const [selection,setSelection] = useState<Selection | null>(null)
   const [loading,setLoading] = useState(true)
   const [busy,setBusy] = useState(false)
@@ -71,7 +72,7 @@ export default function MiniModerationPage() {
         typeof json==='object' && json!==null && 'error' in json && typeof json.error==='string'
           ? json.error : 'Mini moderation service unavailable.')
       const rows = json as Queue
-      if (!Array.isArray(rows.minis) || !Array.isArray(rows.comments) || !Array.isArray(rows.reports))
+      if (!Array.isArray(rows.minis) || !Array.isArray(rows.comments) || !Array.isArray(rows.reports) || !Array.isArray(rows.requests))
         throw Error('Unexpected moderation response.')
       setQueue(rows)
     } catch (cause) {setError(cause instanceof Error?cause.message:'Unable to load moderation queue.')}
@@ -82,7 +83,9 @@ export default function MiniModerationPage() {
 
   const active = useMemo(() => selection?.target==='mini'
     ? queue.minis.find(item=>item.id===selection.id)
-    : queue.comments.find(item=>item.id===selection?.id),
+    : selection?.target==='request'
+      ? queue.requests.find(item=>item.id===selection.id)
+      : queue.comments.find(item=>item.id===selection?.id),
     [selection,queue])
 
   async function decide(decision: 'approved'|'rejected'|'hidden') {
@@ -115,7 +118,7 @@ export default function MiniModerationPage() {
   return <HQPage title="Mini Lessons review" description="Review educational accuracy, ownership, rights and safety before public release.">
     <div style={{display:'grid',gap:16,padding:'14px 0 40px',color:colors.text,maxWidth:1050,background:'#fff',borderRadius:12}}>
       <div style={{display:'flex',gap:9,flexWrap:'wrap',alignItems:'center',justifyContent:'space-between'}}>
-        <span style={{fontSize:13,color:colors.subtle}}>{queue.minis.length} pending Minis · {queue.comments.length} comments · {queue.reports.length} reports</span>
+        <span style={{fontSize:13,color:colors.subtle}}>{queue.minis.length} pending Minis · {queue.requests.length} requests · {queue.comments.length} comments · {queue.reports.length} reports</span>
         <button type="button" style={button} onClick={()=>void load()} disabled={loading||busy}>Refresh queue</button>
       </div>
       {error && <p role="alert" style={{color:'#991b1b',fontSize:13}}>{error}</p>}
@@ -140,6 +143,16 @@ export default function MiniModerationPage() {
                 <small>{item.tags.map(tag=>'#'+tag).join(' ')} · @{item.creator_label}</small>
               </button>) : <p style={{color:colors.subtle}}>No pending Minis.</p>}
           </section>
+          <section aria-label="Student learning requests">
+            <h2 style={{fontSize:19}}>Pending requests</h2>
+            {queue.requests.length?queue.requests.map(item=>
+              <button type="button" key={item.id} onClick={()=>{setSelection({target:'request',id:item.id});setReason('')}}
+                style={{...button,width:'100%',marginBottom:9,textAlign:'left',
+                  borderColor:selection?.id===item.id?colors.primary:colors.border}}>
+                <strong style={{display:'block'}}>{item.question}</strong>
+                <small>{item.tags.map(tag=>'#'+tag).join(' ')} · private requester identity</small>
+              </button>) : <p style={{color:colors.subtle}}>No pending requests.</p>}
+          </section>
           <section aria-label="Submitted comments">
             <h2 style={{fontSize:19}}>Pending comments</h2>
             {queue.comments.length?queue.comments.map(item=>
@@ -161,7 +174,10 @@ export default function MiniModerationPage() {
                 style={{maxWidth:'100%',maxHeight:350,objectFit:'contain',borderRadius:8}}/>
               : <p style={{color:'#92400e'}}>Cover unavailable. Do not approve without reviewing it.</p>}
           </>}
-          <p style={{whiteSpace:'pre-wrap',lineHeight:1.75,fontSize:14}}>{active.body}</p>
+          <p style={{whiteSpace:'pre-wrap',lineHeight:1.75,fontSize:14}}>{'question' in active ? active.question : active.body}</p>
+          {'question' in active && <p style={{fontSize:12,color:colors.subtle}}>
+            Student identity is private. Review contact details, bullying and educational relevance before approval.
+          </p>}
           {'quiz_question' in active && active.quiz_question && <div style={{border:'1px solid '+colors.border,padding:12,borderRadius:8}}><strong>Quick question: {active.quiz_question}</strong>
             <ol>{active.quiz_options.map((answer,index)=><li key={index}>{answer} {index===active.quiz_correct?'(correct)':''}</li>)}</ol>
             <p>Explanation: {active.quiz_explanation}</p></div>}
