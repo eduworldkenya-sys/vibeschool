@@ -197,6 +197,8 @@ type LiveDatabase = Omit<Database, 'public'> & {
         }
       }
       parent_start_child_thread: { Args: { p_student_id: string; p_staff_id: string; p_context_tag?: string }; Returns: string }
+      vibechat_my_discovery: { Args: Record<never, never>; Returns: { eligible: boolean; enabled: boolean; username: string | null; role_missing: boolean } }
+      vibechat_set_discovery: { Args: { p_enabled: boolean }; Returns: boolean }
       vibechat_my_handle: { Args: Record<never, never>; Returns: string }
       vibechat_lookup_handle: { Args: { p_handle: string }; Returns: { handle: string; display_name: string; account_role: string; avatar_url: string | null }[] }
       vibechat_search_handles: { Args: { p_query: string }; Returns: { handle: string; display_name: string; account_role: string; avatar_url: string | null; username: string | null }[] }
