@@ -3,6 +3,7 @@ import { Suspense } from 'react'
 import { PublicHeader } from '@/components/public/PublicHeader'
 import { PublicFooter } from '@/components/public/PublicFooter'
 import { MiniExplore } from '@/components/public/MiniExplore'
+import { MiniLiveExplore } from '@/components/public/MiniLiveExplore'
 
 export const metadata: Metadata = {
   alternates: { canonical: '/explore' },
@@ -16,7 +17,7 @@ export default function ExplorePage() {
     <PublicHeader product="Explore" />
     <main id="main-content" tabIndex={-1}>
       <Suspense fallback={<p style={{ padding: 32 }}>Opening Explore…</p>}>
-        <MiniExplore />
+        {process.env.NEXT_PUBLIC_MINI_LESSONS_BACKEND_ENABLED === 'true' ? <MiniLiveExplore/> : <MiniExplore/>}
       </Suspense>
     </main>
     <PublicFooter hideSupport />
