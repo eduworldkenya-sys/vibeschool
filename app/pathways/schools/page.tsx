@@ -16,12 +16,12 @@ type MissingSchoolDraft = {
   name:string; county:string; subCounty:string; schoolCode:string; alternativeName:string; notes:string;
 }
 
-async function fetchPublicSchools(searchQuery:string, county:string, pathway:string, limit:number) {
+async function fetchPublicSchools(searchQuery:string, county:string, pathway:string, limit:number, combination:string = '') {
   return supabase.rpc('pathways_search_public_schools_v2', {
     p_query:searchQuery.trim() || null,
     p_county:county.trim() || null,
     p_pathway_slug:pathway || null,
-    p_combination_slug:null,
+    p_combination_slug:combination || null,
     p_limit:limit,
   })
 }
@@ -37,6 +37,8 @@ export default function PathwaysSchoolsPage(){
   const [query,setQuery]=useState('')
   const [county,setCounty]=useState('')
   const [pathway,setPathway]=useState('')
+  const [combination,setCombination]=useState('')
+  const searchRequest=useRef(0)
   const [rows,setRows]=useState<SchoolRow[]>([])
   const [suggestions,setSuggestions]=useState<SchoolRow[]>([])
   const [suggestOpen,setSuggestOpen]=useState(false)
@@ -55,7 +57,14 @@ export default function PathwaysSchoolsPage(){
   useEffect(()=>{
     let cancelled=false
     void (async()=>{
-      const {data,error}=await fetchPublicSchools('','','',30)
+      const params=new URLSearchParams(window.location.search)
+      const initialPath=params.get('pathway')||''
+      const initialCombination=params.get('combination')||''
+      const selectedPath=['stem','social-sciences','arts-and-sports-science'].includes(initialPath)?initialPath:''
+      setPathway(selectedPath);setCombination(selectedPath?initialCombination:'')
+      const requestId=++searchRequest.current
+      const {data,error}=await fetchPublicSchools('','',selectedPath,30,selectedPath?initialCombination:'')
+      if(requestId!==searchRequest.current)return
       if(cancelled)return
       if(error){setError('Verified school information could not be loaded right now.');setRows([])}
       else setRows((data??[]) as SchoolRow[])
@@ -72,7 +81,7 @@ export default function PathwaysSchoolsPage(){
     setSuggestLoading(true)
     const timer=window.setTimeout(()=>{
       void (async()=>{
-        const {data,error}=await fetchPublicSchools(term,county,pathway,8)
+        const {data,error}=await fetchPublicSchools(term,county,pathway,8,combination)
         if(requestId!==suggestRequest.current)return
         setSuggestLoading(false)
         if(error){setSuggestions([]);setSuggestOpen(false);return}
@@ -84,11 +93,13 @@ export default function PathwaysSchoolsPage(){
       })()
     },250)
     return()=>window.clearTimeout(timer)
-  },[query,county,pathway])
+  },[query,county,pathway,combination])
 
   async function searchSchools(searchQuery=query){
     setLoading(true);setError('');setSuggestOpen(false);setRecoverySuccess('');++suggestRequest.current
-    const {data,error}=await fetchPublicSchools(searchQuery,county,pathway,30)
+    const requestId=++searchRequest.current
+    const {data,error}=await fetchPublicSchools(searchQuery,county,pathway,30,combination)
+    if(requestId!==searchRequest.current)return
     if(error){setError('Verified school information could not be loaded right now.');setRows([])}
     else setRows((data??[]) as SchoolRow[])
     setHasSearched(true)
@@ -160,9 +171,9 @@ export default function PathwaysSchoolsPage(){
   return <main style={S.root}><div style={S.shell}>
     <header style={S.top}><Link href="/pathways" style={S.back}>← Pathways</Link><Link href="/" style={S.brand}>VibeSchool</Link></header>
     <p style={S.kicker}>SENIOR SCHOOL DISCOVERY</p>
-    <h1 style={S.h1}>Explore schools with clear evidence boundaries.</h1>
+    <h1 style={S.h1}>Find schools</h1>
     <p style={S.body}>Directory inclusion does not guarantee admission, placement or a current pathway offering. Review each offering’s source and date, then confirm current details with the school or the relevant official education service before making a decision.</p>
-    <p style={S.lead}>Start typing a school name and VibeSchool will suggest matching canonical schools. A pathway badge appears only when VibeSchool has a current, source-backed verified offering.</p>
+    <p style={S.lead}>Search by school, county or pathway.</p>
 
     <form onSubmit={submit} style={S.form} aria-label="Search senior schools">
       <label style={{...S.field,...S.schoolField}}><span style={S.label}>School</span><div style={S.autocomplete}>
@@ -171,7 +182,8 @@ export default function PathwaysSchoolsPage(){
         {suggestOpen&&<div id="school-suggestions" role="listbox" aria-label="Matching schools" style={S.suggestions}>{suggestions.map((s,index)=><button id={`school-suggestion-${index}`} key={s.school_id} type="button" role="option" aria-selected={index===activeSuggestion} onMouseDown={e=>e.preventDefault()} onMouseEnter={()=>setActiveSuggestion(index)} onClick={()=>chooseSuggestion(s)} style={{...S.suggestion,...(index===activeSuggestion?S.suggestionActive:{})}}><strong style={S.suggestionName}>{s.school_name}</strong><span style={S.suggestionMeta}>{[s.county,s.sub_county,s.knec_code?`KNEC ${s.knec_code}`:null].filter(Boolean).join(' · ')}</span></button>)}</div>}
       </div></label>
       <label style={S.field}><span style={S.label}>County</span><input value={county} onChange={e=>{setCounty(e.target.value);setHasSearched(false)}} placeholder="e.g. Narok" style={S.input}/></label>
-      <label style={S.field}><span style={S.label}>Pathway</span><select value={pathway} onChange={e=>{setPathway(e.target.value);setHasSearched(false)}} style={S.input}><option value="">Any pathway</option><option value="stem">STEM</option><option value="social-sciences">Social Sciences</option><option value="arts-and-sports-science">Arts & Sports Science</option></select></label>
+      <label style={S.field}><span style={S.label}>Pathway</span><select value={pathway} onChange={e=>{setPathway(e.target.value);setCombination('');setHasSearched(false)}} style={S.input}><option value="">Any pathway</option><option value="stem">STEM</option><option value="social-sciences">Social Sciences</option><option value="arts-and-sports-science">Arts & Sports Science</option></select></label>
+      {combination&&<div style={S.field}><span style={S.label}>Selected subject combination</span><span>{combination}</span><button type="button" style={S.secondaryButton} onClick={()=>setCombination('')}>Clear combination</button></div>}
       <button style={S.button} disabled={loading}>{loading?'Searching…':'Search schools'}</button>
     </form>
 
@@ -201,7 +213,7 @@ export default function PathwaysSchoolsPage(){
       const verifiedDate=formatEvidenceDate(r.verified_at)
       const observedDate=formatEvidenceDate(r.source_observed_at)
       return <article key={`${r.school_id}-${r.combination_slug??r.pathway_slug??'school'}`} style={S.card}>
-        <div style={S.cardTop}><div><h2 style={S.name}>{r.school_name}</h2><p style={S.meta}>{[r.county,r.sub_county].filter(Boolean).join(' · ')}</p></div><span style={S.canonicalBadge}>✓ Canonical school</span></div>
+        <div style={S.cardTop}><div><h2 style={S.name}><Link href={`/schools/${encodeURIComponent(r.school_id)}`}>{r.school_name}</Link></h2><p style={S.meta}>{[r.county,r.sub_county].filter(Boolean).join(' · ')}</p></div><span style={S.canonicalBadge}>✓ Canonical school</span></div>
         <p style={S.meta}>{[r.school_category,r.gender_type,r.accommodation_type].filter(Boolean).join(' · ')}</p>
         {r.pathway_slug?<div style={S.verified}><div style={S.verifiedHead}><strong>✓ Verified offering</strong><span>{r.pathway_name}</span></div>{r.combination_name&&<span>{r.combination_name}</span>}{verifiedDate&&<small>Last verified: {verifiedDate}</small>}{r.source_authority&&<small>Evidence: {r.source_authority}</small>}
           <details style={S.details}><summary style={S.summary}>How do we verify this?</summary><div style={S.evidenceBody}><span>VibeSchool links this offering to a current verified claim and its public provenance record.</span>{r.source_name&&<span><strong>Source:</strong> {r.source_name}</span>}{r.source_reference&&<span><strong>Reference:</strong> {r.source_reference}</span>}{observedDate&&<span><strong>Observed:</strong> {observedDate}</span>}{r.source_url&&<a href={r.source_url} target="_blank" rel="noreferrer noopener" style={S.sourceLink}>View authoritative source ↗</a>}</div></details>
@@ -215,5 +227,5 @@ export default function PathwaysSchoolsPage(){
 }
 
 const S:Record<string,CSSProperties>={
-  root:{minHeight:'100dvh',background:'#f7f7fb',color:'#111827',padding:'18px 16px 60px'},shell:{maxWidth:940,margin:'0 auto'},top:{minHeight:48,display:'flex',alignItems:'center',justifyContent:'space-between',gap:16},back:{color:'#4f46e5',textDecoration:'none',fontWeight:850,fontSize:13},brand:{color:'#111827',textDecoration:'none',fontWeight:900,fontSize:14},kicker:{marginTop:28,color:'#4f46e5',fontSize:10,fontWeight:900,letterSpacing:'.16em'},h1:{fontSize:'clamp(34px,6vw,52px)',lineHeight:1.03,letterSpacing:'-.04em',margin:'8px 0 14px',maxWidth:800},lead:{maxWidth:760,color:'#5b6475',fontSize:15,lineHeight:1.65},form:{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))',alignItems:'end',gap:10,margin:'26px 0 14px'},field:{display:'grid',gap:6,minWidth:0},schoolField:{position:'relative'},label:{fontSize:11,fontWeight:850,color:'#4b5563'},autocomplete:{position:'relative'},input:{width:'100%',boxSizing:'border-box',minHeight:46,padding:'12px 13px',border:'1px solid #d8dae2',borderRadius:12,background:'#fff',fontSize:14,color:'#111827'},button:{minHeight:46,border:0,borderRadius:12,background:'#4f46e5',color:'#fff',fontWeight:850,padding:'12px 16px',cursor:'pointer'},secondaryButton:{justifySelf:'start',minHeight:42,border:'1px solid #c7d2fe',borderRadius:12,background:'#eef2ff',color:'#3730a3',fontWeight:850,padding:'10px 14px',cursor:'pointer'},ghostButton:{minHeight:44,border:'1px solid #d1d5db',borderRadius:12,background:'#fff',color:'#374151',fontWeight:800,padding:'10px 14px',cursor:'pointer'},suggestStatus:{position:'absolute',right:12,top:15,fontSize:10,color:'#6b7280',pointerEvents:'none'},suggestions:{position:'absolute',zIndex:20,top:'calc(100% + 6px)',left:0,right:0,background:'#fff',border:'1px solid #dfe2ea',borderRadius:14,boxShadow:'0 18px 40px rgba(17,24,39,.14)',overflow:'hidden',maxHeight:320,overflowY:'auto'},suggestion:{width:'100%',display:'grid',gap:4,textAlign:'left',padding:'12px 13px',border:0,borderBottom:'1px solid #f0f1f4',background:'#fff',cursor:'pointer'},suggestionActive:{background:'#eef2ff'},suggestionName:{fontSize:13,color:'#111827'},suggestionMeta:{fontSize:10,color:'#6b7280',lineHeight:1.4},notice:{background:'#fffbeb',border:'1px solid #fde68a',borderRadius:14,padding:14,fontSize:12,lineHeight:1.6,color:'#66551a'},list:{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(280px,1fr))',gap:12,marginTop:16},card:{background:'#fff',border:'1px solid #e5e7eb',borderRadius:18,padding:18,minWidth:0},cardTop:{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:12,flexWrap:'wrap'},name:{fontSize:19,margin:'0 0 6px',lineHeight:1.25},meta:{fontSize:12,color:'#6b7280',lineHeight:1.5,margin:'4px 0'},canonicalBadge:{whiteSpace:'nowrap',borderRadius:999,background:'#eef2ff',color:'#3730a3',padding:'6px 8px',fontSize:10,fontWeight:850},verified:{display:'grid',gap:6,background:'#ecfdf5',borderRadius:12,padding:12,color:'#065f46',fontSize:12,marginTop:12},verifiedHead:{display:'flex',justifyContent:'space-between',gap:10,flexWrap:'wrap'},unverified:{display:'grid',gap:4,background:'#f3f4f6',borderRadius:12,padding:12,color:'#6b7280',fontSize:12,marginTop:12},details:{marginTop:4,borderTop:'1px solid #bbf7d0',paddingTop:8},summary:{cursor:'pointer',fontWeight:800},evidenceBody:{display:'grid',gap:5,paddingTop:8,lineHeight:1.5},sourceLink:{color:'#065f46',fontWeight:850},code:{fontSize:10,color:'#6b7280',marginBottom:0},body:{color:'#626b7b',fontSize:12,lineHeight:1.55},state:{display:'grid',gap:10,background:'#fff',border:'1px solid #e5e7eb',borderRadius:16,padding:18,marginTop:16},error:{display:'grid',gap:6,background:'#fef2f2',border:'1px solid #fecaca',borderRadius:14,padding:14,color:'#991b1b',fontSize:12},success:{background:'#ecfdf5',border:'1px solid #a7f3d0',borderRadius:14,padding:14,color:'#065f46',fontSize:12,lineHeight:1.5},resultHeader:{display:'flex',justifyContent:'space-between',gap:12,alignItems:'center',marginTop:20,color:'#374151',fontSize:12,flexWrap:'wrap'},recovery:{display:'grid',gap:14,background:'#fff',border:'1px solid #c7d2fe',borderRadius:18,padding:18,marginTop:14},recoveryTitle:{fontSize:16},recoveryGrid:{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:10},recoveryActions:{display:'flex',justifyContent:'flex-end',gap:10,flexWrap:'wrap'},inlineLink:{color:'#4f46e5',fontWeight:850},footer:{display:'flex',gap:14,flexWrap:'wrap',borderTop:'1px solid #e2e2ea',marginTop:42,paddingTop:20},footerLink:{color:'#4f46e5',fontSize:12,fontWeight:800,textDecoration:'none'}
+  root:{minHeight:'100dvh',background:'#ffffff',color:'#111827',padding:'18px 16px 60px'},shell:{maxWidth:940,margin:'0 auto'},top:{minHeight:48,display:'flex',alignItems:'center',justifyContent:'space-between',gap:16},back:{color:'#0c345c',textDecoration:'none',fontWeight:850,fontSize:13},brand:{color:'#111827',textDecoration:'none',fontWeight:900,fontSize:14},kicker:{marginTop:28,color:'#0c345c',fontSize:10,fontWeight:900,letterSpacing:'.16em'},h1:{fontSize:'clamp(34px,6vw,52px)',lineHeight:1.03,letterSpacing:'-.04em',margin:'8px 0 14px',maxWidth:800},lead:{maxWidth:760,color:'#5b6475',fontSize:15,lineHeight:1.65},form:{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))',alignItems:'end',gap:10,margin:'26px 0 14px'},field:{display:'grid',gap:6,minWidth:0},schoolField:{position:'relative'},label:{fontSize:11,fontWeight:850,color:'#4b5563'},autocomplete:{position:'relative'},input:{width:'100%',boxSizing:'border-box',minHeight:46,padding:'12px 13px',border:'1px solid #d8dae2',borderRadius:4,background:'#fff',fontSize:14,color:'#111827'},button:{minHeight:46,border:0,borderRadius:4,background:'#0c345c',color:'#fff',fontWeight:850,padding:'12px 16px',cursor:'pointer'},secondaryButton:{justifySelf:'start',minHeight:42,border:'1px solid #c7d2fe',borderRadius:4,background:'#eef2ff',color:'#3730a3',fontWeight:850,padding:'10px 14px',cursor:'pointer'},ghostButton:{minHeight:44,border:'1px solid #d1d5db',borderRadius:4,background:'#fff',color:'#374151',fontWeight:800,padding:'10px 14px',cursor:'pointer'},suggestStatus:{position:'absolute',right:12,top:15,fontSize:10,color:'#6b7280',pointerEvents:'none'},suggestions:{position:'absolute',zIndex:20,top:'calc(100% + 6px)',left:0,right:0,background:'#fff',border:'1px solid #dfe2ea',borderRadius:14,boxShadow:'0 18px 40px rgba(17,24,39,.14)',overflow:'hidden',maxHeight:320,overflowY:'auto'},suggestion:{width:'100%',display:'grid',gap:4,textAlign:'left',padding:'12px 13px',border:0,borderBottom:'1px solid #f0f1f4',background:'#fff',cursor:'pointer'},suggestionActive:{background:'#eef2ff'},suggestionName:{fontSize:13,color:'#111827'},suggestionMeta:{fontSize:10,color:'#6b7280',lineHeight:1.4},notice:{background:'#fffbeb',border:'1px solid #fde68a',borderRadius:14,padding:14,fontSize:12,lineHeight:1.6,color:'#66551a'},list:{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(280px,1fr))',gap:12,marginTop:16},card:{background:'#fff',border:'1px solid #e5e7eb',borderRadius:4,padding:18,minWidth:0},cardTop:{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:12,flexWrap:'wrap'},name:{fontSize:19,margin:'0 0 6px',lineHeight:1.25},meta:{fontSize:12,color:'#6b7280',lineHeight:1.5,margin:'4px 0'},canonicalBadge:{whiteSpace:'nowrap',borderRadius:999,background:'#eef2ff',color:'#3730a3',padding:'6px 8px',fontSize:10,fontWeight:850},verified:{display:'grid',gap:6,background:'#ecfdf5',borderRadius:4,padding:12,color:'#065f46',fontSize:12,marginTop:12},verifiedHead:{display:'flex',justifyContent:'space-between',gap:10,flexWrap:'wrap'},unverified:{display:'grid',gap:4,background:'#f3f4f6',borderRadius:4,padding:12,color:'#6b7280',fontSize:12,marginTop:12},details:{marginTop:4,borderTop:'1px solid #bbf7d0',paddingTop:8},summary:{cursor:'pointer',fontWeight:800},evidenceBody:{display:'grid',gap:5,paddingTop:8,lineHeight:1.5},sourceLink:{color:'#065f46',fontWeight:850},code:{fontSize:10,color:'#6b7280',marginBottom:0},body:{color:'#626b7b',fontSize:12,lineHeight:1.55},state:{display:'grid',gap:10,background:'#fff',border:'1px solid #e5e7eb',borderRadius:16,padding:18,marginTop:16},error:{display:'grid',gap:6,background:'#fef2f2',border:'1px solid #fecaca',borderRadius:14,padding:14,color:'#991b1b',fontSize:12},success:{background:'#ecfdf5',border:'1px solid #a7f3d0',borderRadius:14,padding:14,color:'#065f46',fontSize:12,lineHeight:1.5},resultHeader:{display:'flex',justifyContent:'space-between',gap:12,alignItems:'center',marginTop:20,color:'#374151',fontSize:12,flexWrap:'wrap'},recovery:{display:'grid',gap:14,background:'#fff',border:'1px solid #c7d2fe',borderRadius:4,padding:18,marginTop:14},recoveryTitle:{fontSize:16},recoveryGrid:{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:10},recoveryActions:{display:'flex',justifyContent:'flex-end',gap:10,flexWrap:'wrap'},inlineLink:{color:'#0c345c',fontWeight:850},footer:{display:'flex',gap:14,flexWrap:'wrap',borderTop:'1px solid #e2e2ea',marginTop:42,paddingTop:20},footerLink:{color:'#0c345c',fontSize:12,fontWeight:800,textDecoration:'none'}
 }
