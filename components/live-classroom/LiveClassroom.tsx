@@ -1175,7 +1175,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
     {error&&<div role="alert" className={styles.alert}>{error} <button onClick={()=>void refresh()}>Retry</button></div>}
     {loading&&!room&&<p role="status">Connecting…</p>}
     {!room&&!loading&&<section className={`${styles.panel} ${teacher?styles.classroomEntry:""}`}>
-      {teacher&&<><button type="button" className={styles.studioEntry} onClick={()=>setBeforeLibrary(true)}><PanelTop aria-hidden="true"/><span><strong>Live Studio</strong><small>Prepare, preview and rehearse</small></span><span aria-hidden="true">›</span></button>{preparedTitle&&<p>Ready for next lesson: {preparedTitle} <button type="button" onClick={()=>{preparedDeck.current=null;setPreparedTitle('')}}>Remove</button></p>}</>}
+      {teacher&&<><button type="button" className={styles.studioEntry} aria-label="Live Studio" onClick={()=>setBeforeLibrary(true)}><PanelTop aria-hidden="true"/><span><strong>Live Studio</strong><small>Prepare, preview and rehearse</small></span><span aria-hidden="true">›</span></button>{preparedTitle&&<p>Ready for next lesson: {preparedTitle} <button type="button" onClick={()=>{preparedDeck.current=null;setPreparedTitle('')}}>Remove</button></p>}</>}
       {teacher&&<div className={styles.startLesson}><h2>Start a lesson</h2>{classId&&<section aria-label="Prepare Live Lesson" className={styles.planPicker}>
         <label>Saved Lesson Plan
           <select aria-label="Saved Lesson Plan" value={selectedPlanId??''}
