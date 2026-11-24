@@ -63,6 +63,22 @@ test('pending publication retries the same private record without inserting anot
 })
 test('publication feedback precedes the feed and refresh errors do not misreport success',()=>{
  assert.ok(creator.indexOf("{(error || notice)")<creator.indexOf("{section === 'feed'"))
- assert.match(creator,/Mini Lesson published\. Refresh Explore to see it\./)
+ assert.match(creator,/setNotice\(answerRequest[\s\S]*?back\(\)[\s\S]*?setRefreshKey\(key=>key\+1\)/)
  assert.match(creator,/\.select\('id,creator_id,creator_label,title,body,subject,tags,quiz_question,quiz_options,quiz_correct,quiz_explanation,cover_path,status,request_id/)
+})
+
+test('global discovery applies filters before paging and preserves approved-only visibility',()=>{
+ const data=read('lib/minis/data.ts')
+ const page=data.slice(data.indexOf('export async function fetchMiniPage'),data.indexOf('export async function fetchOwnMiniStatus'))
+ assert.match(page,/\.eq\('status','approved'\)/)
+ assert.match(page,/\.or\(filters.join/)
+ assert.match(page,/\.contains\('tags', \[tag\]\)/)
+ assert.match(page,/\.order\('id',[\s\S]*\.range\(start,start \+ MINI_PAGE_SIZE\)/)
+ assert.match(page,/nextOffset: rows.length > MINI_PAGE_SIZE/)
+ assert.match(creator,/fetchMiniPage\(\{search:query,tag,offset:nextOffset/)
+ assert.match(creator,/sequence!==feedSequence.current/)
+ assert.match(creator,/Load more/)
+ assert.match(creator,/loading="lazy" decoding="async"/)
+ assert.match(data,/\.createSignedUrls\(/)
+ assert.match(read('components/public/MiniExplore.module.css'),/min-height:100dvh/)
 })
