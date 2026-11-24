@@ -5,7 +5,7 @@ import {getSupabaseClient} from '@/lib/supabase'
 
 export type QueuedMessage={
   id:string; owner:string; kind:'vc'|'tuition'; room:string; body:string;
-  createdAt:number; attempts:number; nextAt:number; failed:boolean;
+  replyTo?:string|null; createdAt:number; attempts:number; nextAt:number; failed:boolean;
 }
 const storageKey='vibechat:outbox:v1'
 const maxAge=24*60*60*1000
@@ -16,7 +16,7 @@ function valid(x:unknown,owner:string):x is QueuedMessage{
   const m=x as QueuedMessage
   return m.owner===owner && uuid.test(m.id)&&uuid.test(m.room)&&
     (m.kind==='vc'||m.kind==='tuition')&&typeof m.body==='string'&&m.body.trim().length>0&&m.body.length<=1500&&
-    Number.isFinite(m.createdAt)&&Date.now()-m.createdAt<maxAge&&m.createdAt<=Date.now()+60000&&
+    (m.replyTo==null||uuid.test(m.replyTo))&&Number.isFinite(m.createdAt)&&Date.now()-m.createdAt<maxAge&&m.createdAt<=Date.now()+60000&&
     Number.isInteger(m.attempts)&&m.attempts>=0&&Number.isFinite(m.nextAt)&&typeof m.failed==='boolean'
 }
 function read(owner:string):QueuedMessage[]{
@@ -88,7 +88,7 @@ export function useVibeChatOutbox(owner:string,onCommitted:(item:QueuedMessage)=
     const abort=new AbortController()
     const deadline=window.setTimeout(()=>abort.abort(),15000)
     try{
-      const {data,error}=await getSupabaseClient().rpc('vibechat_send_once',{p_owner:actor,p_kind:item.kind,p_room:item.room,p_operation:item.id,p_body:item.body}).abortSignal(abort.signal)
+      const {data,error}=await getSupabaseClient().rpc('vibechat_send_rich',{p_owner:actor,p_kind:item.kind,p_room:item.room,p_operation:item.id,p_body:item.body,p_reply:item.replyTo??null}).abortSignal(abort.signal)
       if(currentOwner.current!==actor||inFlight.current!==item.id)return
       if(error){
         const rate=error.details==='VIBECHAT_RATE_LIMIT'||/message (?:rate )?limit reached/i.test(error.message)
@@ -115,11 +115,11 @@ export function useVibeChatOutbox(owner:string,onCommitted:(item:QueuedMessage)=
     const timer=window.setInterval(()=>void flush(),1000)
     return ()=>window.clearInterval(timer)
   },[owner,online,flush])
-  const enqueue=useCallback((kind:'vc'|'tuition',room:string,body:string)=>{
+  const enqueue=useCallback((kind:'vc'|'tuition',room:string,body:string,replyTo:string|null=null)=>{
     const actor=currentOwner.current
     const text=body.trim()
-    if(!actor||!uuid.test(room)||!text||text.length>1500||queue.current.length>=100)return false
-    const item:QueuedMessage={id:crypto.randomUUID(),owner:actor,kind,room,body:text,createdAt:Date.now(),attempts:0,nextAt:0,failed:false}
+    if(!actor||!uuid.test(room)||(replyTo!==null&&!uuid.test(replyTo))||!text||text.length>1500||queue.current.length>=100)return false
+    const item:QueuedMessage={id:crypto.randomUUID(),owner:actor,kind,room,body:text,replyTo,createdAt:Date.now(),attempts:0,nextAt:0,failed:false}
     publish([...queue.current,item])
     void flush()
     return true
