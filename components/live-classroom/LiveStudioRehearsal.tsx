@@ -1,7 +1,7 @@
 'use client'
 import {useEffect,useRef,useState} from 'react'
 import {SlideCanvas,type LiveSlide} from './LiveSlideCanvas'
-import {decodeAssessment,preparedAssessment,presenterNotes,isPhotoBody} from './LiveSlideProtocol'
+import {decodeAssessment,preparedAssessment,presenterNotes,isPhotoBody,studioMinutes} from './LiveSlideProtocol'
 import styles from './LiveClassroom.module.css'
 
 // This rehearsal has no classroom command, room ID, or learner identity.
@@ -35,7 +35,7 @@ export function LiveStudioRehearsal({slides,onClose}:{slides:LiveSlide[];onClose
   {mic!=='idle'&&<small role="status">{mic==='checking'?'Checking permission…':mic==='ready'?'Microphone access verified; microphone released.':'Microphone unavailable. Check device permissions.'}</small>}
   {isPhotoBody(slide.body)&&!teacherView?<p role="status">Photos require authorized sharing in the live room. Learner access cannot be verified before launch.</p>:<SlideCanvas slide={publicSlide} number={index+1} total={slides.length} explore={!teacherView} ownerPhotoPreview={teacherView}/>}
   {assessment&&!teacherView&&<div className={styles.controls} aria-label="Simulated learner response">{assessment.options.map((option,i)=><button key={i} type="button" aria-pressed={choice===i} onClick={()=>setChoice(i)}>{option}</button>)}{choice!==null&&<small role="status">Practice response selected. No results saved.</small>}</div>}
-  {teacherView&&<section aria-label="Private presenter notes"><strong>Teacher notes</strong><p>{presenterNotes(privateNotes)||'No notes'}</p>{answer&&<p>Prepared answer: {answer.answer}</p>}</section>}
+  {teacherView&&<section aria-label="Private presenter notes"><strong>Teacher notes</strong><p>Planned stage: {studioMinutes(slide)||'Not set'} {studioMinutes(slide)?'min':''} · Total: {slides.reduce((sum,s)=>sum+studioMinutes(s),0)} min</p><p>{presenterNotes(privateNotes)||'No notes'}</p>{answer&&<p>Prepared answer: {answer.answer}</p>}</section>}
   <div className={styles.slideToolbar}><button type="button" disabled={index===0} onClick={()=>navigate(index-1)}>Previous</button><span>{index+1} / {slides.length}</span><button type="button" disabled={index===slides.length-1} onClick={()=>navigate(index+1)}>Next</button><button type="button" onClick={()=>navigate(0)}>Restart</button></div>
  </section>
 }

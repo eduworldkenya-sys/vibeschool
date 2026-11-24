@@ -7,7 +7,8 @@ import {PrivateSlideFields} from './LivePreparedAssessment'
 import {SlideBodyEditor} from './LiveSlideBodyEditor'
 import {LiveStudioRehearsal} from './LiveStudioRehearsal'
 import {LiveResourcePicker} from './LiveResourcePicker'
-import {exportDeck,importDeck,MAX_DECK_FILE_BYTES,buildTextRevealSlides,isPhotoBody} from './LiveSlideProtocol'
+import {validateStudioResources} from './LiveStudioResourceValidation'
+import {exportDeck,importDeck,MAX_DECK_FILE_BYTES,buildTextRevealSlides,isPhotoBody,studioMinutes,setStudioMinutes,studioResource} from './LiveSlideProtocol'
 type Summary={id:string;title:string;revision:number;slideCount:number;updatedAt:string}
 type Material={id:string;title:string;revision:number;slides:LiveSlide[]}
 type Command=(action:string,id?:string|null,version?:number|null,payload?:Record<string,unknown>)=>Promise<unknown>
@@ -50,7 +51,7 @@ export function TeachingLibrary({command,currentDeck,onUse,onClose}:{command:Com
   void run(async()=>{const result=await command('materials_get',null,null,{id:item.id})
    if(!isMaterial(result))throw Error('Invalid presentation response')
    if(!alive.current)return
-   if(use){onUse(result);return}
+   if(use){if(onClose)await validateStudioResources(result.slides);if(alive.current)onUse(result);return}
    setEdit(copy?{...result,id:crypto.randomUUID(),title:result.title.slice(0,113)+' (copy)',revision:0}:result);setIndex(0);setDirty(copy);setSaveProblem('')
   })
  }
@@ -60,9 +61,11 @@ export function TeachingLibrary({command,currentDeck,onUse,onClose}:{command:Com
  }
  const save=useCallback(async(use=false)=>{
   if(!edit||!edit.title.trim()||lock.current)return
-  if(!dirty&&edit.revision>0){if(use)onUseRef.current(edit);return}
+  if(!dirty&&edit.revision>0&&!use)return
   lock.current=true;setBusy(true);setSaveProblem('')
   try{
+   if(use&&onClose)await validateStudioResources(edit.slides)
+   if(!dirty&&edit.revision>0){if(alive.current&&use)onUseRef.current(edit);return}
    const result=await command('materials_save',null,null,{id:edit.id,revision:edit.revision,title:edit.title,slides:edit.slides})
    if(!isMaterial(result)||result.id!==edit.id||result.revision!==edit.revision+1)throw Error('Invalid presentation save response.')
    if(!alive.current)return
@@ -72,7 +75,7 @@ export function TeachingLibrary({command,currentDeck,onUse,onClose}:{command:Com
   }catch(e){
    if(alive.current)setSaveProblem(e instanceof Error?e.message:'Could not save. Retry.')
   }finally{lock.current=false;if(alive.current)setBusy(false)}
- },[edit,dirty,command])
+ },[edit,dirty,command,onClose])
  useEffect(()=>{
   if(!autoSave||!dirty||busy||saveProblem||!edit?.title.trim())return
   const timer=window.setTimeout(()=>void save(),1500)
@@ -119,6 +122,7 @@ export function TeachingLibrary({command,currentDeck,onUse,onClose}:{command:Com
    {saveProblem&&<div role="alert"><p>{saveProblem.includes('live_material_conflict')?'A newer version exists. Your draft is intact. Save a separate recovered copy or reopen the latest saved version.':saveProblem}</p><button type="button" disabled={busy} onClick={()=>void save()}>Retry save</button>{saveProblem.includes('live_material_conflict')&&<button type="button" disabled={busy} onClick={preserveCopy}>Recover as new copy</button>}</div>}
    {onClose&&<button type="button" disabled={busy||edit.slides.length>=30} onClick={()=>setResourceOpen(true)}>Add approved resource page</button>}
    <label>Presentation name<input value={edit.title} maxLength={120} disabled={busy} onChange={e=>{if(lock.current)return;setEdit({...edit,title:e.target.value});setDirty(true)}}/></label>
+   {onClose&&<section aria-label="Lesson flow"><strong>Lesson flow · {edit.slides.reduce((sum,s)=>sum+studioMinutes(s),0)} min planned</strong><ol>{edit.slides.map((step,i)=><li key={i}><button type="button" disabled={busy} aria-current={i===index?'step':undefined} onClick={()=>setIndex(i)}>{step.title||'Untitled stage'} · {studioMinutes(step)||'—'} min</button></li>)}</ol><label>Stage duration (minutes)<select value={studioMinutes(slide)} disabled={busy} onChange={e=>{const notes=setStudioMinutes(slide,Number(e.target.value));if(notes===null)setError('Shorten the private notes before adding a duration.');else patch({notes})}}><option value={0}>Not set</option>{Array.from({length:120},(_,i)=>i+1).map(n=><option key={n} value={n}>{n}</option>)}</select></label>{studioResource(slide)&&<small>Linked certified resource · checked before use.</small>}</section>}
    <SlideCanvas slide={slide} number={index+1} total={edit.slides.length} ownerPhotoPreview/>
    <nav aria-label="Presentation thumbnails" style={{display:'flex',gap:8,overflowX:'auto',padding:4}}>{edit.slides.map((item,i)=><button type="button" key={i} disabled={busy} aria-pressed={i===index} aria-label={'Slide '+(i+1)+': '+item.title} style={{flex:'0 0 110px',border:i===index?'2px solid #087e72':'1px solid #92b5a8',padding:3,background:'#fff'}} onClick={()=>setIndex(i)}><SlideCanvas slide={item} number={i+1} total={edit.slides.length} mini ownerPhotoPreview/></button>)}</nav>
    <div className={styles.slideToolbar}><button type="button" disabled={busy||index===0} onClick={()=>move(-1)}>Move left</button><button type="button" disabled={busy||index===edit.slides.length-1} onClick={()=>move(1)}>Move right</button><button type="button" disabled={busy||edit.slides.length>=30} onClick={()=>changeDeck([...edit.slides.slice(0,index+1),{...slide},...edit.slides.slice(index+1)],index+1)}>Duplicate slide</button><button type="button" disabled={busy||buildTextRevealSlides(slide,31-edit.slides.length).length===0} onClick={()=>{const steps=buildTextRevealSlides(slide,31-edit.slides.length);if(steps.length&&window.confirm('Replace this slide with '+steps.length+' progressive teaching steps?'))changeDeck([...edit.slides.slice(0,index),...steps,...edit.slides.slice(index+1)],index)}}>Build reveal steps</button></div>

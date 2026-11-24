@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { LIVE_LEARNER_ASSET_KINDS, LIVE_SCHOOL_GRADE_LABELS, liveResourcePages, readableLiveResourceText } from '@/lib/live/resourcePresentation'
 import styles from './LiveResourcePicker.module.css'
 import { TeachingDiagram, SLIDE_DIAGRAMS, diagramLabel, encodeSlide, type LiveSlide, type SlideDiagram } from './LiveSlideCanvas'
+import {setStudioResource} from './LiveSlideProtocol'
 
 type ResourceChoice = {
   id: string
@@ -290,9 +291,11 @@ export function LiveResourcePicker({
       // Reusable preparations may only include released public learner content.
       // Class-scoped sources remain in their original authorized classroom.
       if (selected.item.source !== 'certified' || !selected.version) return
-      const slide: LiveSlide = {title: selected.item.title.slice(0,120), body: 'Resource page\n\n'+raw, diagram, notes: 'Certified resource: '+selected.item.id+' · version '+selected.version}
+      const slide: LiveSlide = {title: selected.item.title.slice(0,120), body: 'Resource page\n\n'+raw, diagram, notes: ''}
       if (!encodeSlide(slide,30,30)) {setError('This resource page is too large for a slide. Choose a shorter resource.');return}
-      onPrepare(slide)
+      const notes=setStudioResource(slide,{id:selected.item.id,version:selected.version,page})
+      if(notes===null){setError('Could not preserve the certified source reference.');return}
+      onPrepare({...slide,notes})
       return
     }
     if (diagram==='none') {onPresent(raw);return}

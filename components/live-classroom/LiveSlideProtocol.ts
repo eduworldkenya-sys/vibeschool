@@ -192,7 +192,11 @@ export function updatePhoto(p:SlidePhoto,patch:Partial<Pick<SlidePhoto,'x'|'y'|'
  * projection never includes this field. Bind answers to the exact question body
  * so editing a question cannot silently reuse a stale answer key. */
 const PRIVATE_ASSESSMENT_PREFIX='VSLIDENOTES1:'
-type PrivateSlideNotes={text:string;assessment?:{body:string;option:number;explanation:string}}
+export type StudioResourceRef={id:string;version:string;page:number}
+type PrivateSlideNotes={text:string;assessment?:{body:string;option:number;explanation:string};minutes?:number;resource?:StudioResourceRef}
+const validMinutes=(n:unknown):n is number=>typeof n==='number'&&Number.isInteger(n)&&n>=1&&n<=120
+const uuid=(s:unknown):s is string=>typeof s==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s)
+function validStudioResource(r:unknown):r is StudioResourceRef{if(!r||typeof r!=='object')return false;const v=r as StudioResourceRef;return uuid(v.id)&&uuid(v.version)&&Number.isInteger(v.page)&&v.page>=0&&v.page<30}
 function unpackNotes(notes:string|undefined):PrivateSlideNotes{
  const value=notes??''
  if(!value.startsWith(PRIVATE_ASSESSMENT_PREFIX))return {text:value}
@@ -201,17 +205,22 @@ function unpackNotes(notes:string|undefined):PrivateSlideNotes{
   if(!n||typeof n!=='object')return {text:value}
   const obj=n as PrivateSlideNotes
   if(typeof obj.text!=='string')return {text:value}
+  const base:PrivateSlideNotes={text:obj.text,...(validMinutes(obj.minutes)?{minutes:obj.minutes}:{}),...(validStudioResource(obj.resource)?{resource:{id:obj.resource.id,version:obj.resource.version,page:obj.resource.page}}:{})}
   const a=obj.assessment
   const question=a&&typeof a.body==='string'?decodeAssessment(a.body):null
-  if(!a||!question||question.kind!=='quiz'||!Number.isInteger(a.option)||a.option<0||a.option>=question.options.length||typeof a.explanation!=='string')return {text:obj.text}
-  return {text:obj.text,assessment:{body:a.body,option:a.option,explanation:a.explanation}}
+  if(!a||!question||question.kind!=='quiz'||!Number.isInteger(a.option)||a.option<0||a.option>=question.options.length||typeof a.explanation!=='string')return base
+  return {...base,assessment:{body:a.body,option:a.option,explanation:a.explanation}}
  }catch{return {text:value}}
 }
 function packNotes(value:PrivateSlideNotes):string|null{
- const n=value.assessment?PRIVATE_ASSESSMENT_PREFIX+JSON.stringify(value):value.text
+ const n=value.assessment||value.minutes||value.resource?PRIVATE_ASSESSMENT_PREFIX+JSON.stringify(value):value.text
  return n.length<=2000?n:null
 }
 export function presenterNotes(notes:string|undefined):string{return unpackNotes(notes).text}
+export function studioMinutes(slide:LiveSlide):number{return unpackNotes(slide.notes).minutes??0}
+export function setStudioMinutes(slide:LiveSlide,minutes:number):string|null{if(minutes!==0&&!validMinutes(minutes))return null;return packNotes({...unpackNotes(slide.notes),minutes:minutes||undefined})}
+export function studioResource(slide:LiveSlide):StudioResourceRef|undefined{return unpackNotes(slide.notes).resource}
+export function setStudioResource(slide:LiveSlide,resource:StudioResourceRef):string|null{return validStudioResource(resource)?packNotes({...unpackNotes(slide.notes),resource}):null}
 export function setPresenterNotes(notes:string|undefined,text:string):string|null{return packNotes({...unpackNotes(notes),text})}
 export function preparedAssessment(slide:LiveSlide):{option:number;explanation:string;answer:string}|null{
  const a=unpackNotes(slide.notes).assessment,q=decodeAssessment(slide.body)
@@ -221,9 +230,9 @@ export function preparedAssessment(slide:LiveSlide):{option:number;explanation:s
 }
 export function prepareAssessment(slide:LiveSlide,option:number|null,explanation:string):string|null{
  const notes=unpackNotes(slide.notes),q=decodeAssessment(slide.body)
- if(option===null)return packNotes({text:notes.text})
+ if(option===null)return packNotes({...notes,assessment:undefined})
  if(!q||q.kind!=='quiz'||!Number.isInteger(option)||option<0||option>=q.options.length||explanation.length>800)return null
- return packNotes({text:notes.text,assessment:{body:slide.body,option,explanation}})
+ return packNotes({...notes,assessment:{body:slide.body,option,explanation}})
 }
 const MULTI_DEMO_PREFIX='VSLIDEMULTIDEMO1:'
 export type PositionedDemo={id:string;demo:SlideDemo}
