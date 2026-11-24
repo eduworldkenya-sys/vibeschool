@@ -154,3 +154,18 @@
 .localReply p{white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px;line-height:1.6}
 .requestForm{display:grid;gap:12px}
 @media(max-width:600px){.requestCard{padding:16px}.createMenu{right:0;max-width:calc(100vw - 36px)}.requestActions button{flex:1}.requestDetail{padding:18px}.requestTitle{font-size:18px}}
+
+/* Live discovery uses the full mobile width while keeping canonical navigation. */
+.loadMore{display:block;margin:20px auto;min-height:44px;padding:10px 24px;border:1px solid #dbe1e9;background:#fff;color:#17253a;border-radius:8px;font-weight:700;cursor:pointer}
+.loadMore:disabled{opacity:.6;cursor:wait}
+@media(max-width:640px){
+  .explorePage:has(.loadMore),.explorePage:has(.feedCard){padding:10px 0 calc(80px + env(safe-area-inset-bottom,0px));min-height:100dvh;background:#fff}
+  .explorePage:has(.feedCard) .exploreTop,.explorePage:has(.feedCard) .controls,.explorePage:has(.feedCard) .resultsLabel{margin-left:12px;margin-right:12px}
+  .explorePage .exploreTop{flex-wrap:wrap}
+  .explorePage .exploreTop .actions{flex-wrap:wrap}
+  .explorePage .feedCard{width:100%;max-width:none;border-radius:0;border-left:0;border-right:0;margin:0;box-shadow:none}
+  .explorePage .feedImage .art{max-height:70dvh;object-fit:contain;background:#f4f5f6}
+  .explorePage .feedActions button{min-height:44px}
+  .explorePage .pill{min-height:38px}
+  .explorePage .reader{border-radius:0;border-left:0;border-right:0}
+}
