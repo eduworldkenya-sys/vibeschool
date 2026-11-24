@@ -22,8 +22,9 @@ type Connection = {
 export default function VibeChatContacts({
   role,
   initialQuery = '',
+  refreshVersion = 0,
   onOpenThread,
-}: { role: string; initialQuery?: string; onOpenThread: (threadId: string) => void }) {
+}: { role: string; initialQuery?: string; refreshVersion?: number; onOpenThread: (threadId: string) => void }) {
   const params = useSearchParams()
   const suggestedHandle = params.get('find') ?? ''
   const [myHandle, setMyHandle] = useState('')
@@ -36,9 +37,8 @@ export default function VibeChatContacts({
   const [notice, setNotice] = useState('')
   const [error, setError] = useState('')
 
-  const refresh = useCallback(async () => {
-    setLoading(true)
-    setError('')
+  const refresh = useCallback(async (background = false) => {
+    if(!background){setLoading(true);setError('')}
     try {
       const db = getSupabaseClient()
       const [handleResult, connectionsResult, discoveryResult] = await Promise.all([
@@ -51,13 +51,14 @@ export default function VibeChatContacts({
       setMyHandle(discoveryResult.data?.enabled ? (discoveryResult.data.username ?? handleResult.data ?? '') : (handleResult.data ?? ''))
       setConnections((connectionsResult.data ?? []) as Connection[])
     } catch {
-      setError('Contacts are not available. Check your connection and try again.')
+      if(!background) setError('Contacts are not available. Check your connection and try again.')
     } finally {
-      setLoading(false)
+      if(!background) setLoading(false)
     }
   }, [])
 
   useEffect(() => { void refresh() }, [refresh])
+  useEffect(()=>{if(refreshVersion>0) void refresh(true)},[refreshVersion,refresh])
   useEffect(() => {
     if (/^@[a-z0-9][a-z0-9._]{2,30}$/i.test(suggestedHandle)) setLookupText(suggestedHandle)
   }, [suggestedHandle])

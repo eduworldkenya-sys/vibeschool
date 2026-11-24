@@ -41,8 +41,7 @@ test('enquiry acceptance, rejection and privacy controls are preserved', () => {
 
 test('unavailable calls are not presented as working', () => {
   const chat = read('components/vibechat/VibeChat.tsx')
-  assert.match(chat, /Calls · Soon/)
-  assert.match(chat, /disabled title="Calls will be added/)
+  assert.doesNotMatch(chat, /onClick=\{[^}]*\b(?:startCall|placeCall|startVideoCall)\b/)
 })
 
 test('VibeChat shows existing account avatars instead of inventing a second profile', () => {
