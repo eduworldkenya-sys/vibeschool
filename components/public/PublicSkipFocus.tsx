@@ -18,8 +18,7 @@ export function PublicSkipFocus() {
         main.scrollIntoView({ block: 'start', behavior: 'auto' })
       })
     }
-    const activate = (event: MouseEvent) => {
-      event.preventDefault()
+    const activate = () => {
       // Keep the native fragment destination and explicitly focus its landmark.
       // This is resilient when Next.js hydrates around keyboard activation.
       if (window.location.hash !== '#main-content') window.location.hash = 'main-content'
