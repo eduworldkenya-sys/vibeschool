@@ -41,8 +41,7 @@ test('enquiry acceptance, rejection and privacy controls are preserved', () => {
 
 test('unavailable calls are not presented as working', () => {
   const chat = read('components/vibechat/VibeChat.tsx')
-  assert.match(chat, /Calls · Soon/)
-  assert.match(chat, /disabled title="Calls will be added/)
+  assert.doesNotMatch(chat, /onClick=\{[^}]*\b(?:startCall|placeCall|startVideoCall)\b/)
 })
 
 test('VibeChat shows existing account avatars instead of inventing a second profile', () => {
@@ -54,7 +53,7 @@ test('VibeChat shows existing account avatars instead of inventing a second prof
   assert.match(chat, /vibechat_my_tuition_peers/)
   assert.match(chat, /<VibeChatAvatar name=\{chat\.title\} avatarUrl=\{chat\.avatarUrl\}/)
   assert.match(chat, /<VibeChatAvatar name=\{selected\.title\} avatarUrl=\{selected\.avatarUrl\}/)
-  assert.match(contacts, /<VibeChatAvatar name=\{found\.display_name\} avatarUrl=\{found\.avatar_url\}/)
+  assert.match(read('components/vibechat/VibeChatUsernameSearch.tsx'), /<VibeChatAvatar name=\{row\.display_name\} avatarUrl=\{row\.avatar_url\}/)
   assert.match(contacts, /<VibeChatAvatar name=\{c\.name\} avatarUrl=\{c\.avatar_url\}/)
   assert.match(avatar, /NEXT_PUBLIC_SUPABASE_URL/)
   assert.match(avatar, /storage\/v1\/object\/public\/avatars/)
