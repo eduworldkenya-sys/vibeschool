@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { cache } from 'react'
+import { MiniPublishedVoice } from '@/components/public/MiniVoice'
 import { PublicHeader } from '@/components/public/PublicHeader'
 import { readPublicMini } from '@/lib/minis/public-server'
 import { miniExplorePath, miniPublicPath } from '@/lib/minis/public-url'
@@ -35,6 +36,7 @@ export default async function PublicMiniPage({params}:Props) {
         <div className={styles.readerBody}>
           <h1 className={styles.readerTitle}>{mini.title}</h1>
           <p>@{mini.creator_label}</p>
+          {mini.audio_path&&<MiniPublishedVoice path={mini.audio_path}/>}
           {mini.body.split(/\n\s*\n/).map((paragraph,index)=><p key={index} className={styles.paragraph}>{paragraph}</p>)}
           <div className={styles.tagRow}>{mini.tags.map(tag=><Link key={tag} href={'/explore?tag='+encodeURIComponent(tag)} className={styles.tagButton}>#{tag}</Link>)}</div>
           <div className={styles.actions}><Link className={styles.primary} href={miniExplorePath(mini.id)}>Open lesson &amp; interact</Link>
