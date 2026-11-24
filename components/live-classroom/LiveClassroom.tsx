@@ -8,6 +8,7 @@ import styles from './LiveClassroom.module.css'
 import { adjacentSlide, buildTextRevealSlides, decodeAssessment, assessmentPrompt, decodePhotoSlide, visualSlideBody, visualSlidePayload, preparedAssessment } from './LiveSlideProtocol'
 import { SlideCanvas, encodeSlide, decodeSlide, validSlide, diagramLabel, SLIDE_DIAGRAMS, SLIDE_THEMES, type LiveSlide, type SlideDiagram, type SlideTheme } from './LiveSlideCanvas'
 import { ObjectBoard, SharedObjectBoard } from './LiveObjectBoard'
+import {LiveIndependentStudy} from './LiveIndependentStudy'
 import {LiveSelfPacedReview} from './LiveSelfPacedReview'
 import {copyPhotoDeck,shareSlidePhotos} from './LivePhotoDeckReuse'
 import {PrivateSlideFields} from './LivePreparedAssessment'
@@ -1198,6 +1199,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
         </div>
         :<button type="button" key={item.id} disabled={busy} onClick={()=>void act('join',item.id)}><strong>{item.title}<small>{item.teacherName||'Teacher'} · {classroomLabels[item.mode]}</small></strong><span>Join Live</span></button>
       )}</div>:<p>{teacher?'No active session':rooms.length?'No matching lessons':'Waiting for your teacher to go live.'}</p>}
+      <LiveIndependentStudy key={(classId??'all')+':'+String(teacher)} classId={classId} teacher={teacher} mode={hostMode} groupId={groupId||null}/>
       {pastAvailable&&<button type="button" aria-expanded={pastOpen} disabled={pastLoading} onClick={()=>void togglePastClasses()}>{pastOpen?'Hide Past Classes':'Past Classes'}</button>}
       {pastAvailable&&pastOpen&&<section aria-label="Past Classes">
         {pastLoading&&<p role="status">Loading saved lessons…</p>}
