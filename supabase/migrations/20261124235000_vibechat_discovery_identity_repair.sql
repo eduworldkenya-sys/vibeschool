@@ -75,11 +75,13 @@ begin
   if v_user is null then raise exception 'Sign in required' using errcode='28000'; end if;
   if q !~ '^[a-z0-9][a-z0-9._]{2,30}$' then return; end if;
   if not exists(select 1 from public.profiles a where a.id=v_user and a.account_status::text='active' and not coalesce(a.is_anonymized,false)) then return; end if;
+  if exists(select 1 from public.students s where s.profile_id=v_user and s.deleted_at is null) then return; end if;
+  if exists(select 1 from public.profiles a where a.id=v_user and a.date_of_birth>current_date-interval '18 years') then return; end if;
   return query
   with candidates as (
     select p.id,p.vc_id,p.full_name,p.role,p.avatar_url as photo,
       coalesce(i.username,g.username) as canonical,
-      g.display_name as public_name,g.avatar_url as public_photo,
+      g.display_name as public_name,g.avatar_url as public_photo,g.username as public_username,
       private.vibechat_direct_allowed(v_user,p.id) as direct_ok,
       (p.vc_id is not null and private.vibechat_contact_allowed(v_user,p.id)) as scoped_ok
     from public.profiles p
@@ -99,7 +101,7 @@ begin
     case when c.direct_ok then c.public_photo::text
       when exists(select 1 from public.school_members a join public.school_members b on a.school_id=b.school_id where a.profile_id=v_user and b.profile_id=c.id) then c.photo::text
       else (select t.avatar_url::text from public.vibetutor_public_tutors t where t.profile_id=c.id limit 1) end,
-    c.canonical::text
+    case when c.direct_ok then c.canonical else c.public_username end::text
   from candidates c
   where (c.direct_ok or c.scoped_ok) and (c.vc_id is not null or c.canonical is not null)
     and (c.direct_ok or left(lower(c.vc_id),length(q)+1)='@'||q or exists(select 1 from public.global_public_profiles g where g.profile_id=c.id and g.is_public and g.username=c.canonical))
@@ -121,7 +123,7 @@ begin
     left join public.vs_identities i on i.auth_user_id=p.id and i.kind='person'
     left join public.global_public_profiles g on g.profile_id=p.id and g.is_public
     where p.id<>v_user and p.account_status::text='active' and not coalesce(p.is_anonymized,false)
-      and (lower(p.vc_id)='@'||q or lower(coalesce(i.username,g.username))=q)
+      and (lower(p.vc_id)='@'||q or lower(g.username)=q or (lower(i.username)=q and private.vibechat_direct_allowed(v_user,p.id)))
     order by (lower(p.vc_id)='@'||q) desc nulls last limit 1;
   if v_target is null or private.vibechat_pair_blocked(v_user,v_target) then
     raise exception 'Contact unavailable' using errcode='42501'; end if;
@@ -155,6 +157,8 @@ begin
     return v_thread;
   end if;
   if v_legacy is null or not private.vibechat_contact_allowed(v_user,v_target)
+      or exists(select 1 from public.profiles p where p.id=v_user and p.date_of_birth>current_date-interval '18 years')
+      or exists(select 1 from public.students s where s.profile_id=v_user and s.deleted_at is null)
       or not exists(select 1 from public.profiles p where p.id=v_user and p.account_status::text='active' and not coalesce(p.is_anonymized,false))
       or exists(select 1 from public.profiles p where p.id=v_target and p.date_of_birth>current_date-interval '18 years')
       or exists(select 1 from public.students s where s.profile_id=v_target and s.deleted_at is null) then
