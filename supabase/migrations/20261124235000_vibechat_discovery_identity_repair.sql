@@ -1,7 +1,7 @@
 -- Additive repair after the original search migration. Never claim an account role.
 begin;
 -- access: service-only private.vibechat_discovery_preferences
--- authorization-test: scripts/test-vibechat-identity-repair.mjs
+-- authorization-test: private.vibechat_discovery_preferences; scripts/test-vibechat-contact-discovery.mjs; scripts/sql/vibechat_discovery_authorization.sql
 create table if not exists private.vibechat_discovery_preferences(
   profile_id uuid primary key references public.profiles(id) on delete cascade,
   open_chat boolean not null default false,
