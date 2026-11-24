@@ -1,15 +1,15 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 const read=path=>readFileSync(new URL('../'+path,import.meta.url),'utf8')
-const schema=read('supabase/migrations/20261124200000_mini_lesson_requests_guarded.sql')
-const age=read('supabase/migrations/20261123210200_mini_lessons_verified_creator_clearance.sql')
+const schema=read('supabase/migrations/20261124044200_mini_lesson_requests_guarded.sql')
+const age=read('supabase/migrations/20261124044155_mini_lessons_verified_creator_clearance.sql')
 const actions=read('lib/minis/requests.ts')
 const miniActions=read('lib/minis/actions.ts')
 const ui=read('components/public/MiniLiveRequests.tsx')
 const explore=read('components/public/MiniLiveExplore.tsx')
 const server=read('app/api/minis/safety/route.ts')
 const retired=read('app/api/hq/minis/review/route.ts')
-const safetyDb=read('supabase/migrations/20261124230000_mini_open_creator_safety_scans.sql')
+const safetyDb=read('supabase/migrations/20261124072331_mini_open_creator_safety_scans.sql')
 const review=read('app/hq/minis/page.tsx')
 const student=read('app/student/explore/page.tsx')
 for(const table of ['mini_requests','mini_request_supports']){

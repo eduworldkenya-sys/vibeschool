@@ -1,16 +1,6 @@
-import styles from './MiniExplore.module.css'
+import { MiniLiveExplore } from './MiniLiveExplore'
 
-// Uncommissioned feed: never simulate creators, posts, requests or engagement.
+// Same discovery and creation interface; no backend access until commissioning.
 export function MiniExplore() {
-  return <div className={styles.explorePage}>
-    <div className={styles.container}>
-      <div className={styles.exploreTop}>
-        <div><h1 className={styles.exploreTitle}>Mini Lessons</h1></div>
-      </div>
-      <section className={styles.empty} aria-label="Mini Lessons availability">
-        <h2>Mini Lessons are coming soon.</h2>
-        <p role="status">Publishing is not yet available.</p>
-      </section>
-    </div>
-  </div>
+  return <MiniLiveExplore enabled={false}/>
 }

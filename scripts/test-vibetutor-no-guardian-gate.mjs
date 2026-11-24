@@ -1,8 +1,8 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-const migration = readFileSync('supabase/migrations/20261121140000_vibetutor_no_guardian_approval.sql','utf8')
-const baseMigration = readFileSync('supabase/migrations/20261120130000_vibetutor_public_learner_preview.sql','utf8')
+const migration = readFileSync('supabase/migrations/20261121072813_vibetutor_no_guardian_approval.sql','utf8')
+const baseMigration = readFileSync('supabase/migrations/20261121070127_vibetutor_public_learner_preview.sql','utf8')
 const listings = readFileSync('components/vibetutor/listings.ts','utf8')
 const form = readFileSync('app/vibetutor/post-request/page.tsx','utf8')
 const cards = readFileSync('components/vibetutor/Cards.tsx','utf8')

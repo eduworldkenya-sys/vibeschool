@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import assert from "node:assert/strict";
 import test from "node:test";
 
-const migration=readFileSync("supabase/migrations/20261114063000_vibetutor_private_teaching_unification.sql","utf8");
+const migration=readFileSync("supabase/migrations/20261114035040_vibetutor_private_teaching_unification.sql","utf8");
 const student=readFileSync("app/student/tutoring/page.tsx","utf8");
 const tutor=readFileSync("app/teacher/tutoring/students/page.tsx","utf8");
 const tasks=readFileSync("app/student/tasks/page.tsx","utf8");
