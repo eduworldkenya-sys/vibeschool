@@ -79,3 +79,31 @@ assert.equal(groupsForTextbookShells('CPA',['Accounting']).length,0)
 assert.deepEqual(groupsForTextbookShells('Form 1',['Computer Studies']).flatMap(g=>g.subjects),['Computer Studies'])
 assert.match(ui,/get_school_textbook_shell_metadata/)
 assert.match(ui,/'View textbook'/)
+
+const studentDesk = read('app/student/study/page.tsx')
+const studentDeskCss = read('app/student/study/study.module.css')
+assert.match(studentDesk, /fallbackSubjectGroups\(grade\)/, 'Learner subject tiles use existing KICD grade catalogue')
+assert.match(studentDesk, /href=\{browseHref \+ '&subject=' \+ encodeURIComponent\(subject\)\}/,
+  'Subject tiles retain grade and subject in canonical Learn')
+assert.match(studentDesk, /!loading && savedReading\.length === 0 && subjectDesk/,
+  'New learner must see subjects without a dummy empty progress card')
+assert.match(studentDesk, /!loading && savedReading\.length > 0 && subjectDesk/,
+  'Returning learner must retain subjects alongside saved reading')
+assert.match(studentDesk, /safeInternalRoute\(item\.actionUrl\)/,
+  'Saved reading must retain safe internal navigation')
+assert.match(studentDeskCss, /\.subjectGrid\{display:grid;grid-template-columns:repeat\(4/,
+  'Learn must have a responsive subject tile grid')
+assert.match(ui, /\.in\('publication_id', ids\.slice\(offset, offset \+ 50\)\)/,
+  'Chapter search only checks published book IDs within the selected grade')
+assert.match(ui, /\.eq\('status', 'published'\)\s*\.ilike\('title'/,
+  'Chapter search must not expose unpublished chapters')
+assert.match(ui, /href=\{`\/read\/textbook\/\$\{encodeURIComponent\(chapter\.publication_id\)\}/,
+  'Chapter search opens the existing textbook reader without a second authority')
+assert.match(ui, /chapterSearchStatus === 'error'/, 'Chapter query errors must be visible and recoverable')
+assert.match(ui, /chapterSearchStatus === 'loading'/, 'Chapter search must distinguish loading from empty')
+assert.match(ui, /<SubjectTextbookOutline/, 'Existing curriculum-linked textbook contents remain authoritative')
+assert.ok(ui.indexOf('<SubjectTextbookOutline') < ui.indexOf('More lesson links'),
+  'Textbook contents must precede optional duplicate lesson links')
+assert.match(css, /\.chapterSearchResults/, 'Chapter search has dedicated accessible presentation')
+assert.doesNotMatch(studentDesk, /get_school_textbook_shell_metadata|service_role/,
+  'Personal Learn must not introduce competing publication or privileged authorities')
