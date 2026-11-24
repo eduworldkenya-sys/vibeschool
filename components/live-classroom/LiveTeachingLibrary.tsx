@@ -56,7 +56,6 @@ export function TeachingLibrary({command,currentDeck,onUse}:{command:Command;cur
  }
  const save=useCallback(async(use=false)=>{
   if(!edit||!edit.title.trim()||lock.current)return
-  if(edit.slides.some(s=>isPhotoBody(s.body))){setSaveProblem('Remove room-specific photos before saving a reusable presentation.');return}
   if(!dirty&&edit.revision>0){if(use)onUseRef.current(edit);return}
   lock.current=true;setBusy(true);setSaveProblem('')
   try{
@@ -71,7 +70,7 @@ export function TeachingLibrary({command,currentDeck,onUse}:{command:Command;cur
   }finally{lock.current=false;if(alive.current)setBusy(false)}
  },[edit,dirty,command])
  useEffect(()=>{
-  if(!autoSave||!dirty||busy||saveProblem||!edit?.title.trim()||edit.slides.some(s=>isPhotoBody(s.body)))return
+  if(!autoSave||!dirty||busy||saveProblem||!edit?.title.trim())return
   const timer=window.setTimeout(()=>void save(),1500)
   return()=>window.clearTimeout(timer)
  },[autoSave,dirty,busy,saveProblem,edit,save])
@@ -112,8 +111,8 @@ export function TeachingLibrary({command,currentDeck,onUse}:{command:Command;cur
    <label><input type="checkbox" checked={autoSave} disabled={busy} onChange={e=>setAutoSave(e.target.checked)}/> Auto-save</label>
    {saveProblem&&<div role="alert"><p>{saveProblem.includes('live_material_conflict')?'A newer version exists. Your draft is intact. Save a separate recovered copy or reopen the latest saved version.':saveProblem}</p><button type="button" disabled={busy} onClick={()=>void save()}>Retry save</button>{saveProblem.includes('live_material_conflict')&&<button type="button" disabled={busy} onClick={preserveCopy}>Recover as new copy</button>}</div>}
    <label>Presentation name<input value={edit.title} maxLength={120} disabled={busy} onChange={e=>{if(lock.current)return;setEdit({...edit,title:e.target.value});setDirty(true)}}/></label>
-   <SlideCanvas slide={slide} number={index+1} total={edit.slides.length}/>
-   <nav aria-label="Presentation thumbnails" style={{display:'flex',gap:8,overflowX:'auto',padding:4}}>{edit.slides.map((item,i)=><button type="button" key={i} disabled={busy} aria-pressed={i===index} aria-label={'Slide '+(i+1)+': '+item.title} style={{flex:'0 0 110px',border:i===index?'2px solid #087e72':'1px solid #92b5a8',padding:3,background:'#fff'}} onClick={()=>setIndex(i)}><SlideCanvas slide={item} number={i+1} total={edit.slides.length} mini/></button>)}</nav>
+   <SlideCanvas slide={slide} number={index+1} total={edit.slides.length} ownerPhotoPreview/>
+   <nav aria-label="Presentation thumbnails" style={{display:'flex',gap:8,overflowX:'auto',padding:4}}>{edit.slides.map((item,i)=><button type="button" key={i} disabled={busy} aria-pressed={i===index} aria-label={'Slide '+(i+1)+': '+item.title} style={{flex:'0 0 110px',border:i===index?'2px solid #087e72':'1px solid #92b5a8',padding:3,background:'#fff'}} onClick={()=>setIndex(i)}><SlideCanvas slide={item} number={i+1} total={edit.slides.length} mini ownerPhotoPreview/></button>)}</nav>
    <div className={styles.slideToolbar}><button type="button" disabled={busy||index===0} onClick={()=>move(-1)}>Move left</button><button type="button" disabled={busy||index===edit.slides.length-1} onClick={()=>move(1)}>Move right</button><button type="button" disabled={busy||edit.slides.length>=30} onClick={()=>changeDeck([...edit.slides.slice(0,index+1),{...slide},...edit.slides.slice(index+1)],index+1)}>Duplicate slide</button><button type="button" disabled={busy||buildTextRevealSlides(slide,31-edit.slides.length).length===0} onClick={()=>{const steps=buildTextRevealSlides(slide,31-edit.slides.length);if(steps.length&&window.confirm('Replace this slide with '+steps.length+' progressive teaching steps?'))changeDeck([...edit.slides.slice(0,index),...steps,...edit.slides.slice(index+1)],index)}}>Build reveal steps</button></div>
    <div className={styles.slideToolbar}><button disabled={busy||index===0} onClick={()=>setIndex(i=>i-1)}>Previous</button><span>{index+1} / {edit.slides.length}</span><button disabled={busy||index===edit.slides.length-1} onClick={()=>setIndex(i=>i+1)}>Next</button><button disabled={busy||edit.slides.length>=30} onClick={()=>{setEdit({...edit,slides:[...edit.slides,blank()]});setIndex(edit.slides.length);setDirty(true)}}>+ Slide</button><button disabled={busy||edit.slides.length<=1} onClick={()=>{setEdit({...edit,slides:edit.slides.filter((_,i)=>i!==index)});setIndex(i=>Math.max(0,i-1));setDirty(true)}}>Delete slide</button></div>
    <label>Quick template<select value="" disabled={busy} onChange={e=>{const value=e.target.value;if(!value)return;if((slide.title||slide.body)&&!window.confirm('Replace slide text with this template?'))return;const templates:Record<string,Partial<LiveSlide>>={goal:{title:'Learning goal',body:'By the end of this lesson, you will be able to…'},example:{title:'Worked example',body:'Problem:\nStep 1:\nStep 2:\nAnswer:'},question:{title:'Try it',body:'Question:\nThink about your answer.'},summary:{title:'Remember',body:'Key idea:\nExample:'}};patch(templates[value]??{})}}><option value="">Choose a template</option><option value="goal">Learning goal</option><option value="example">Worked example</option><option value="question">Question</option><option value="summary">Summary</option></select></label>
