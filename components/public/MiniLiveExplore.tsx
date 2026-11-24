@@ -79,6 +79,9 @@ export function MiniLiveExplore({ enabled = true }: { enabled?: boolean } = {}) 
   const [draftTags, setDraftTags] = useState('')
   const [photo, setPhoto] = useState<File | null>(null)
   const [photoPreview,setPhotoPreview] = useState('')
+  const [draftPreview,setDraftPreview] = useState('')
+  const [previewBusy,setPreviewBusy] = useState(false)
+  const composerRef = useRef<HTMLFormElement>(null)
   const [photoRotation,setPhotoRotation] = useState(0)
   const [photoZoom,setPhotoZoom] = useState(1)
   const [quizEnabled, setQuizEnabled] = useState(false)
@@ -97,6 +100,19 @@ export function MiniLiveExplore({ enabled = true }: { enabled?: boolean } = {}) 
     return () => URL.revokeObjectURL(url)
   }, [photo])
 
+  useEffect(() => () => { if (draftPreview) URL.revokeObjectURL(draftPreview) }, [draftPreview])
+
+  async function previewDraft() {
+    if (!photo || previewBusy || !composerRef.current?.reportValidity()) return
+    setError('');setPreviewBusy(true)
+    try {
+      parseMiniHashtags(draftTags)
+      const edited = await prepareMiniPhoto(photo,photoRotation,photoZoom)
+      setDraftPreview(URL.createObjectURL(edited))
+    } catch(e) {setError(e instanceof Error ? e.message : 'Could not preview photo.')}
+    finally {setPreviewBusy(false)}
+  }
+
   const open = useCallback((post: MiniPost) => {
     setSelectedId(post.id)
     setComments([])
@@ -108,6 +124,7 @@ export function MiniLiveExplore({ enabled = true }: { enabled?: boolean } = {}) 
   }, [])
 
   const back = () => {
+    setDraftPreview('')
     setSection('feed')
     setCreatorId(null)
     setSelectedId(null)
@@ -369,6 +386,7 @@ export function MiniLiveExplore({ enabled = true }: { enabled?: boolean } = {}) 
     } catch(e) {
       setError(e instanceof Error ? e.message : 'Unable to submit Mini.')
       if(e instanceof MiniSubmissionSavedError){
+        setDraftPreview('')
         setDraftTitle('');setDraftBody('');setDraftTags('');setPhoto(null);setPhotoRotation(0);setPhotoZoom(1);setQuizEnabled(false);setQuizQuestion('');setQuizOptions(['','','']);setQuizCorrect(0);setQuizExplanation('');setAnswerRequest(null)
         setSection('mine')
         try{setMine(await fetchOwnMiniStatus(viewer))}catch{setError(old=>old+' Open My Minis to reload the saved submission.')}
@@ -407,7 +425,7 @@ export function MiniLiveExplore({ enabled = true }: { enabled?: boolean } = {}) 
     if (!ensureSignIn(viewer) || !viewer || busy) return
     setError('');setNotice('')
     if (!adult) {
-      setError('Public creator profiles currently require adult account verification. There is no HQ content approval.')
+      setError('Verify your adult account to create a public profile.')
       return
     }
     setBusy(true)
@@ -438,7 +456,7 @@ export function MiniLiveExplore({ enabled = true }: { enabled?: boolean } = {}) 
       const {error:saveError} = await supabase.from('global_public_profiles')
         .upsert({profile_id:viewer,username,display_name:displayName,is_public:true},{onConflict:'profile_id'})
       if (saveError) throw saveError
-      setNotice('Your public profile is ready. Publish Mini Lessons through automatic safety checks.')
+      setNotice('Profile ready.')
       setSection('compose')
     } catch {setError('Could not save your profile. Check whether that username is already taken.')}
     finally {setBusy(false)}
@@ -488,7 +506,7 @@ export function MiniLiveExplore({ enabled = true }: { enabled?: boolean } = {}) 
     {section === 'feed' && <>
       <div className={styles.exploreTop}>
         <div><h1 className={styles.exploreTitle}>Mini Lessons</h1></div>
-        <div className={styles.actions}>
+        <div className={styles.topActions}>
           <button type="button" className={styles.secondary} onClick={() => void editProfile()}>My Profile</button>
           <button type="button" className={styles.secondary} onClick={() => void openMine()}>My Minis</button>
           <div className={styles.createWrap}>
@@ -501,34 +519,33 @@ export function MiniLiveExplore({ enabled = true }: { enabled?: boolean } = {}) 
         </div>
       </div>
       <div className={styles.controls}>
-        <label className={styles.search}><span aria-hidden="true">⌕</span><span className="sr-only">Search Mini Lessons</span>
-          <input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search a Mini, topic or educator"/>
+        <label className={styles.search}><span aria-hidden="true">⌕</span>
+          <input aria-label="Search Mini Lessons" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search Mini Lessons"/>
         </label>
         <div className={styles.tabs} role="group" aria-label="Choose Explore feed">
           {(['For You','Following','New'] as const).map(t=><button type="button" key={t}
             className={styles.tab + (tab===t?' '+styles.tabActive:'')} aria-pressed={tab===t}
             onClick={()=>setTab(t)}>{t}</button>)}
         </div>
-        <div className={styles.filters} role="group" aria-label="Explore by hashtag">
+        {popularTags.length>0 && <div className={styles.filters} role="group" aria-label="Explore by hashtag">
           {['All',...popularTags].map(name=><button type="button" key={name}
             className={styles.pill+(tag===name?' '+styles.pillActive:'')} aria-pressed={tag===name}
             onClick={()=>chooseTag(name)}>{name==='All'?'All':miniTagLabel(name)}</button>)}
-        </div>
+        </div>}
       </div>
-      {tab !== 'Following' && <MiniLiveRequests enabled={enabled} query={query} onExplain={explainRequest}/>}
-      <div className={styles.resultsLabel}><strong>{tab==='Following'?'Creators you follow':'Mini Lessons'}</strong>
-        <span>{visible.length} loaded</span></div>
       {feedError && <div role="alert" className={styles.formNote}>{feedError} <button type="button" onClick={()=>setRefreshKey(key=>key+1)}>Retry</button></div>}
       {loading ? <p role="status">Loading Mini Lessons…</p> : visible.length
         ? <div className={styles.grid}>{visible.map(card)}</div>
         : <div className={styles.empty}>
-          <p>{error || (query.trim()?'No matching Mini Lessons.':tab==='Following'?'Follow an educator to see their Minis here.':'No published Mini Lessons yet.')}</p>
+          <strong>{query.trim()||tag!=='All'?'No matching Mini Lessons.':tab==='Following'?'No Minis from creators you follow.':'No Mini Lessons yet.'}</strong>
           {!enabled && <p role="status">Publishing is not yet available.</p>}
-          {!query.trim() && <button type="button" className={styles.primary} onClick={()=>{setAnswerRequest(null);setSection('compose')}}>Create Mini Lesson</button>}
-          <button type="button" className={styles.primary} onClick={()=>setSection('request')}>Request this topic</button>
-          <button type="button" className={styles.secondary} onClick={()=>{setTag('All');setQuery('');setTab('For You')}}>Explore all</button>
+          {(query.trim()||tag!=='All') && <div className={styles.emptyActions}>
+            <button type="button" className={styles.secondary} onClick={()=>setSection('request')}>Request this topic</button>
+            <button type="button" className={styles.secondary} onClick={()=>{setTag('All');setQuery('');setTab('For You')}}>Clear filters</button>
+          </div>}
         </div>}
       {!loading && nextCursor!==null && <button type="button" className={styles.loadMore} disabled={pageBusy} onClick={()=>void loadMore()}>{pageBusy?'Loading…':'Load more'}</button>}
+      {tab !== 'Following' && <MiniLiveRequests enabled={enabled} query={query} onExplain={explainRequest} onRequest={()=>setSection('request')}/>}
     </>}
 
     {section === 'request' && <MiniLiveRequests enabled={enabled} mode="compose" query={query} onBack={back} onExplain={explainRequest}/>}
@@ -604,35 +621,31 @@ export function MiniLiveExplore({ enabled = true }: { enabled?: boolean } = {}) 
       </div>
     </article>}
 
-    {section === 'compose' && <section className={styles.form}>
-      <button className={styles.back} type="button" onClick={back}>← Explore</button>
-      <span className={styles.eyebrow}>{answerRequest?'EXPLAIN STUDENT REQUEST':'CREATE MINI LESSON'}</span>
-      {answerRequest&&<p className={styles.formNote}>{answerRequest.question}</p>}
-      <h1>Share what you know.</h1>
-      <p className={styles.subline}>One photo and a short educational explanation.</p>
-      {!enabled && <p role="status" className={styles.formNote}>Publishing is not yet available. You can prepare a draft here; it will not be saved or posted.</p>}
-      {enabled && !viewer && <p className={styles.formNote}>Sign in before publishing. <Link href="/login?redirect=%2Fexplore">Sign in</Link></p>}
-      {viewer && <p className={styles.formNote}>Minis use your existing VibeSchool public username. <button type="button" className={styles.linkButton} onClick={() => void editProfile()}>Set up your creator profile</button>.</p>}
-      <form onSubmit={event=>void publish(event)}>
-        <label htmlFor="mini-title" className={styles.label}>Title</label>
-        <input id="mini-title" required maxLength={100} minLength={5} className={styles.field}
-          value={draftTitle} onChange={e=>setDraftTitle(e.target.value)} placeholder="What can someone learn?"/>
-        <label htmlFor="mini-body" className={styles.label}>Explanation</label>
-        <textarea id="mini-body" required minLength={40} maxLength={3000} className={styles.editor}
-          value={draftBody} onChange={e=>setDraftBody(e.target.value)} placeholder="Explain one useful thing clearly…"/>
-        <label htmlFor="mini-tags" className={styles.label}>Hashtags</label>
-        <input id="mini-tags" className={styles.field} required maxLength={180} value={draftTags}
-          onChange={e=>setDraftTags(e.target.value)} placeholder="#Mathematics #Fractions (up to 5)"/>
-        <p className={styles.previewNote}>Use 1–5 hashtags so people can discover your Mini Lesson.</p>
-        <label htmlFor="mini-photo" className={styles.label}>Cover photo</label>
-        <input type="file" id="mini-photo" required accept="image/jpeg,image/png,image/webp"
-          onChange={e=>setPhoto(e.target.files?.[0]??null)}/>
+    {section === 'compose' && <section className={styles.form+' '+styles.composer}>
+      <form ref={composerRef} onSubmit={event=>void publish(event)}>
+        <header className={styles.composerHeader}>
+          <button className={styles.back} type="button" disabled={previewBusy||busy} onClick={draftPreview?()=>setDraftPreview(''):back} aria-label={draftPreview?'Edit Mini Lesson':'Back to Explore'}>←</button>
+          <h1>{draftPreview?'Preview':answerRequest?'Explain request':'Create Mini Lesson'}</h1>
+          <button type="submit" className={styles.primary} disabled={!enabled || !viewer || busy || previewBusy || !draftTitle.trim() || !draftBody.trim() || !photo}>
+            {busy?'Checking…':'Publish'}</button>
+        </header>
+        {!enabled && <p role="status" className={styles.compactNotice}>Publishing is not yet available. Drafts aren't saved.</p>}
+        {enabled && !viewer && <p className={styles.compactNotice}><Link href="/login?redirect=%2Fexplore">Sign in to publish</Link></p>}
+        {enabled && viewer && !draftPreview && <button type="button" className={styles.linkButton+' '+styles.compactNotice} disabled={busy||previewBusy} onClick={()=>void editProfile()}>Creator profile</button>}
+        {answerRequest&&<p className={styles.compactNotice}>{answerRequest.question}</p>}
+        <fieldset className={styles.composerFields} disabled={previewBusy||busy} hidden={!!draftPreview}>
+          <label className={styles.photoPicker} htmlFor="mini-photo">
+            <span aria-hidden="true" className={styles.photoPlus}>＋</span>
+            <strong>{photo?'Change photo':'Add photo'}</strong>
+            {!photo && <small>Camera or gallery</small>}
+            <input type="file" id="mini-photo" accept="image/jpeg,image/png,image/webp"
+              onChange={e=>{const file=e.target.files?.[0];if(file){setPhoto(file);setPhotoRotation(0);setPhotoZoom(1)}}}/>
+          </label>
         {photo && <div className={styles.photoEditor}>
           <div className={styles.photoCanvas}>
             {photoPreview && <img src={photoPreview} alt="Edited photo preview"
               style={{width:'100%',height:'100%',objectFit:'cover',transform:'rotate('+photoRotation+'deg) scale('+photoZoom+')'}}/>}
           </div>
-          <p className={styles.previewNote}>{photo.name} · {(photo.size/1024/1024).toFixed(2)} MB · 4:3 crop</p>
           <div className={styles.photoTools}>
             <button type="button" className={styles.secondary} onClick={()=>setPhotoRotation(value=>(value+90)%360)}>↻ Rotate</button>
             <label htmlFor="mini-zoom">Zoom</label>
@@ -641,11 +654,19 @@ export function MiniLiveExplore({ enabled = true }: { enabled?: boolean } = {}) 
             <button type="button" className={styles.secondary} onClick={()=>{setPhotoRotation(0);setPhotoZoom(1)}}>Reset</button>
           </div>
         </div>}
-        <p className={styles.formNote}>Photos remain private until an automated safety check passes. There is no HQ publication approval.</p>
-        <div style={{margin:'18px 0'}}>
-          <label style={{display:'flex',gap:10,alignItems:'center',fontWeight:700,fontSize:14}}>
-            <input type="checkbox" checked={quizEnabled} onChange={e=>setQuizEnabled(e.target.checked)} />
-            Add a quick question (optional)
+
+          <label htmlFor="mini-title" className={styles.visuallyHidden}>Title</label>
+          <input id="mini-title" required maxLength={100} minLength={5} className={styles.field}
+            value={draftTitle} onChange={e=>setDraftTitle(e.target.value)} placeholder="Title"/>
+          <label htmlFor="mini-body" className={styles.visuallyHidden}>Explanation</label>
+          <textarea id="mini-body" required minLength={40} maxLength={3000} className={styles.editor}
+            value={draftBody} onChange={e=>setDraftBody(e.target.value)} placeholder="Explain something useful…"/>
+          <label htmlFor="mini-tags" className={styles.visuallyHidden}>Hashtags</label>
+          <input id="mini-tags" className={styles.field} required maxLength={180} value={draftTags}
+            onChange={e=>setDraftTags(e.target.value)} placeholder="# Hashtags (1–5)"/>
+          <label className={styles.questionToggle}>
+            <input type="checkbox" checked={quizEnabled} onChange={e=>setQuizEnabled(e.target.checked)}/>
+            Add a question
           </label>
           {quizEnabled && <div className={styles.quiz}>
             <label className={styles.label} htmlFor="mini-quiz">Question</label>
@@ -665,9 +686,15 @@ export function MiniLiveExplore({ enabled = true }: { enabled?: boolean } = {}) 
             <textarea className={styles.field} id="mini-explanation" required minLength={10} maxLength={500}
               value={quizExplanation} onChange={e=>setQuizExplanation(e.target.value)} rows={3}/>
           </div>}
-        </div>
-        <button type="submit" className={styles.primary} disabled={!enabled || !viewer || busy || !draftTitle.trim() || !draftBody.trim() || !photo}>
-          {busy?'Checking safety…':'Publish Mini Lesson'}</button>
+          <button type="button" className={styles.secondary+' '+styles.previewButton} disabled={previewBusy||!photo||!draftTitle.trim()||!draftBody.trim()||!draftTags.trim()} onClick={()=>void previewDraft()}>{previewBusy?'Preparing…':'Preview'}</button>
+        </fieldset>
+        {draftPreview && <article className={styles.draftPreview}>
+          <img src={draftPreview} alt="Mini Lesson photo preview"/>
+          <div className={styles.previewBody}><h2>{draftTitle}</h2><p>{draftBody}</p><p className={styles.tagRow}>{draftTags}</p>
+            {quizEnabled && <section className={styles.quiz}><h3>{quizQuestion}</h3>{quizOptions.map((option,i)=><p key={i}>{String.fromCharCode(65+i)}. {option}</p>)}</section>}
+            <button type="button" className={styles.secondary} onClick={()=>setDraftPreview('')}>Edit</button>
+          </div>
+        </article>}
       </form>
     </section>}
 

@@ -111,7 +111,7 @@ async function moderate(input:{target:Target;title:string;body:string;photo?:{da
 
 export async function POST(request:NextRequest) {
   if(process.env.MINI_LESSONS_OPEN_PUBLISHING_ENABLED!=='true')
-    return approved({error:'Open Mini publishing is not commissioned.'},503)
+    return approved({error:'Publishing is not yet available.'},503)
   if(!sameOrigin(request)) return approved({error:'Forbidden origin'},403)
   if(!(request.headers.get('content-type')||'').startsWith('application/json'))
     return approved({error:'JSON required'},415)
@@ -154,7 +154,7 @@ export async function POST(request:NextRequest) {
       }
     }
     // Missing configuration is not a failed creator attempt.
-    if(!process.env.MINI_GOOGLE_SAFETY_API_KEY?.trim())return approved({error:'Automatic safety checks are not configured. Your submission remains private.'},503)
+    if(!process.env.MINI_GOOGLE_SAFETY_API_KEY?.trim())return approved({error:'Safety checks are unavailable. Your submission remains private.'},503)
     if(target==='mini'&&!item.updated_at)return approved({error:'Cannot verify the submission version.'},503)
     const {data:claimed,error:claimError}=await db.rpc('mini_safety_claim',{
       p_target:target,p_id:id,p_owner:actor,

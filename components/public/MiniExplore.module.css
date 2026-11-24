@@ -169,3 +169,50 @@
   .explorePage .pill{min-height:38px}
   .explorePage .reader{border-radius:0;border-left:0;border-right:0}
 }
+
+/* Compact photo-first discovery and creation. */
+.topActions{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.topActions .primary{white-space:nowrap}
+.exploreTop{gap:12px;margin-bottom:12px}
+.search:focus-within{outline:2px solid #435d91;outline-offset:1px}
+.search input{width:100%;font-size:16px}
+.empty{display:grid;justify-items:center;gap:8px;padding:28px 14px;border-style:solid}
+.empty p{margin:0;font-size:13px}
+.emptyActions{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}
+.requestFeed{margin-top:18px}
+.requestHeading{font-size:21px;line-height:1.25;margin:4px 0 12px}
+.visuallyHidden{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.composer{max-width:620px;padding:14px;border-radius:8px}
+.composerHeader{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px}
+.composerHeader h1{font-size:clamp(16px,4.8vw,23px);line-height:1.25;margin:0;flex:1;min-width:0}
+.composerHeader .back{min-width:36px;font-size:20px}
+.composerHeader .primary{padding:8px 13px;flex-shrink:0}
+.compactNotice{font-size:12px;line-height:1.4;color:#596475;margin:0 0 10px}
+.composerFields{border:0;padding:0;margin:0;min-width:0;display:grid;gap:10px}
+.composerFields[hidden]{display:none}
+.composerFields .field,.composerFields .editor{box-sizing:border-box;font-size:16px;min-width:0}
+.composerFields .editor{min-height:105px;line-height:1.5}
+.photoPicker{position:relative;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:4px;min-height:112px;border:1px dashed #b4bfcc;border-radius:10px;background:#f5f7fa;color:#192c4a;cursor:pointer;text-align:center}
+.photoPicker small{font-size:12px;color:#637083}
+.photoPlus{font-size:25px;line-height:1}
+.photoPicker input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
+.photoPicker:focus-within{outline:2px solid #435d91;outline-offset:2px}
+.composerFields .photoEditor{margin:0}
+.composerFields .quiz{margin:0;padding:12px}
+.questionToggle{display:flex;align-items:center;gap:10px;font-size:14px;font-weight:650;min-height:40px}
+.questionToggle input{accent-color:#192c4a}
+.previewButton{justify-self:center;width:100%}
+.draftPreview{border:1px solid #e4e9ee;border-radius:10px;overflow:hidden}
+.draftPreview>img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block}
+.draftPreview h2{font-size:22px;overflow-wrap:anywhere}
+.draftPreview p{white-space:pre-wrap;overflow-wrap:anywhere}
+@media(max-width:640px){
+  .explorePage{padding:12px 12px calc(80px + env(safe-area-inset-bottom,0px))}
+  .explorePage .exploreTop{align-items:center;gap:8px;flex-wrap:wrap}
+  .exploreTitle{font-size:23px;margin:0}
+  .topActions{gap:5px}
+  .topActions>.secondary,.topActions .primary{padding:7px 9px;min-height:44px;font-size:12px}
+  .search input{font-size:16px}
+  .composer{padding:12px}
+  .composerHeader{gap:6px}
+}
