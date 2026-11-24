@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { currentMiniUser } from '@/lib/minis/actions'
 import { fetchMiniRequestAnswers, loadMiniCovers, type MiniPost } from '@/lib/minis/data'
 import { changeRequestSupport, fetchMiniRequests, fetchMiniRequestSupports,
-  fetchMyMiniRequests, submitMiniRequest, type MiniPublicRequest, type MiniOwnRequest } from '@/lib/minis/requests'
+  fetchMyMiniRequests, submitMiniRequest, reportMiniRequest, type MiniPublicRequest, type MiniOwnRequest } from '@/lib/minis/requests'
 import styles from './MiniExplore.module.css'
 
 type Props = {
@@ -24,6 +24,7 @@ export function MiniLiveRequests({ mode='feed', query='', onBack, onExplain }: P
   const [tags,setTags] = useState('')
   const [viewer,setViewer] = useState<string|null>(null)
   const [busy,setBusy] = useState(false)
+  const [reportReason,setReportReason] = useState<'unsafe'|'spam'|'harassment'|'personal_information'|'other'>('unsafe')
   const [error,setError] = useState('')
   const [notice,setNotice] = useState('')
   const [loading,setLoading] = useState(true)
@@ -62,6 +63,18 @@ export function MiniLiveRequests({ mode='feed', query='', onBack, onExplain }: P
       setAnswers(list)
       setCovers(await loadMiniCovers(list))
     }catch{setError('Explanations are temporarily unavailable.')}
+  }
+  async function report(request:MiniPublicRequest){
+    if(!viewer){window.location.assign('/login?redirect=%2Fexplore');return}
+    if(busy)return
+    setBusy(true);setError('')
+    try{
+      await reportMiniRequest(request.id,reportReason)
+      setNotice('Report received. Unsafe requests can be hidden automatically after independent reports.')
+      setSelected(null)
+      await refresh()
+    }catch(e){setError(e instanceof Error?e.message:'Unable to report request.')}
+    finally{setBusy(false)}
   }
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -123,6 +136,17 @@ export function MiniLiveRequests({ mode='feed', query='', onBack, onExplain }: P
       <button type="button" disabled={busy} aria-pressed={supports.has(selected.id)} onClick={()=>void support(selected)}>
         {supports.has(selected.id)?'✓ Me too':'+ Me too'}</button>
       <button type="button" className={styles.primary} onClick={()=>onExplain(selected)}>Explain this</button>
+    </div>
+    <div className={styles.requestActions}>
+      <label htmlFor="mini-request-report-reason">Report this request</label>
+      <select id="mini-request-report-reason" className={styles.field}
+        value={reportReason} onChange={event=>setReportReason(event.target.value as typeof reportReason)}>
+        <option value="unsafe">Unsafe</option><option value="spam">Spam</option>
+        <option value="harassment">Harassment</option>
+        <option value="personal_information">Personal information</option>
+        <option value="other">Other</option>
+      </select>
+      <button type="button" disabled={busy} onClick={()=>void report(selected)}>Report request</button>
     </div>
     <h3>{answers.length} {answers.length===1?'explanation':'explanations'}</h3>
     {answers.map(post=><article key={post.id} className={styles.localReply}>
