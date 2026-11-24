@@ -57,7 +57,7 @@ export async function GET(req: NextRequest) {
     const actor = await reviewer(req)
     if (!actor) return response({ error: 'HQ reviewer authorization required' }, 403)
     const [{ data: minis, error: postError }, { data: comments, error: commentError },
-      { data: reports, error: reportError }] = await Promise.all([
+      { data: reports, error: reportError }, { data: requests, error: requestError }] = await Promise.all([
       actor.db.from('mini_lessons')
         .select('id,creator_id,creator_label,title,body,subject,tags,quiz_question,quiz_options,quiz_correct,quiz_explanation,cover_path,status,created_at')
         .eq('status','pending').order('created_at',{ascending:true}).limit(80),
@@ -67,8 +67,11 @@ export async function GET(req: NextRequest) {
       actor.db.from('mini_reports')
         .select('mini_id,reason,description,created_at')
         .order('created_at',{ascending:false}).limit(100),
+      actor.db.from('mini_requests')
+        .select('id,requester_id,question,tags,status,created_at')
+        .eq('status','pending').order('created_at',{ascending:true}).limit(100),
     ])
-    if (postError || commentError || reportError) return response({ error: 'Moderation queue unavailable' }, 503)
+    if (postError || commentError || reportError || requestError) return response({ error: 'Moderation queue unavailable' }, 503)
     // Only a verified reviewer receives short-lived signed private cover links.
     const entries = await Promise.all((minis ?? []).map(async mini => {
       if (!mini.cover_path) return { ...mini, cover_preview_url: null }
@@ -76,7 +79,7 @@ export async function GET(req: NextRequest) {
         .createSignedUrl(mini.cover_path, 300)
       return { ...mini, cover_preview_url: coverError ? null : data?.signedUrl ?? null }
     }))
-    return response({ minis: entries, comments: comments ?? [], reports: reports ?? [] })
+    return response({ minis: entries, comments: comments ?? [], reports: reports ?? [], requests: requests ?? [] })
   } catch { return response({ error: 'Moderation queue unavailable' }, 503) }
 }
 
@@ -102,20 +105,20 @@ export async function PATCH(req: NextRequest) {
     const id = data.id
     const reason = data.reason ?? null
     const quality = data.quality ?? 50
-    if (!['mini','comment'].includes(String(target)) ||
+    if (!['mini','comment','request'].includes(String(target)) ||
         !['approved','rejected','hidden'].includes(String(decision)) ||
         typeof id !== 'string' || !UUID.test(id) ||
         (reason !== null && (typeof reason !== 'string' || reason.length > 500)) ||
         typeof quality !== 'number' || !Number.isInteger(quality) || quality < 0 || quality > 100)
       return response({ error: 'Invalid review decision' }, 400)
-    const { data: result, error } = await actor.db.rpc('mini_review_item', {
-      p_actor: actor.actorId,
-      p_target: target,
-      p_id: id,
-      p_decision: decision,
-      p_reason: reason,
-      p_quality: quality,
-    })
+    const { data: result, error } = target === 'request'
+      ? await actor.db.rpc('mini_review_request', {
+          p_actor: actor.actorId, p_id: id, p_decision: decision, p_reason: reason,
+        })
+      : await actor.db.rpc('mini_review_item', {
+          p_actor: actor.actorId, p_target: target, p_id: id,
+          p_decision: decision, p_reason: reason, p_quality: quality,
+        })
     if (error) return response({ error: error.message }, 409)
     return response({ ok: true, review: result })
   } catch { return response({ error: 'Unable to review this Mini' }, 503) }
