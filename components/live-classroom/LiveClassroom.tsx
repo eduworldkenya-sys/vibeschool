@@ -1169,13 +1169,14 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
     </main>
     return createPortal(stage,document.body)
   }
+  if(teacher&&beforeLibrary&&!room&&!loading)return <main className={`${styles.live} ${styles.studioPage}`} aria-label="Live Studio"><TeachingLibrary command={call} currentDeck={null} onUse={useMaterial} onClose={()=>setBeforeLibrary(false)}/></main>
   return <main className={styles.live}>
     <header className={styles.header}><Link href={back}>Back</Link><h1>Live Classroom</h1>{room&&<span className={styles.status}>{room.status==='active'?'Live':room.status==='paused'?'Paused':'Ended'}</span>}</header>
     {error&&<div role="alert" className={styles.alert}>{error} <button onClick={()=>void refresh()}>Retry</button></div>}
     {loading&&!room&&<p role="status">Connecting…</p>}
-    {!room&&!loading&&<section className={styles.panel}>
-      {teacher&&<>{!beforeLibrary&&<button type="button" onClick={()=>setBeforeLibrary(true)}>Live Studio · Prepare lesson</button>}{beforeLibrary&&<TeachingLibrary command={call} currentDeck={null} onUse={useMaterial} onClose={()=>setBeforeLibrary(false)}/>} {preparedTitle&&<p>Ready for next lesson: {preparedTitle} <button type="button" onClick={()=>{preparedDeck.current=null;setPreparedTitle('')}}>Remove</button></p>}</>}
-      {teacher&&classId&&<section aria-label="Prepare Live Lesson" style={{padding:'12px 0',display:'grid',gap:6}}>
+    {!room&&!loading&&<section className={`${styles.panel} ${teacher?styles.classroomEntry:""}`}>
+      {teacher&&<><button type="button" className={styles.studioEntry} aria-label="Live Studio" onClick={()=>setBeforeLibrary(true)}><PanelTop aria-hidden="true"/><span><strong>Live Studio</strong><small>Prepare, preview and rehearse</small></span><span aria-hidden="true">›</span></button>{preparedTitle&&<p>Ready for next lesson: {preparedTitle} <button type="button" onClick={()=>{preparedDeck.current=null;setPreparedTitle('')}}>Remove</button></p>}</>}
+      {teacher&&<div className={styles.startLesson}><h2>Start a lesson</h2>{classId&&<section aria-label="Prepare Live Lesson" className={styles.planPicker}>
         <label>Saved Lesson Plan
           <select aria-label="Saved Lesson Plan" value={selectedPlanId??''}
             onChange={e=>setSelectedPlanId(e.target.value)} disabled={busy||plansLoading}>
@@ -1190,13 +1191,14 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
         {linkedPlanError&&<small role="alert">{linkedPlanError}</small>}
         {linkedPlan&&<small>Private teacher plan ready · {linkedPlan.steps.length} teaching phases</small>}
       </section>}
-      {teacher&&!beforeLibrary&&<form onSubmit={e=>{e.preventDefault();void act('start',null,{title:hostMode==='open'?`${publicGrade} · ${publicSubject} · ${title.trim()}`:title,mode:hostMode,groupId:classId||hostMode!=='tuition'?null:groupId||null})}}>
+      <form onSubmit={e=>{e.preventDefault();void act('start',null,{title:hostMode==='open'?`${publicGrade} · ${publicSubject} · ${title.trim()}`:title,mode:hostMode,groupId:classId||hostMode!=='tuition'?null:groupId||null})}}>
         {!classId&&hostModes.length>1&&<div className={styles.controls} aria-label="Classroom type">{hostModes.map(item=><button type="button" key={item} aria-pressed={hostMode===item} onClick={()=>{setHostMode(item);setGroupId('')}}>{classroomLabels[item]}</button>)}</div>}
         {!classId&&hostMode==='tuition'&&<label>Learners<select value={groupId} onChange={e=>setGroupId(e.target.value)}><option value="">All connected learners</option>{groups.map(g=><option key={g.id} value={g.id}>{g.title}</option>)}</select></label>}
         {hostMode==='open'&&<><div className={styles.controls}><label>Grade<select value={publicGrade} onChange={e=>setPublicGrade(e.target.value)}>{grades.map(g=><option key={g} value={g}>{g}</option>)}</select></label><label>Subject<select value={publicSubject} onChange={e=>setPublicSubject(e.target.value)}>{subjects.map(g=><option key={g} value={g}>{g}</option>)}</select></label></div><small>Visible to eligible VibeSchool learners. You approve each request before they enter.</small></>}
         <label>Lesson title<input required maxLength={hostMode==='open'?80:120} value={title} onChange={e=>setTitle(e.target.value)} placeholder={hostMode==='open'?'Lesson topic':'Grade 4 · Mathematics'}/></label>
         <button className={styles.primary} disabled={busy||!title.trim()||!!selectedPlanId&&linkedPlan?.id!==selectedPlanId}>Go Live</button>
-      </form>}
+        {!title.trim()&&<small>Enter a lesson title to go live.</small>}
+      </form></div>}
       {!teacher&&<div className={styles.controls}>
         <label>Find live lessons<input type="search" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search lessons or teachers"/></label>
         <label>Audience<select value={scope} onChange={e=>setScope(e.target.value as 'all'|ClassroomMode)}><option value="all">All lessons</option>{Object.entries(classroomLabels).map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></label>
@@ -1205,6 +1207,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
         {sharedId&&!rooms.some(item=>item.id===sharedId)&&<button disabled={busy} onClick={()=>void act('join',sharedId)}>Join shared lesson</button>}
       </div>}
       {!teacher&&linkedRooms.length>0&&<p>My Live Lessons · {linkedRooms.length}</p>}
+      {teacher&&visibleRooms.length>0&&<small className={styles.entryCaption}>Current session</small>}
       {visibleRooms.length>0?<div className={styles.rooms}>{visibleRooms.map(item=>
         teacher?<button type="button" key={item.id} disabled={busy} onClick={()=>void act('get',item.id)}><strong>{item.title}<small>{classroomLabels[item.mode]}</small></strong><span>Resume</span></button>
         :!item.canJoin?<div key={item.id} className={styles.discover}><strong>{item.title}<small>{classroomLabels[item.mode]}</small></strong><Link href="/student/tutoring">Connect to teacher</Link></div>
