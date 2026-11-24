@@ -72,5 +72,57 @@ drop trigger if exists mini_report_safety_hold on public.mini_reports;
 create trigger mini_report_safety_hold after insert on public.mini_reports
 for each row execute function public.mini_report_safety_hold();
 
+-- Open requests have the same community-report capability as photo-based Minis.
+-- authorization-test: public.mini_request_reports - reporter-only, active-account bound, no public user disclosure.
+create table if not exists public.mini_request_reports (
+ request_id uuid not null references public.mini_requests(id) on delete cascade,
+ reporter_id uuid not null references public.profiles(id) on delete cascade,
+ reason text not null check (reason in ('unsafe','spam','harassment','personal_information','other')),
+ created_at timestamptz not null default now(),
+ primary key(request_id,reporter_id)
+);
+create index if not exists mini_request_reports_created_idx on public.mini_request_reports(reporter_id,created_at desc);
+alter table public.mini_request_reports enable row level security;
+revoke all on public.mini_request_reports from public,anon,authenticated;
+grant select on public.mini_request_reports to authenticated;
+grant insert(request_id,reporter_id,reason) on public.mini_request_reports to authenticated;
+
+create policy mini_request_reports_owner_read on public.mini_request_reports
+ for select to authenticated using(reporter_id=(select auth.uid()));
+create policy mini_request_reports_owner_create on public.mini_request_reports
+ for insert to authenticated with check(reporter_id=(select auth.uid())
+ and public.mini_active_account(reporter_id)
+ and public.mini_request_available(request_id));
+
+create or replace function public.mini_request_report_guard()
+returns trigger language plpgsql security definer set search_path=''
+as $
+declare v_count int; v_count_request int;
+begin
+ if new.reporter_id is distinct from (select auth.uid()) then
+   raise exception 'Report identity mismatch' using errcode='42501';
+ end if;
+ perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(new.reporter_id::text||':mini_request_report',0));
+ select count(*) into v_count from public.mini_request_reports
+ where reporter_id=new.reporter_id and created_at>now()-interval '24 hours';
+ if v_count>=20 then raise exception 'Daily report limit reached';end if;
+ select count(*) into v_count_request from public.mini_request_reports
+ where request_id=new.request_id and reason in ('unsafe','spam','harassment','personal_information')
+ and created_at>now()-interval '7 days';
+ if new.reason in ('unsafe','spam','harassment','personal_information') then
+   v_count_request:=v_count_request+1;
+ end if;
+ if v_count_request>=5 then
+   update public.mini_requests set status='hidden',
+     moderation_note='Temporarily hidden after community safety reports',
+     updated_at=now()
+   where id=new.request_id and status='approved';
+ end if;
+ return new;
+end; $;
+drop trigger if exists mini_request_reports_guard on public.mini_request_reports;
+create trigger mini_request_reports_guard before insert on public.mini_request_reports
+ for each row execute function public.mini_request_report_guard();
+
 comment on table public.mini_safety_scans is 'Automated pre-publication safety scan audit, no HQ approval workflow; deny direct user access.';
 comment on function public.mini_report_safety_hold() is 'Fail-safe community report hold; reported content is hidden without requiring HQ manual approval.';
