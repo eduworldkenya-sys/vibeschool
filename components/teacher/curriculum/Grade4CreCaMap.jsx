@@ -13,7 +13,7 @@ const SOURCES = {
     label: 'Social Studies',
     grade: 'Grade 4',
     source: 'https://kicd.ac.ke/wp-content/uploads/2024/10/Grade-4-Social-Studies-20.6.2024-Revised-1.pdf#page=',
-    outcomeSource: 'official',
+    outcomeSource: 'publisher',
   },
   cre: {
     id: '8165d513-035b-4019-9fdb-5b86a27335a1',
@@ -99,7 +99,7 @@ export default function Grade4CreCaMap({
             .eq('source_type', source.outcomeSource)
             .order('outcome_code', { ascending: true })
           if (outcomeResponse.error) throw outcomeResponse.error
-          validOutcomes = (outcomeResponse.data || []).filter(row => kind !== 'social' || row.source_ref?.startsWith(source.source))
+          validOutcomes = (outcomeResponse.data || []).filter(row => kind !== 'social' || (row.source_ref?.startsWith(source.source) && row.source_ref?.endsWith('&provenance=user-transcript-2026-11-24')))
         }
         if (active) {
           setUnits(validUnits)
@@ -120,7 +120,7 @@ export default function Grade4CreCaMap({
   const selected = units.find(unit => unit.id === selectedId) || units[0] || null
   const unitOutcomes = outcomes.filter(outcome => outcome.sub_strand_id === selected?.id)
   const activeSelection = selectedOutcomes.filter(id => unitOutcomes.some(outcome => outcome.id === id))
-  const canPlanWithoutOutcomes = kind === 'grade5cre' || kind === 'social'
+  const canPlanWithoutOutcomes = kind === 'grade5cre'
   const isArtsAlternative = kind === 'arts' && /^(2\.6|2\.5)\s+(Swimming|Indigenous Kenyan Games)$/i.test(selected?.sub_strand || '')
 
   return (
@@ -132,9 +132,10 @@ export default function Grade4CreCaMap({
       <h2 style={{ fontSize: 18, margin: '6px 0' }}>{mode === 'scheme' ? 'Choose a curriculum reference' : source.label}</h2>
       <p style={{ fontSize: 12, margin: '4px 0 12px', color: '#547060' }}>
         {mode === 'scheme'
-          ? 'Choose a sub-strand for your Scheme. Only active source-linked outcomes can be selected; a source-linked Grade 5 CRE or Grade 4 Social Studies sub-strand can be planned without outcomes. This selection does not create or schedule a lesson.'
+          ? 'Choose a sub-strand for your Scheme. Only active source-linked outcomes can be selected; a source-linked Grade 5 CRE sub-strand can be planned without outcomes. This selection does not create or schedule a lesson.'
           : 'Source-linked curriculum structure. Draft outcomes are not presented as verified KICD objectives.'}
       </p>
+      {kind === 'social' && <p style={{ fontSize: 12, color: '#547060' }}>KICD curriculum text supplied by the owner; independent source verification pending. Scheme objectives are prepared separately in VibeSchool wording.</p>}
       {kind === 'arts' && <p style={{ fontSize: 12, color: '#547060' }}>
         Swimming and Indigenous Kenyan Games are alternatives, not two compulsory units.
       </p>}
