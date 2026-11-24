@@ -67,7 +67,7 @@ export default {createCallObject:options=>{const c=new Call();window.__voiceCall
 const bundled=await build({
   stdin:{contents:jsx,loader:'tsx',resolveDir:process.cwd()},
   bundle:true,write:false,outdir:'out',entryNames:'app',jsx:'automatic',platform:'browser',
-  nodePaths:[testModules],define:{'process.env.NODE_ENV':'"production"'},
+  nodePaths:[testModules],define:{'process.env.NODE_ENV':'"production"','process.env.NEXT_PUBLIC_VIBE_LIVE_MESH_PILOT_ENABLED':'undefined'},
   plugins:[{name:'voice-browser-fixture',setup(build){
     build.onResolve({filter:/^(@\/lib\/supabase|@daily-co\/daily-js)$/},args=>({path:args.path,namespace:'voice-mock'}))
     build.onLoad({filter:/.*/,namespace:'voice-mock'},args=>({

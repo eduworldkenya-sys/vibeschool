@@ -4,6 +4,7 @@ import { Headphones, Hand, Mic, MicOff, Volume2, WifiOff, X } from 'lucide-react
 import type { DailyCall } from '@daily-co/daily-js'
 import { supabase } from '@/lib/supabase'
 import styles from './LiveVoice.module.css'
+import { MeshLiveVoice } from './MeshLiveVoice'
 
 type Learner = { studentId:string; name:string; needsHelp:boolean }
 type Props = {
@@ -57,7 +58,7 @@ function canPublishAudio(value:unknown):boolean{
   if (value instanceof Set)return value.has('audio')
   return false
 }
-export function LiveVoice({roomId,classId,teacher,enabled,status,learners,onAcknowledge}:Props) {
+function DailyLiveVoice({roomId,classId,teacher,enabled,status,learners,onAcknowledge}:Props) {
   const meeting=useRef<DailyCall|null>(null)
   const media=useRef<Map<string,HTMLAudioElement>>(new Map())
   const speaker=useRef<string|null>(null)
@@ -382,4 +383,16 @@ export function LiveVoice({roomId,classId,teacher,enabled,status,learners,onAckn
     {soundBlocked&&<button type="button" onClick={()=>void enableSound()}>Tap to enable sound</button>}
     {error&&<span className={styles.error} role="alert"><WifiOff size={14} aria-hidden="true"/> {error}</span>}
   </section>
+}
+
+// Default Daily; select Mesh only for the expressly commissioned adult trial room.
+export function LiveVoice(props:Props) {
+  const [usingDaily, setUsingDaily] = useState(false)
+  const useMesh = props.enabled && !usingDaily
+    && process.env.NEXT_PUBLIC_VIBE_LIVE_MESH_PILOT_ENABLED === 'true'
+    && process.env.NEXT_PUBLIC_VIBE_LIVE_MESH_PILOT_ROOM_ID === props.roomId
+
+  return useMesh
+    ? <MeshLiveVoice {...props} onFallback={() => setUsingDaily(true)} />
+    : <DailyLiveVoice {...props} />
 }

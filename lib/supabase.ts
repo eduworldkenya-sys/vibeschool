@@ -186,6 +186,17 @@ type LiveLearnerEducationPath = {
 type LiveDatabase = Omit<Database, 'public'> & {
   public: Omit<Database['public'], 'Tables' | 'Functions'> & {
     Functions: Database['public']['Functions'] & {
+      vibe_live_mesh: {
+        Args: {
+          p_room: string
+          p_class: string | null
+          p_action: 'join' | 'poll' | 'offer' | 'answer' | 'allow' | 'revoke' | 'leave' | 'fallback'
+          p_client: string
+          p_epoch: number | null
+          p_sdp: string | null
+        }
+        Returns: unknown
+      }
       ce_get_publication_auto_review_state: {
         Args: { p_publication_id: string }
         Returns: {
