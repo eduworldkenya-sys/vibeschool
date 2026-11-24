@@ -27,6 +27,8 @@ export default function ManagedLearners() {
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [activating, setActivating] = useState<string | null>(null)
+  const [resetting, setResetting] = useState<string | null>(null)
+  const [resetConfirmation, setResetConfirmation] = useState<string | null>(null)
 
   async function load() {
     const response = await fetch('/api/identity/me',{ cache:'no-store', credentials:'same-origin' })
@@ -74,6 +76,22 @@ export default function ManagedLearners() {
     finally {setActivating(null)}
   }
 
+  async function resetPassword(child: Child) {
+    setError('');setCredentials(null);setResetting(child.id)
+    try {
+      const response = await fetch('/api/identity/children/reset-password', {
+        method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({identityId:child.id,confirmReset:true}),
+      })
+      const value = await response.json()
+      if (!response.ok || value.reset !== true || typeof value.password !== 'string') {
+        setError(value.error || 'Could not reset this learner password.');return
+      }
+      setCredentials({loginId:child.username,password:value.password})
+    } catch {setError('Could not complete password recovery. Please try again later.')}
+    finally {setResetting(null);setResetConfirmation(null)}
+  }
+
   return <main style={{background:'#f8fafc',minHeight:'100dvh',padding:'clamp(16px,4vw,40px)'}}>
     <section style={{maxWidth:600,margin:'0 auto',background:'#fff',padding:24,
       border:'1px solid #e5e7eb',boxShadow:'0 8px 32px #0f172a0a'}}>
@@ -95,7 +113,19 @@ export default function ManagedLearners() {
       <div style={{display:'grid',gap:12,marginBottom:28}}>
       {(data?.managed_learners||[]).map(child=><div key={child.id} style={{padding:16,border:'1px solid #e2e8f0'}}>
         <strong>{child.display_name}</strong> <span style={{color:'#64748b'}}>@{child.username}</span>
-        {child.status === 'linked' ? <p style={{color:'#166534',marginBottom:0}}>Learning account active · {child.grade_label || 'Learner'}</p> : <>
+        {child.status === 'linked' ? <div>
+          <p style={{color:'#166534'}}>Learning account active · {child.grade_label || 'Learner'}</p>
+          {resetConfirmation === child.id ? <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
+            <span style={{fontSize:13}}>Replace this learner&apos;s password?</span>
+            <button type="button" disabled={resetting!==null} onClick={()=>void resetPassword(child)}
+              style={{padding:10}}>Confirm reset</button>
+            <button type="button" disabled={resetting!==null} onClick={()=>setResetConfirmation(null)}
+              style={{padding:10}}>Cancel</button>
+          </div> : <button type="button" disabled={resetting!==null || !!activating || busy}
+            onClick={()=>{setCredentials(null);setResetConfirmation(child.id)}} style={{padding:10}}>
+            Reset learner password
+          </button>}
+        </div> : <>
           <p style={{color:'#475569',fontSize:13}}>Choose a level, then create this child's private login.</p>
           <label style={{display:'block',marginBottom:10}}>Learning level
             <select aria-label={`Learning level for ${child.display_name}`}
