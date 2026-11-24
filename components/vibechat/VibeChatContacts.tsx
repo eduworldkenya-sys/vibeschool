@@ -21,18 +21,18 @@ type Connection = {
 
 export default function VibeChatContacts({
   role,
+  initialQuery = '',
   onOpenThread,
-}: { role: string; onOpenThread: (threadId: string) => void }) {
+}: { role: string; initialQuery?: string; onOpenThread: (threadId: string) => void }) {
   const params = useSearchParams()
   const suggestedHandle = params.get('find') ?? ''
   const [myHandle, setMyHandle] = useState('')
-  const [lookupText, setLookupText] = useState('')
+  const [lookupText, setLookupText] = useState(initialQuery)
   const [connections, setConnections] = useState<Connection[]>([])
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState<string | null>(null)
   const [notice, setNotice] = useState('')
   const [error, setError] = useState('')
-  const mayInvite = ['teacher', 'parent', 'admin'].includes(role)
 
   const refresh = useCallback(async () => {
     setLoading(true)
@@ -80,7 +80,7 @@ export default function VibeChatContacts({
   return <section className={styles.panel} aria-label="VibeChat contacts" style={{display:'grid',gap:16}}>
     <header>
       <h2 style={{margin:'0 0 4px'}}>Contacts</h2>
-      <p className={styles.subtitle}>Connect by VibeChat ID, not a phone number.</p>
+      
     </header>
     {loading ? <p role="status">Loading your contacts…</p> : <>
       <div className={styles.contactBlock}>
@@ -104,18 +104,18 @@ export default function VibeChatContacts({
             } catch { setError('Could not copy the connection link.') }
           }}><Link2 size={15} aria-hidden/> Share link</button>
         </div>
-        <small className={styles.subtitle}>Sharing your ID does not give strangers permission to message you.</small>
+
       </div>
-      {mayInvite ? <div className={styles.contactBlock}>
+      <div className={styles.contactBlock}>
         <label htmlFor="vc-handle"><strong>Find by username</strong></label>
         <input id="vc-handle" type="search" className={styles.search} placeholder="Search username"
           autoComplete="off" value={lookupText} maxLength={32} onChange={e=>setLookupText(e.target.value)} />
-        <VibeChatUsernameSearch query={lookupText} role={role} onRequested={()=>void refresh()} />
-      </div> : <p className={styles.subtitle}>To connect with a new tutor, use your parent or guardian account. Existing approved learning conversations remain available.</p>}
+        <VibeChatUsernameSearch query={lookupText} role={role} onOpenThread={onOpenThread} onRequested={()=>void refresh()} />
+      </div>
       <section aria-label="Connection requests">
         <h3>Connections</h3>
-        {connections.filter(c=>c.status!=='declined').length===0 ? <p className={styles.subtitle}>No connections or requests yet.</p> :
-          connections.filter(c=>c.status!=='declined').map(c=><article className={styles.contactRow} key={c.id}>
+        {connections.filter(c=>c.status!=='declined' && (!lookupText.trim() || (c.name+' '+c.handle).toLowerCase().includes(lookupText.trim().toLowerCase().replace(/^@/,'')))).length===0 ? <p className={styles.subtitle}>No connections or requests yet.</p> :
+          connections.filter(c=>c.status!=='declined' && (!lookupText.trim() || (c.name+' '+c.handle).toLowerCase().includes(lookupText.trim().toLowerCase().replace(/^@/,'')))).map(c=><article className={styles.contactRow} key={c.id}>
             <VibeChatAvatar name={c.name} avatarUrl={c.avatar_url}/>
             <span style={{flex:1,minWidth:0}}>
               <strong>{c.name}</strong><span className={styles.subtitle} style={{display:'block'}}>{c.handle} · {c.status==='pending'?(c.direction==='incoming'?'Wants to connect':'Request sent'):'Connected'}</span>
