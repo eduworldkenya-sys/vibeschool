@@ -132,6 +132,9 @@ begin
  ) and private.vibechat_push_allowed(d.id,new.sender_id,k,room,new.id)
  on conflict(device_id,kind,message_id) do nothing;
  return new;
+exception when others then
+ raise warning 'VibeChat push queue unavailable; message delivery remains available';
+ return new;
 end;$enqueue$;
 revoke all on function private.vibechat_enqueue_push() from public,anon,authenticated;
 create trigger vibechat_push_vc after insert on public.vc_messages for each row execute function private.vibechat_enqueue_push();
