@@ -7,7 +7,8 @@ begin
   if not exists(select 1 from public.subjects where id='09715a10-3f91-4351-b6bc-fa252666a20b'::uuid and name='Social Studies' and school_id is null and global_subject_id is null) then
     raise exception 'GRADE4_SOCIAL_STUDIES_SUBJECT_MISMATCH';
   end if;
-end $guard$;
+end;
+$guard$;
 with proposed(code,strand,heading,printed_page,lesson_count) as (values
 ('1.1','Natural and built environments','Compass Direction',1,6),
 ('1.2','Natural and built environments','Location and size of the County',3,5),
@@ -39,7 +40,8 @@ declare n integer;
 begin
  select count(*) into n from public.cbc_strands where subject_id='09715a10-3f91-4351-b6bc-fa252666a20b'::uuid and grade='Grade 4' and source_ref like 'https://kicd.ac.ke/wp-content/uploads/2024/10/Grade-4-Social-Studies-20.6.2024-Revised-1.pdf#page=%&unit=%';
  if n<>19 then raise exception 'GRADE4_SOCIAL_STUDIES_EXPECTED_19_GOT_%',n; end if;
-end $guard$;
+end;
+$guard$;
 -- User-supplied source transcript, not an official authority promotion.
 -- Store as publisher reference (the established Grade 4 CRE pattern), never as verified/official.
 with proposed(code,unit_code,outcome_text,source_ref) as (values
@@ -133,7 +135,8 @@ begin
  and o.source_type='publisher' and o.status='active' and o.created_by is null
  and o.source_ref like 'https://kicd.ac.ke/wp-content/uploads/2024/10/Grade-4-Social-Studies-20.6.2024-Revised-1.pdf#page=%&outcome=%&provenance=user-transcript-2026-11-24';
  if n<>72 or u<>19 or distinct_codes<>72 then raise exception 'GRADE4_SOCIAL_STUDIES_REFERENCE_COVERAGE_MISMATCH'; end if;
-end $guard$;
+end;
+$guard$;
 drop policy if exists grade4_social_studies_reference_outcomes_read on public.curriculum_learning_outcomes;
 create policy grade4_social_studies_reference_outcomes_read on public.curriculum_learning_outcomes
 for select to authenticated using (
@@ -174,7 +177,8 @@ begin
  if v_saved.id is null then raise exception 'SCHEME_LESSON_LINK_FAILED'; end if;
  insert into public.scheme_lesson_outcomes(scheme_lesson_id,curriculum_outcome_id) select v_saved.id,unnest(p_outcome_ids);
  return v_saved;
-end $fn$;
+end;
+$fn$;
 revoke all on function public.commit_grade4_social_studies_scheme_unit(uuid,uuid,uuid,integer,uuid,uuid[]) from public;
 grant execute on function public.commit_grade4_social_studies_scheme_unit(uuid,uuid,uuid,integer,uuid,uuid[]) to authenticated;
 commit;
