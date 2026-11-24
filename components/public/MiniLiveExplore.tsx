@@ -386,6 +386,7 @@ export function MiniLiveExplore({ enabled = true }: { enabled?: boolean } = {}) 
     } catch(e) {
       setError(e instanceof Error ? e.message : 'Unable to submit Mini.')
       if(e instanceof MiniSubmissionSavedError){
+        setDraftPreview('')
         setDraftTitle('');setDraftBody('');setDraftTags('');setPhoto(null);setPhotoRotation(0);setPhotoZoom(1);setQuizEnabled(false);setQuizQuestion('');setQuizOptions(['','','']);setQuizCorrect(0);setQuizExplanation('');setAnswerRequest(null)
         setSection('mine')
         try{setMine(await fetchOwnMiniStatus(viewer))}catch{setError(old=>old+' Open My Minis to reload the saved submission.')}
@@ -630,6 +631,7 @@ export function MiniLiveExplore({ enabled = true }: { enabled?: boolean } = {}) 
         </header>
         {!enabled && <p role="status" className={styles.compactNotice}>Publishing is not yet available. Drafts aren't saved.</p>}
         {enabled && !viewer && <p className={styles.compactNotice}><Link href="/login?redirect=%2Fexplore">Sign in to publish</Link></p>}
+        {enabled && viewer && !draftPreview && <button type="button" className={styles.linkButton+' '+styles.compactNotice} disabled={busy||previewBusy} onClick={()=>void editProfile()}>Creator profile</button>}
         {answerRequest&&<p className={styles.compactNotice}>{answerRequest.question}</p>}
         <fieldset className={styles.composerFields} disabled={previewBusy||busy} hidden={!!draftPreview}>
           <label className={styles.photoPicker} htmlFor="mini-photo">
