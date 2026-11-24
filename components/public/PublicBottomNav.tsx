@@ -8,9 +8,10 @@ import styles from './PublicBottomNav.module.css'
 // Reuse the existing public navigation on the website and a Learn-specific version in Learn.
 // Students keep their existing student navigation; focused readers have none.
 const items = [
-  { label: 'Home', href: '/', icon: 'home' },
+  { label: 'Home', href: '/home', icon: 'home' },
   { label: 'Explore', href: '/explore', icon: 'explore' },
   { label: 'Learn', href: '/learn', icon: 'learn' },
+  { label: 'VibeTutor', href: '/vibetutor', icon: 'tutor' },
   { label: 'Schools', href: '/schools', icon: 'schools' },
   { label: 'Teachers', href: '/teacher', icon: 'teachers' },
 ] as const
@@ -40,11 +41,12 @@ function NavIcon({ name }: { name: NavIconName }) {
     case 'stories': return <svg {...common}><path d="M4 20h16M6 20V6a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v14M9 8h6M9 12h6M9 16h4"/></svg>
     case 'courses': return <svg {...common}><path d="m2 9 10-5 10 5-10 5L2 9zM6 12v5c4 3 8 3 12 0v-5M22 9v7"/></svg>
     case 'schools': return <svg {...common}><path d="M4 21V7l8-4 8 4v14M4 10h16M9 21v-7h6v7M7 13h.01M17 13h.01"/></svg>
+    case 'tutor': return <svg {...common}><path d="m2 9 10-5 10 5-10 5-10-5zM6 12v5c4 3 8 3 12 0v-5M22 9v7"/></svg>
     case 'teachers': return <svg {...common}><path d="M3 5h18v11H3zM7 21l5-5 5 5M8 9h8M8 12h5"/></svg>
   }
 }
 
-const PUBLIC_ROOTS = new Set(['/', '/teacher', '/schools', '/product', '/explore', '/sandbox', '/about', '/about/founder-note', '/contact', '/institutions', '/trust'])
+const PUBLIC_ROOTS = new Set(['/', '/home', '/teacher', '/schools', '/product', '/explore', '/sandbox', '/about', '/about/founder-note', '/contact', '/institutions', '/trust'])
 
 export function PublicBottomNav({ forceVisible = false, mode = 'site', activeView = null }: { forceVisible?: boolean; mode?: 'site' | 'learn'; activeView?: string | null } = {}) {
   const pathname = usePathname()
@@ -67,7 +69,7 @@ export function PublicBottomNav({ forceVisible = false, mode = 'site', activeVie
                 : item.href === '/learn?view=courses' ? pathname === '/learn' && activeView === 'courses'
                 : item.href === '/learn/stories' ? pathname.startsWith('/learn/stories')
                 : pathname === item.href
-              : pathname === item.href || (item.href === '/learn' && pathname.startsWith('/learn/')) || (item.href === '/explore' && pathname.startsWith('/explore/'))
+              : pathname === item.href || (item.href === '/explore' && pathname === '/') || (item.href === '/learn' && pathname.startsWith('/learn/')) || (item.href === '/explore' && pathname.startsWith('/explore/'))
             return (
               <Link key={item.label} href={item.href} aria-label={item.label} aria-current={isActive ? 'page' : undefined}
                 style={{ minWidth: 0, minHeight: 44, height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4,
