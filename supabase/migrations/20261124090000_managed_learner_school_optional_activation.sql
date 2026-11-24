@@ -131,7 +131,14 @@ language sql stable security definer set search_path=public,auth,pg_temp as $$
     join public.parent_student_links link
       on link.student_id=student.id and link.parent_id=guardian.auth_user_id
      and link.access_level is distinct from 'none'
+    join public.profiles guardian_profile on guardian_profile.id=guardian.auth_user_id
+    join auth.users guardian_auth on guardian_auth.id=guardian.auth_user_id
    where guardian.auth_user_id=(select auth.uid()) and guardian.kind='person'
+     and guardian_profile.account_status::text='active'
+     and not guardian_profile.is_anonymized
+     and guardian_profile.role in ('teacher','parent')
+     and guardian_auth.email_confirmed_at is not null
+     and ml.guardian_confirmed_at is not null
      and ml.learner_identity_id=p_identity_id and ml.status='linked'
      and student.profile_id=child.auth_user_id and student.deleted_at is null
    limit 1;
