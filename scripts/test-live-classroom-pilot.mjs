@@ -8,7 +8,7 @@ assert.equal(liveSyncDelay(null,0),4000)
 assert.equal(liveSyncDelay('paused',0),4000)
 assert.equal(liveSyncDelay('ended',0),15000)
 assert.deepEqual([1,2,3,4,100].map(n=>liveSyncDelay('active',n)),[5000,10000,20000,30000,30000])
-import {encodeSlide,decodeSlide,validSlide,SLIDE_DIAGRAMS} from '../components/live-classroom/LiveSlideProtocol.ts'
+import {encodeSlide,decodeSlide,validSlide,SLIDE_DIAGRAMS,adjacentSlide} from '../components/live-classroom/LiveSlideProtocol.ts'
 import {emptyBoard,encodeBoard,decodeBoard,boardFromLegacy,BOARD_DIAGRAMS} from '../components/live-classroom/LiveBoardProtocol.ts'
 const shape={id:'fixture-rect',kind:'rectangle',x:20,y:25,w:90,h:60,angle:15,color:'#1865c0',stroke:3,locked:true}
 const drawnBoard={...emptyBoard(2,3),background:'grid',objects:[shape,{...shape,id:'fixture-note',kind:'text',text:'2 + 3 = 5'},{...shape,id:'fixture-diagram',kind:'diagram',diagram:'fraction-bars'},{...shape,id:'fixture-arrow',kind:'arrow',points:[0,0,1000,1000]}]}
@@ -615,4 +615,19 @@ await db.close()
  await assert.rejects(f.rpc(f.a,'dm_typing',sid,null,{typing:true}),/live_not_authorized/)
  console.log('PASS: moderated classroom text chat, truthful reports/hiding, sender rate limits, two-learner isolation and expiring private typing')
  await f.db.close()
+}
+
+ // Live presentation navigation uses the public current slide as its anchor.
+{
+ const deck=[{title:'One',body:'First',notes:'Private'},{title:'',body:''},{title:'Three',body:'Third'}]
+ const first=decodeSlide(encodeSlide(deck[0],1,3))
+ const third=decodeSlide(encodeSlide(deck[2],3,3))
+ assert.equal(adjacentSlide(deck,first,1),2)
+ assert.equal(adjacentSlide(deck,first,-1),null)
+ assert.equal(adjacentSlide(deck,third,-1),0)
+ assert.equal(adjacentSlide(deck,third,1),null)
+ assert.equal(adjacentSlide(deck.slice(0,2),first,1),null)
+ assert.equal(adjacentSlide([{...deck[0],body:'Replaced'},...deck.slice(1)],first,1),null)
+ assert.equal(adjacentSlide([{...deck[0],notes:'Changed private notes'},...deck.slice(1)],first,1),2)
+ assert.equal(adjacentSlide([deck[0],deck[1],deck[1]],first,1),null)
 }
