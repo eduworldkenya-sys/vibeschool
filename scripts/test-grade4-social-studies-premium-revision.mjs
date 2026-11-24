@@ -14,8 +14,8 @@ test('revision extends existing book instead of replacing live IDs or omitting o
  for(const [i,chapter] of candidate.chapters.entries()){
   assert.equal(chapter.sub_strand_id,prior.chapters[i].sub_strand_id)
   assert.deepEqual(chapter.sourceOutcomeIds,prior.chapters[i].sourceOutcomeIds)
-  assert.deepEqual(chapter.blocks.slice(0,prior.chapters[i].blocks.length),prior.chapters[i].blocks)
-  assert.equal(chapter.blocks.filter(b=>b.type==='question').length,10)
+  assert.deepEqual(chapter.blocks.filter(b=>!b.id.startsWith('vsg4sst-v2-')),prior.chapters[i].blocks)
+  assert.equal(chapter.blocks.filter(b=>b.type==='question').length,[4,6,8,11,18].includes(i)?14:10)
   assert.equal(chapter.blocks.filter(b=>b.type==='interactive').length,1)
  }
 })
@@ -23,6 +23,8 @@ test('ungraded checks, private formal answers, alt-described visual source and t
  const blocks=candidate.chapters.flatMap(c=>c.blocks)
  assert.equal(new Set(blocks.map(b=>b.id)).size,blocks.length)
  assert.equal(teacher.sections.flatMap(s=>s.questions).length,95)
+ assert.equal(teacher.chapterRevisionTests.flatMap(s=>s.questions).length,20)
+ assert.equal(blocks.filter(b=>b.type==='question').length,210)
  assert.equal(assets.length,38)
  for(const asset of assets){
   assert.ok(asset.alt)

@@ -116,36 +116,6 @@
           "content": "Draw a four-point compass rose in your exercise book. Label the directions. Draw a simple plan of your room or school compound with a north arrow. Ask a partner to give directions between two features. If learning at home, write directions between two objects in your drawing."
         },
         {
-          "id": "vsg4sst-1-1-b018",
-          "type": "heading2",
-          "content": "Check your understanding"
-        },
-        {
-          "id": "vsg4sst-1-1-b019",
-          "type": "question",
-          "content": "1. Name the four cardinal points and their abbreviations."
-        },
-        {
-          "id": "vsg4sst-1-1-b020",
-          "type": "question",
-          "content": "2. In the school map, which direction is the garden from the classroom?"
-        },
-        {
-          "id": "vsg4sst-1-1-b021",
-          "type": "question",
-          "content": "3. Which direction is the classroom from the water tank?"
-        },
-        {
-          "id": "vsg4sst-1-1-b022",
-          "type": "question",
-          "content": "4. Give directions from the gate to the library."
-        },
-        {
-          "id": "vsg4sst-1-1-b023",
-          "type": "question",
-          "content": "5. Explain one way directions help people in everyday life."
-        },
-        {
           "id": "vsg4sst-v2-1-1-1",
           "type": "heading2",
           "content": "Reading a map when it is turned"
@@ -208,6 +178,36 @@
           }
         },
         {
+          "id": "vsg4sst-1-1-b018",
+          "type": "heading2",
+          "content": "Check your understanding"
+        },
+        {
+          "id": "vsg4sst-1-1-b019",
+          "type": "question",
+          "content": "1. Name the four cardinal points and their abbreviations."
+        },
+        {
+          "id": "vsg4sst-1-1-b020",
+          "type": "question",
+          "content": "2. In the school map, which direction is the garden from the classroom?"
+        },
+        {
+          "id": "vsg4sst-1-1-b021",
+          "type": "question",
+          "content": "3. Which direction is the classroom from the water tank?"
+        },
+        {
+          "id": "vsg4sst-1-1-b022",
+          "type": "question",
+          "content": "4. Give directions from the gate to the library."
+        },
+        {
+          "id": "vsg4sst-1-1-b023",
+          "type": "question",
+          "content": "5. Explain one way directions help people in everyday life."
+        },
+        {
           "id": "vsg4sst-v2-1-1-10",
           "type": "heading2",
           "content": "Apply what you know"
@@ -240,7 +240,7 @@
         {
           "id": "vsg4sst-v2-1-1-16",
           "type": "summary",
-          "content": "Cardinal point — one of the four main directions; landmark — a recognisable place; route — a way from one place to another.. Revisit this section tomorrow and explain the worked example without looking."
+          "content": "Use the north arrow, start at the correct landmark and describe each leg of a safe route."
         }
       ],
       "sourceOutcomeIds": [
@@ -254,9 +254,9 @@
         "1.1.c"
       ],
       "sourceSection": "1.1",
-      "word_count": 503,
+      "word_count": 826,
       "alignment_status": "unclaimed",
-      "reading_time_min": 3
+      "reading_time_min": 5
     },
     {
       "number": 2,
@@ -342,36 +342,6 @@
           "content": "With a teacher or trusted adult, use a current county map. Write your county's name, list its sub-counties, and identify its neighbours. Draw an outline, add a north arrow and label neighbouring counties. Compare it with one neighbouring county using the same map scale."
         },
         {
-          "id": "vsg4sst-1-2-b015",
-          "type": "heading2",
-          "content": "Check your understanding"
-        },
-        {
-          "id": "vsg4sst-1-2-b016",
-          "type": "question",
-          "content": "1. What is a county boundary?"
-        },
-        {
-          "id": "vsg4sst-1-2-b017",
-          "type": "question",
-          "content": "2. Name two counties that share a boundary with Nairobi."
-        },
-        {
-          "id": "vsg4sst-1-2-b018",
-          "type": "question",
-          "content": "3. What is the difference between a county's area and its population?"
-        },
-        {
-          "id": "vsg4sst-1-2-b019",
-          "type": "question",
-          "content": "4. Why must two maps have the same scale before you compare the sizes of counties?"
-        },
-        {
-          "id": "vsg4sst-1-2-b020",
-          "type": "question",
-          "content": "5. Make a small county fact card with its name, two sub-counties and one neighbour. Check your information against a reliable map."
-        },
-        {
           "id": "vsg4sst-v2-1-2-1",
           "type": "heading2",
           "content": "A real county investigation"
@@ -424,14 +394,44 @@
           "meta": {
             "kind": "textbook-self-check-v1",
             "options": [
-              "Nakuru",
               "Nyandarua",
-              "Both equal"
+              "Both equal",
+              "Nakuru"
             ],
             "revealChoice": "Nakuru",
             "explanation": "KNBS recorded about 7,462 km² for Nakuru and 3,286 km² for Nyandarua.",
             "ungraded": true
           }
+        },
+        {
+          "id": "vsg4sst-1-2-b015",
+          "type": "heading2",
+          "content": "Check your understanding"
+        },
+        {
+          "id": "vsg4sst-1-2-b016",
+          "type": "question",
+          "content": "1. What is a county boundary?"
+        },
+        {
+          "id": "vsg4sst-1-2-b017",
+          "type": "question",
+          "content": "2. Name two counties that share a boundary with Nairobi."
+        },
+        {
+          "id": "vsg4sst-1-2-b018",
+          "type": "question",
+          "content": "3. What is the difference between a county's area and its population?"
+        },
+        {
+          "id": "vsg4sst-1-2-b019",
+          "type": "question",
+          "content": "4. Why must two maps have the same scale before you compare the sizes of counties?"
+        },
+        {
+          "id": "vsg4sst-1-2-b020",
+          "type": "question",
+          "content": "5. Make a small county fact card with its name, two sub-counties and one neighbour. Check your information against a reliable map."
         },
         {
           "id": "vsg4sst-v2-1-2-10",
@@ -466,7 +466,7 @@
         {
           "id": "vsg4sst-v2-1-2-16",
           "type": "summary",
-          "content": "Scale — the relationship between map distance and ground distance; square kilometre — an area measuring one kilometre on each side; boundary — a line separating areas.. Revisit this section tomorrow and explain the worked example without looking."
+          "content": "Compare land area using the same units and the same map scale. Check the date and source of county information."
         }
       ],
       "sourceOutcomeIds": [
@@ -482,9 +482,9 @@
         "1.2.d"
       ],
       "sourceSection": "1.2",
-      "word_count": 452,
+      "word_count": 759,
       "alignment_status": "unclaimed",
-      "reading_time_min": 3
+      "reading_time_min": 4
     },
     {
       "number": 3,
@@ -580,36 +580,6 @@
           "content": "Use paper, clay or clean recycled materials to represent a plain, hill, valley and river. Label each feature. Explain how the river may be useful and how people can care for it. Alternatively, draw and label a landscape."
         },
         {
-          "id": "vsg4sst-1-3-b017",
-          "type": "heading2",
-          "content": "Check your understanding"
-        },
-        {
-          "id": "vsg4sst-1-3-b018",
-          "type": "question",
-          "content": "1. Which feature is a low area between raised land?"
-        },
-        {
-          "id": "vsg4sst-1-3-b019",
-          "type": "question",
-          "content": "2. How is a plateau different from a plain?"
-        },
-        {
-          "id": "vsg4sst-1-3-b020",
-          "type": "question",
-          "content": "3. Give two ways a river can help a community."
-        },
-        {
-          "id": "vsg4sst-1-3-b021",
-          "type": "question",
-          "content": "4. Draw and label a hill, a valley and a river."
-        },
-        {
-          "id": "vsg4sst-1-3-b022",
-          "type": "question",
-          "content": "5. Describe one action you can take to protect a physical feature."
-        },
-        {
           "id": "vsg4sst-v2-1-3-1",
           "type": "heading2",
           "content": "Landforms are useful in different ways"
@@ -662,14 +632,44 @@
           "meta": {
             "kind": "textbook-self-check-v1",
             "options": [
+              "Mountain",
               "Valley",
-              "Plateau",
-              "Mountain"
+              "Plateau"
             ],
             "revealChoice": "Valley",
             "explanation": "A valley lies below the raised land on either side.",
             "ungraded": true
           }
+        },
+        {
+          "id": "vsg4sst-1-3-b017",
+          "type": "heading2",
+          "content": "Check your understanding"
+        },
+        {
+          "id": "vsg4sst-1-3-b018",
+          "type": "question",
+          "content": "1. Which feature is a low area between raised land?"
+        },
+        {
+          "id": "vsg4sst-1-3-b019",
+          "type": "question",
+          "content": "2. How is a plateau different from a plain?"
+        },
+        {
+          "id": "vsg4sst-1-3-b020",
+          "type": "question",
+          "content": "3. Give two ways a river can help a community."
+        },
+        {
+          "id": "vsg4sst-1-3-b021",
+          "type": "question",
+          "content": "4. Draw and label a hill, a valley and a river."
+        },
+        {
+          "id": "vsg4sst-1-3-b022",
+          "type": "question",
+          "content": "5. Describe one action you can take to protect a physical feature."
         },
         {
           "id": "vsg4sst-v2-1-3-10",
@@ -704,7 +704,7 @@
         {
           "id": "vsg4sst-v2-1-3-16",
           "type": "summary",
-          "content": "Catchment — land from which water drains towards a river or lake; slope — land that rises or falls; profile — a side view of land.. Revisit this section tomorrow and explain the worked example without looking."
+          "content": "Landforms have different shapes and uses. Protect water sources and avoid unsafe terrain."
         }
       ],
       "sourceOutcomeIds": [
@@ -720,9 +720,9 @@
         "1.3.d"
       ],
       "sourceSection": "1.3",
-      "word_count": 478,
+      "word_count": 780,
       "alignment_status": "unclaimed",
-      "reading_time_min": 3
+      "reading_time_min": 4
     },
     {
       "number": 4,
@@ -809,36 +809,6 @@
           "content": "Make a weather chart for seven days. Observe from a safe place at roughly the same time each day. Record what you see, and write how the weather influenced one activity. Compare your results with a friend's."
         },
         {
-          "id": "vsg4sst-1-4-b015",
-          "type": "heading2",
-          "content": "Check your understanding"
-        },
-        {
-          "id": "vsg4sst-1-4-b016",
-          "type": "question",
-          "content": "1. Name four seasonal conditions people experience in Kenya."
-        },
-        {
-          "id": "vsg4sst-1-4-b017",
-          "type": "question",
-          "content": "2. Explain one way a dry period affects farming."
-        },
-        {
-          "id": "vsg4sst-1-4-b018",
-          "type": "question",
-          "content": "3. Why can rainy weather make travel more dangerous?"
-        },
-        {
-          "id": "vsg4sst-1-4-b019",
-          "type": "question",
-          "content": "4. What should a learner do when a usual walking route is flooded?"
-        },
-        {
-          "id": "vsg4sst-1-4-b020",
-          "type": "question",
-          "content": "5. Make a three-day weather chart and explain one pattern you observe."
-        },
-        {
           "id": "vsg4sst-v2-1-4-1",
           "type": "heading2",
           "content": "Reading weather evidence"
@@ -901,6 +871,36 @@
           }
         },
         {
+          "id": "vsg4sst-1-4-b015",
+          "type": "heading2",
+          "content": "Check your understanding"
+        },
+        {
+          "id": "vsg4sst-1-4-b016",
+          "type": "question",
+          "content": "1. Name four seasonal conditions people experience in Kenya."
+        },
+        {
+          "id": "vsg4sst-1-4-b017",
+          "type": "question",
+          "content": "2. Explain one way a dry period affects farming."
+        },
+        {
+          "id": "vsg4sst-1-4-b018",
+          "type": "question",
+          "content": "3. Why can rainy weather make travel more dangerous?"
+        },
+        {
+          "id": "vsg4sst-1-4-b019",
+          "type": "question",
+          "content": "4. What should a learner do when a usual walking route is flooded?"
+        },
+        {
+          "id": "vsg4sst-1-4-b020",
+          "type": "question",
+          "content": "5. Make a three-day weather chart and explain one pattern you observe."
+        },
+        {
           "id": "vsg4sst-v2-1-4-10",
           "type": "heading2",
           "content": "Apply what you know"
@@ -933,7 +933,7 @@
         {
           "id": "vsg4sst-v2-1-4-16",
           "type": "summary",
-          "content": "Weather — conditions at a particular time; season — a longer period of typical conditions; visibility — how clearly people can see.. Revisit this section tomorrow and explain the worked example without looking."
+          "content": "A weather chart records observations; a season is a longer pattern. Never cross floodwater."
         }
       ],
       "sourceOutcomeIds": [
@@ -951,9 +951,9 @@
         "1.4.e"
       ],
       "sourceSection": "1.4",
-      "word_count": 447,
+      "word_count": 738,
       "alignment_status": "unclaimed",
-      "reading_time_min": 3
+      "reading_time_min": 4
     },
     {
       "number": 5,
@@ -1024,46 +1024,6 @@
           "content": "Ask a trusted adult about a historic place in your county. Make a picture booklet with its name, location, what makes it important and one way to protect it. Draw the place if you cannot visit it. If a supervised class visit is possible, take photographs only where permission is given. A supervised litter-collection activity in a safe approved area can help care for a site; do not touch sharp or unknown objects."
         },
         {
-          "id": "vsg4sst-1-5-b012",
-          "type": "heading2",
-          "content": "Check your understanding"
-        },
-        {
-          "id": "vsg4sst-1-5-b013",
-          "type": "question",
-          "content": "1. What is the purpose of a museum?"
-        },
-        {
-          "id": "vsg4sst-1-5-b014",
-          "type": "question",
-          "content": "2. How is a monument different from a cultural centre?"
-        },
-        {
-          "id": "vsg4sst-1-5-b015",
-          "type": "question",
-          "content": "3. Give two reasons historic places are important."
-        },
-        {
-          "id": "vsg4sst-1-5-b016",
-          "type": "question",
-          "content": "4. Explain why visitors should not write on an old building."
-        },
-        {
-          "id": "vsg4sst-1-5-b017",
-          "type": "question",
-          "content": "5. Suggest one safe activity that could help conserve a historic place."
-        },
-        {
-          "id": "vsg4sst-1-5-b018",
-          "type": "heading2",
-          "content": "Chapter review"
-        },
-        {
-          "id": "vsg4sst-1-5-b019",
-          "type": "project",
-          "content": "A new learner visits your county. Make a one-page guide with a compass rose, a sketch of a physical feature, a short explanation of suitable clothing for the day's weather, and a suggestion for caring for a local historic place. Use verified local information, not invented facts."
-        },
-        {
           "id": "vsg4sst-v2-1-5-1",
           "type": "heading2",
           "content": "Evidence from a heritage site"
@@ -1116,14 +1076,44 @@
           "meta": {
             "kind": "textbook-self-check-v1",
             "options": [
-              "Leave it and tell the guide",
               "Take it home",
-              "Scratch your name on it"
+              "Scratch your name on it",
+              "Leave it and tell the guide"
             ],
             "revealChoice": "Leave it and tell the guide",
             "explanation": "Removing or marking objects can damage heritage and evidence.",
             "ungraded": true
           }
+        },
+        {
+          "id": "vsg4sst-1-5-b012",
+          "type": "heading2",
+          "content": "Check your understanding"
+        },
+        {
+          "id": "vsg4sst-1-5-b013",
+          "type": "question",
+          "content": "1. What is the purpose of a museum?"
+        },
+        {
+          "id": "vsg4sst-1-5-b014",
+          "type": "question",
+          "content": "2. How is a monument different from a cultural centre?"
+        },
+        {
+          "id": "vsg4sst-1-5-b015",
+          "type": "question",
+          "content": "3. Give two reasons historic places are important."
+        },
+        {
+          "id": "vsg4sst-1-5-b016",
+          "type": "question",
+          "content": "4. Explain why visitors should not write on an old building."
+        },
+        {
+          "id": "vsg4sst-1-5-b017",
+          "type": "question",
+          "content": "5. Suggest one safe activity that could help conserve a historic place."
         },
         {
           "id": "vsg4sst-v2-1-5-10",
@@ -1158,7 +1148,42 @@
         {
           "id": "vsg4sst-v2-1-5-16",
           "type": "summary",
-          "content": "Heritage — things and knowledge passed down from the past; evidence — information that supports an explanation; conservation — protecting something from damage.. Revisit this section tomorrow and explain the worked example without looking."
+          "content": "Historic places and objects are evidence of the past. Learn from them without damaging them."
+        },
+        {
+          "id": "vsg4sst-1-5-b018",
+          "type": "heading2",
+          "content": "Chapter review"
+        },
+        {
+          "id": "vsg4sst-1-5-b019",
+          "type": "project",
+          "content": "A new learner visits your county. Make a one-page guide with a compass rose, a sketch of a physical feature, a short explanation of suitable clothing for the day's weather, and a suggestion for caring for a local historic place. Use verified local information, not invented facts."
+        },
+        {
+          "id": "vsg4sst-v2-review-1-heading",
+          "type": "heading2",
+          "content": "Chapter revision test"
+        },
+        {
+          "id": "vsg4sst-v2-review-1-1",
+          "type": "question",
+          "content": "On a north-up map, a school is east of a market. Which direction is the market from the school?"
+        },
+        {
+          "id": "vsg4sst-v2-review-1-2",
+          "type": "question",
+          "content": "Explain why two county maps must have the same scale when comparing area."
+        },
+        {
+          "id": "vsg4sst-v2-review-1-3",
+          "type": "question",
+          "content": "Compare a plateau and a valley."
+        },
+        {
+          "id": "vsg4sst-v2-review-1-4",
+          "type": "question",
+          "content": "A road is flooded and a friend wants to cross. What should you do?"
         }
       ],
       "sourceOutcomeIds": [
@@ -1174,9 +1199,9 @@
         "1.5.d"
       ],
       "sourceSection": "1.5",
-      "word_count": 446,
+      "word_count": 797,
       "alignment_status": "unclaimed",
-      "reading_time_min": 3
+      "reading_time_min": 4
     },
     {
       "number": 6,
@@ -1277,36 +1302,6 @@
           "content": "Choose a product used at home, such as a loaf of bread, a school exercise book or a shirt. Draw a chart showing three or more people involved in making it available. Add a note explaining what each person contributes. With a group, act out the roles; if learning alone, write a short dialogue instead."
         },
         {
-          "id": "vsg4sst-2-1-b018",
-          "type": "heading2",
-          "content": "Check your understanding"
-        },
-        {
-          "id": "vsg4sst-2-1-b019",
-          "type": "question",
-          "content": "1. What does interdependence mean?"
-        },
-        {
-          "id": "vsg4sst-2-1-b020",
-          "type": "question",
-          "content": "2. Explain how a farmer and a trader depend on each other."
-        },
-        {
-          "id": "vsg4sst-2-1-b021",
-          "type": "question",
-          "content": "3. Name two people whose work helps a health centre serve patients."
-        },
-        {
-          "id": "vsg4sst-2-1-b022",
-          "type": "question",
-          "content": "4. Draw a chart showing how a product moves from a producer to a customer."
-        },
-        {
-          "id": "vsg4sst-2-1-b023",
-          "type": "question",
-          "content": "5. A neighbour is unable to carry a heavy bag. Explain a safe way you could help and why it matters."
-        },
-        {
           "id": "vsg4sst-v2-2-1-1",
           "type": "heading2",
           "content": "A community is a network"
@@ -1359,14 +1354,44 @@
           "meta": {
             "kind": "textbook-self-check-v1",
             "options": [
+              "A group excludes a member",
               "Farmer supplies food and buyer pays for it",
-              "A person needs nobody",
-              "A group excludes a member"
+              "A person needs nobody"
             ],
             "revealChoice": "Farmer supplies food and buyer pays for it",
             "explanation": "Each person contributes something the other needs.",
             "ungraded": true
           }
+        },
+        {
+          "id": "vsg4sst-2-1-b018",
+          "type": "heading2",
+          "content": "Check your understanding"
+        },
+        {
+          "id": "vsg4sst-2-1-b019",
+          "type": "question",
+          "content": "1. What does interdependence mean?"
+        },
+        {
+          "id": "vsg4sst-2-1-b020",
+          "type": "question",
+          "content": "2. Explain how a farmer and a trader depend on each other."
+        },
+        {
+          "id": "vsg4sst-2-1-b021",
+          "type": "question",
+          "content": "3. Name two people whose work helps a health centre serve patients."
+        },
+        {
+          "id": "vsg4sst-2-1-b022",
+          "type": "question",
+          "content": "4. Draw a chart showing how a product moves from a producer to a customer."
+        },
+        {
+          "id": "vsg4sst-2-1-b023",
+          "type": "question",
+          "content": "5. A neighbour is unable to carry a heavy bag. Explain a safe way you could help and why it matters."
         },
         {
           "id": "vsg4sst-v2-2-1-10",
@@ -1401,7 +1426,7 @@
         {
           "id": "vsg4sst-v2-2-1-16",
           "type": "summary",
-          "content": "Producer — someone who makes or grows goods; consumer — someone who uses goods or services; network — a set of connected people or places.. Revisit this section tomorrow and explain the worked example without looking."
+          "content": "Goods, services and unpaid care connect people. Fair cooperation includes everyone."
         }
       ],
       "sourceOutcomeIds": [
@@ -1417,9 +1442,9 @@
         "2.1.d"
       ],
       "sourceSection": "2.1",
-      "word_count": 529,
+      "word_count": 782,
       "alignment_status": "unclaimed",
-      "reading_time_min": 3
+      "reading_time_min": 4
     },
     {
       "number": 7,
@@ -1514,46 +1539,6 @@
           "content": "Draw two same-sized rectangles. Put twelve dots close together in one rectangle. Spread twelve dots evenly across the second rectangle. Both rectangles have the same number of dots, but the dots are distributed differently. Explain the difference. With your teacher, compare the exercise with a reliable map of population distribution in your county. Do not mark the location of private homes or identify individual residents."
         },
         {
-          "id": "vsg4sst-2-2-b017",
-          "type": "heading2",
-          "content": "Check your understanding"
-        },
-        {
-          "id": "vsg4sst-2-2-b018",
-          "type": "question",
-          "content": "1. What is the difference between population and population distribution?"
-        },
-        {
-          "id": "vsg4sst-2-2-b019",
-          "type": "question",
-          "content": "2. What does densely populated mean?"
-        },
-        {
-          "id": "vsg4sst-2-2-b020",
-          "type": "question",
-          "content": "3. Give two possible reasons people may settle near a town."
-        },
-        {
-          "id": "vsg4sst-2-2-b021",
-          "type": "question",
-          "content": "4. Draw a dot pattern showing homes scattered over a wide area."
-        },
-        {
-          "id": "vsg4sst-2-2-b022",
-          "type": "question",
-          "content": "5. Why might a county need information about where people live before choosing a location for a new health centre?"
-        },
-        {
-          "id": "vsg4sst-2-2-b023",
-          "type": "heading2",
-          "content": "Chapter review"
-        },
-        {
-          "id": "vsg4sst-2-2-b024",
-          "type": "project",
-          "content": "Imagine a new market is being built. Draw a simple map showing a road, a cluster of homes and farms with homes spaced far apart. Explain how the market could help the farmers, traders and families depend on one another. Explain which people may need transport to reach the market."
-        },
-        {
           "id": "vsg4sst-v2-2-2-1",
           "type": "heading2",
           "content": "Making sense of population data"
@@ -1616,6 +1601,36 @@
           }
         },
         {
+          "id": "vsg4sst-2-2-b017",
+          "type": "heading2",
+          "content": "Check your understanding"
+        },
+        {
+          "id": "vsg4sst-2-2-b018",
+          "type": "question",
+          "content": "1. What is the difference between population and population distribution?"
+        },
+        {
+          "id": "vsg4sst-2-2-b019",
+          "type": "question",
+          "content": "2. What does densely populated mean?"
+        },
+        {
+          "id": "vsg4sst-2-2-b020",
+          "type": "question",
+          "content": "3. Give two possible reasons people may settle near a town."
+        },
+        {
+          "id": "vsg4sst-2-2-b021",
+          "type": "question",
+          "content": "4. Draw a dot pattern showing homes scattered over a wide area."
+        },
+        {
+          "id": "vsg4sst-2-2-b022",
+          "type": "question",
+          "content": "5. Why might a county need information about where people live before choosing a location for a new health centre?"
+        },
+        {
           "id": "vsg4sst-v2-2-2-10",
           "type": "heading2",
           "content": "Apply what you know"
@@ -1648,7 +1663,42 @@
         {
           "id": "vsg4sst-v2-2-2-16",
           "type": "summary",
-          "content": "Census — an official count of people; density — people per unit of area; dot-map key — what one dot represents.. Revisit this section tomorrow and explain the worked example without looking."
+          "content": "Population is the number of people; distribution is where they live; density compares people with area."
+        },
+        {
+          "id": "vsg4sst-2-2-b023",
+          "type": "heading2",
+          "content": "Chapter review"
+        },
+        {
+          "id": "vsg4sst-2-2-b024",
+          "type": "project",
+          "content": "Imagine a new market is being built. Draw a simple map showing a road, a cluster of homes and farms with homes spaced far apart. Explain how the market could help the farmers, traders and families depend on one another. Explain which people may need transport to reach the market."
+        },
+        {
+          "id": "vsg4sst-v2-review-2-heading",
+          "type": "heading2",
+          "content": "Chapter revision test"
+        },
+        {
+          "id": "vsg4sst-v2-review-2-1",
+          "type": "question",
+          "content": "Draw a chain from grain farmer to household and explain one connection."
+        },
+        {
+          "id": "vsg4sst-v2-review-2-2",
+          "type": "question",
+          "content": "Two equal squares contain 16 and 8 people. Compare their densities."
+        },
+        {
+          "id": "vsg4sst-v2-review-2-3",
+          "type": "question",
+          "content": "Explain a difference between population density and distribution."
+        },
+        {
+          "id": "vsg4sst-v2-review-2-4",
+          "type": "question",
+          "content": "Why may a scattered settlement need a different transport plan?"
         }
       ],
       "sourceOutcomeIds": [
@@ -1662,9 +1712,9 @@
         "2.2.c"
       ],
       "sourceSection": "2.2",
-      "word_count": 560,
+      "word_count": 903,
       "alignment_status": "unclaimed",
-      "reading_time_min": 3
+      "reading_time_min": 5
     },
     {
       "number": 8,
@@ -1739,36 +1789,6 @@
           "content": "Choose one of these six categories: dress, food, housing, artefacts, sports and games, or festivals and ceremonies. Make a drawing or model, or interview a willing adult about an example. Label your display and explain what it is used for. Respect family privacy and ask permission before recording or photographing anyone."
         },
         {
-          "id": "vsg4sst-3-1-b013",
-          "type": "heading2",
-          "content": "Check your understanding"
-        },
-        {
-          "id": "vsg4sst-3-1-b014",
-          "type": "question",
-          "content": "1. Name six ways people express traditional culture."
-        },
-        {
-          "id": "vsg4sst-3-1-b015",
-          "type": "question",
-          "content": "2. What is an artefact? Give an example."
-        },
-        {
-          "id": "vsg4sst-3-1-b016",
-          "type": "question",
-          "content": "3. Explain two reasons traditional culture is important."
-        },
-        {
-          "id": "vsg4sst-3-1-b017",
-          "type": "question",
-          "content": "4. Draw one example of traditional housing or clothing and label two features."
-        },
-        {
-          "id": "vsg4sst-3-1-b018",
-          "type": "question",
-          "content": "5. Explain how you would respond respectfully if a classmate practises a different tradition."
-        },
-        {
           "id": "vsg4sst-v2-3-1-1",
           "type": "heading2",
           "content": "Reading culture through objects"
@@ -1821,14 +1841,44 @@
           "meta": {
             "kind": "textbook-self-check-v1",
             "options": [
-              "Ask with permission and listen",
               "Mock unfamiliar practices",
-              "Assume everyone is the same"
+              "Assume everyone is the same",
+              "Ask with permission and listen"
             ],
             "revealChoice": "Ask with permission and listen",
             "explanation": "Respect and consent help us learn without stereotyping.",
             "ungraded": true
           }
+        },
+        {
+          "id": "vsg4sst-3-1-b013",
+          "type": "heading2",
+          "content": "Check your understanding"
+        },
+        {
+          "id": "vsg4sst-3-1-b014",
+          "type": "question",
+          "content": "1. Name six ways people express traditional culture."
+        },
+        {
+          "id": "vsg4sst-3-1-b015",
+          "type": "question",
+          "content": "2. What is an artefact? Give an example."
+        },
+        {
+          "id": "vsg4sst-3-1-b016",
+          "type": "question",
+          "content": "3. Explain two reasons traditional culture is important."
+        },
+        {
+          "id": "vsg4sst-3-1-b017",
+          "type": "question",
+          "content": "4. Draw one example of traditional housing or clothing and label two features."
+        },
+        {
+          "id": "vsg4sst-3-1-b018",
+          "type": "question",
+          "content": "5. Explain how you would respond respectfully if a classmate practises a different tradition."
         },
         {
           "id": "vsg4sst-v2-3-1-10",
@@ -1863,7 +1913,7 @@
         {
           "id": "vsg4sst-v2-3-1-16",
           "type": "summary",
-          "content": "Tradition — knowledge or practice passed across generations; artefact — a human-made object; diversity — differences among people or practices.. Revisit this section tomorrow and explain the worked example without looking."
+          "content": "Culture expresses knowledge, identity and ways of life. Learn respectfully without stereotyping."
         }
       ],
       "sourceOutcomeIds": [
@@ -1877,9 +1927,9 @@
         "3.1.c"
       ],
       "sourceSection": "3.1",
-      "word_count": 423,
+      "word_count": 693,
       "alignment_status": "unclaimed",
-      "reading_time_min": 3
+      "reading_time_min": 4
     },
     {
       "number": 9,
@@ -1965,46 +2015,6 @@
           "content": "Collect three confirmed events from your school's history. Arrange them in a timeline. Write two values and the school's actual motto. Add one example of how to follow a school rule. If learning independently, use a school you previously attended or a fictional example clearly labelled as such."
         },
         {
-          "id": "vsg4sst-3-2-b015",
-          "type": "heading2",
-          "content": "Check your understanding"
-        },
-        {
-          "id": "vsg4sst-3-2-b016",
-          "type": "question",
-          "content": "1. Name two sources you could use to learn your school's history."
-        },
-        {
-          "id": "vsg4sst-3-2-b017",
-          "type": "question",
-          "content": "2. Arrange these imaginary events in time order: new library in 2020; school opened in 2005; new classrooms in 2012."
-        },
-        {
-          "id": "vsg4sst-3-2-b018",
-          "type": "question",
-          "content": "3. Explain the difference between a school motto and a school rule."
-        },
-        {
-          "id": "vsg4sst-3-2-b019",
-          "type": "question",
-          "content": "4. Recite your school's motto and explain its meaning, or explain the meaning of the example motto above."
-        },
-        {
-          "id": "vsg4sst-3-2-b020",
-          "type": "question",
-          "content": "5. Give one way you can demonstrate responsibility at school."
-        },
-        {
-          "id": "vsg4sst-3-2-b021",
-          "type": "heading2",
-          "content": "Chapter review"
-        },
-        {
-          "id": "vsg4sst-3-2-b022",
-          "type": "project",
-          "content": "Make a display titled “Our community, our school.” Include one example of cultural knowledge, a brief school timeline and a value that helps people with different backgrounds learn together."
-        },
-        {
           "id": "vsg4sst-v2-3-2-1",
           "type": "heading2",
           "content": "Finding reliable school history"
@@ -2057,14 +2067,44 @@
           "meta": {
             "kind": "textbook-self-check-v1",
             "options": [
+              "2014, 2021, 2008",
               "2008, 2014, 2021",
-              "2021, 2008, 2014",
-              "2014, 2021, 2008"
+              "2021, 2008, 2014"
             ],
             "revealChoice": "2008, 2014, 2021",
             "explanation": "A timeline normally moves from earlier to later events.",
             "ungraded": true
           }
+        },
+        {
+          "id": "vsg4sst-3-2-b015",
+          "type": "heading2",
+          "content": "Check your understanding"
+        },
+        {
+          "id": "vsg4sst-3-2-b016",
+          "type": "question",
+          "content": "1. Name two sources you could use to learn your school's history."
+        },
+        {
+          "id": "vsg4sst-3-2-b017",
+          "type": "question",
+          "content": "2. Arrange these imaginary events in time order: new library in 2020; school opened in 2005; new classrooms in 2012."
+        },
+        {
+          "id": "vsg4sst-3-2-b018",
+          "type": "question",
+          "content": "3. Explain the difference between a school motto and a school rule."
+        },
+        {
+          "id": "vsg4sst-3-2-b019",
+          "type": "question",
+          "content": "4. Recite your school's motto and explain its meaning, or explain the meaning of the example motto above."
+        },
+        {
+          "id": "vsg4sst-3-2-b020",
+          "type": "question",
+          "content": "5. Give one way you can demonstrate responsibility at school."
         },
         {
           "id": "vsg4sst-v2-3-2-10",
@@ -2099,7 +2139,42 @@
         {
           "id": "vsg4sst-v2-3-2-16",
           "type": "summary",
-          "content": "Timeline — events arranged in time order; motto — a short guiding statement; value — a principle for behaviour.. Revisit this section tomorrow and explain the worked example without looking."
+          "content": "A timeline orders verified events. Values guide behaviour, while a motto expresses a shared aim."
+        },
+        {
+          "id": "vsg4sst-3-2-b021",
+          "type": "heading2",
+          "content": "Chapter review"
+        },
+        {
+          "id": "vsg4sst-3-2-b022",
+          "type": "project",
+          "content": "Make a display titled “Our community, our school.” Include one example of cultural knowledge, a brief school timeline and a value that helps people with different backgrounds learn together."
+        },
+        {
+          "id": "vsg4sst-v2-review-3-heading",
+          "type": "heading2",
+          "content": "Chapter revision test"
+        },
+        {
+          "id": "vsg4sst-v2-review-3-1",
+          "type": "question",
+          "content": "Choose an artefact and explain what it might tell us about a cultural practice."
+        },
+        {
+          "id": "vsg4sst-v2-review-3-2",
+          "type": "question",
+          "content": "Why should we avoid assuming everyone from one community dresses alike?"
+        },
+        {
+          "id": "vsg4sst-v2-review-3-3",
+          "type": "question",
+          "content": "Order these fictional dates: 2018, 2004, 2011."
+        },
+        {
+          "id": "vsg4sst-v2-review-3-4",
+          "type": "question",
+          "content": "Give one school value and a rule that reflects it."
         }
       ],
       "sourceOutcomeIds": [
@@ -2115,9 +2190,9 @@
         "3.2.d"
       ],
       "sourceSection": "3.2",
-      "word_count": 485,
+      "word_count": 787,
       "alignment_status": "unclaimed",
-      "reading_time_min": 3
+      "reading_time_min": 4
     },
     {
       "number": 10,
@@ -2204,36 +2279,6 @@
           "content": "Choose an economic activity practised in your county. Draw the resource or material used, the work people do and the resulting product or service. Explain one benefit and one way the resource can be conserved."
         },
         {
-          "id": "vsg4sst-4-1-b015",
-          "type": "heading2",
-          "content": "Check your understanding"
-        },
-        {
-          "id": "vsg4sst-4-1-b016",
-          "type": "question",
-          "content": "1. What is a resource? Give two examples of natural resources."
-        },
-        {
-          "id": "vsg4sst-4-1-b017",
-          "type": "question",
-          "content": "2. Name three economic activities and describe a product or service from each."
-        },
-        {
-          "id": "vsg4sst-4-1-b018",
-          "type": "question",
-          "content": "3. Explain how trading helps farmers and families."
-        },
-        {
-          "id": "vsg4sst-4-1-b019",
-          "type": "question",
-          "content": "4. Why should people protect water sources while carrying out economic activities?"
-        },
-        {
-          "id": "vsg4sst-4-1-b020",
-          "type": "question",
-          "content": "5. Describe a safe activity you could take part in with adult guidance."
-        },
-        {
           "id": "vsg4sst-v2-4-1-1",
           "type": "heading2",
           "content": "Resources, choices and livelihoods"
@@ -2296,6 +2341,36 @@
           }
         },
         {
+          "id": "vsg4sst-4-1-b015",
+          "type": "heading2",
+          "content": "Check your understanding"
+        },
+        {
+          "id": "vsg4sst-4-1-b016",
+          "type": "question",
+          "content": "1. What is a resource? Give two examples of natural resources."
+        },
+        {
+          "id": "vsg4sst-4-1-b017",
+          "type": "question",
+          "content": "2. Name three economic activities and describe a product or service from each."
+        },
+        {
+          "id": "vsg4sst-4-1-b018",
+          "type": "question",
+          "content": "3. Explain how trading helps farmers and families."
+        },
+        {
+          "id": "vsg4sst-4-1-b019",
+          "type": "question",
+          "content": "4. Why should people protect water sources while carrying out economic activities?"
+        },
+        {
+          "id": "vsg4sst-4-1-b020",
+          "type": "question",
+          "content": "5. Describe a safe activity you could take part in with adult guidance."
+        },
+        {
           "id": "vsg4sst-v2-4-1-10",
           "type": "heading2",
           "content": "Apply what you know"
@@ -2328,7 +2403,7 @@
         {
           "id": "vsg4sst-v2-4-1-16",
           "type": "summary",
-          "content": "Goods — things people make or grow; service — work done for someone; income — money received from work or other lawful sources.. Revisit this section tomorrow and explain the worked example without looking."
+          "content": "Resources and skills help people produce goods and services. Use resources responsibly."
         }
       ],
       "sourceOutcomeIds": [
@@ -2346,9 +2421,9 @@
         "4.1.e"
       ],
       "sourceSection": "4.1",
-      "word_count": 465,
+      "word_count": 717,
       "alignment_status": "unclaimed",
-      "reading_time_min": 3
+      "reading_time_min": 4
     },
     {
       "number": 11,
@@ -2439,36 +2514,6 @@
           "content": "Identify an actual industry or workshop in your county using a reliable source. Locate it on a map with your teacher. Explain what it makes, one reason for its location and one benefit to the community. If an actual visit is not possible, use an approved photograph, video or interview."
         },
         {
-          "id": "vsg4sst-4-2-b016",
-          "type": "heading2",
-          "content": "Check your understanding"
-        },
-        {
-          "id": "vsg4sst-4-2-b017",
-          "type": "question",
-          "content": "1. What is a raw material?"
-        },
-        {
-          "id": "vsg4sst-4-2-b018",
-          "type": "question",
-          "content": "2. Name an industry that uses milk and one product it makes."
-        },
-        {
-          "id": "vsg4sst-4-2-b019",
-          "type": "question",
-          "content": "3. Explain two reasons an industry may be located near a road."
-        },
-        {
-          "id": "vsg4sst-4-2-b020",
-          "type": "question",
-          "content": "4. Give two benefits industries bring to a county."
-        },
-        {
-          "id": "vsg4sst-4-2-b021",
-          "type": "question",
-          "content": "5. Draw a flow diagram showing how grain can become flour and reach a customer."
-        },
-        {
           "id": "vsg4sst-v2-4-2-1",
           "type": "heading2",
           "content": "How industries add value"
@@ -2521,14 +2566,44 @@
           "meta": {
             "kind": "textbook-self-check-v1",
             "options": [
-              "Grain",
               "Flour",
-              "A packaged bag"
+              "A packaged bag",
+              "Grain"
             ],
             "revealChoice": "Grain",
             "explanation": "Grain is processed to produce flour.",
             "ungraded": true
           }
+        },
+        {
+          "id": "vsg4sst-4-2-b016",
+          "type": "heading2",
+          "content": "Check your understanding"
+        },
+        {
+          "id": "vsg4sst-4-2-b017",
+          "type": "question",
+          "content": "1. What is a raw material?"
+        },
+        {
+          "id": "vsg4sst-4-2-b018",
+          "type": "question",
+          "content": "2. Name an industry that uses milk and one product it makes."
+        },
+        {
+          "id": "vsg4sst-4-2-b019",
+          "type": "question",
+          "content": "3. Explain two reasons an industry may be located near a road."
+        },
+        {
+          "id": "vsg4sst-4-2-b020",
+          "type": "question",
+          "content": "4. Give two benefits industries bring to a county."
+        },
+        {
+          "id": "vsg4sst-4-2-b021",
+          "type": "question",
+          "content": "5. Draw a flow diagram showing how grain can become flour and reach a customer."
         },
         {
           "id": "vsg4sst-v2-4-2-10",
@@ -2563,7 +2638,7 @@
         {
           "id": "vsg4sst-v2-4-2-16",
           "type": "summary",
-          "content": "Processing — changing a material into a product; value addition — making a material more useful or valuable; cottage industry — a small-scale production activity.. Revisit this section tomorrow and explain the worked example without looking."
+          "content": "Industries turn inputs into useful products and services. Safe work and waste management matter."
         }
       ],
       "sourceOutcomeIds": [
@@ -2579,9 +2654,9 @@
         "4.2.d"
       ],
       "sourceSection": "4.2",
-      "word_count": 427,
+      "word_count": 697,
       "alignment_status": "unclaimed",
-      "reading_time_min": 3
+      "reading_time_min": 4
     },
     {
       "number": 12,
@@ -2676,46 +2751,6 @@
           "content": "With your teacher, choose a safe project and make a plan: purpose, materials, cost estimate, roles, safety rules, record of work and how to judge the outcome. Make or model the product. Review what went well, what could improve and how the group treated its members. If learning alone, prepare a paper plan rather than handling real sales."
         },
         {
-          "id": "vsg4sst-4-3-b017",
-          "type": "heading2",
-          "content": "Check your understanding"
-        },
-        {
-          "id": "vsg4sst-4-3-b018",
-          "type": "question",
-          "content": "1. Suggest two suitable school enterprise projects."
-        },
-        {
-          "id": "vsg4sst-4-3-b019",
-          "type": "question",
-          "content": "2. Explain why a group should plan before buying materials."
-        },
-        {
-          "id": "vsg4sst-4-3-b020",
-          "type": "question",
-          "content": "3. A group spends KSh 90 and receives KSh 120. How much remains after costs?"
-        },
-        {
-          "id": "vsg4sst-4-3-b021",
-          "type": "question",
-          "content": "4. Give two examples of honest behaviour in an enterprise."
-        },
-        {
-          "id": "vsg4sst-4-3-b022",
-          "type": "question",
-          "content": "5. Create a plan for a small school project and explain how every group member could contribute."
-        },
-        {
-          "id": "vsg4sst-4-3-b023",
-          "type": "heading2",
-          "content": "Chapter review"
-        },
-        {
-          "id": "vsg4sst-4-3-b024",
-          "type": "project",
-          "content": "Choose a useful product made or sold in your county. Explain its raw materials, the people involved in producing it, how customers obtain it and how a school group could safely model a small enterprise related to the product."
-        },
-        {
           "id": "vsg4sst-v2-4-3-1",
           "type": "heading2",
           "content": "Running a project responsibly"
@@ -2768,14 +2803,44 @@
           "meta": {
             "kind": "textbook-self-check-v1",
             "options": [
+              "KSh 100",
               "KSh 30",
-              "KSh 230",
-              "KSh 100"
+              "KSh 230"
             ],
             "revealChoice": "KSh 30",
             "explanation": "Subtract the costs from the receipts: 130 − 100 = 30.",
             "ungraded": true
           }
+        },
+        {
+          "id": "vsg4sst-4-3-b017",
+          "type": "heading2",
+          "content": "Check your understanding"
+        },
+        {
+          "id": "vsg4sst-4-3-b018",
+          "type": "question",
+          "content": "1. Suggest two suitable school enterprise projects."
+        },
+        {
+          "id": "vsg4sst-4-3-b019",
+          "type": "question",
+          "content": "2. Explain why a group should plan before buying materials."
+        },
+        {
+          "id": "vsg4sst-4-3-b020",
+          "type": "question",
+          "content": "3. A group spends KSh 90 and receives KSh 120. How much remains after costs?"
+        },
+        {
+          "id": "vsg4sst-4-3-b021",
+          "type": "question",
+          "content": "4. Give two examples of honest behaviour in an enterprise."
+        },
+        {
+          "id": "vsg4sst-4-3-b022",
+          "type": "question",
+          "content": "5. Create a plan for a small school project and explain how every group member could contribute."
         },
         {
           "id": "vsg4sst-v2-4-3-10",
@@ -2810,7 +2875,42 @@
         {
           "id": "vsg4sst-v2-4-3-16",
           "type": "summary",
-          "content": "Cost — money spent; revenue — money received from sales; surplus — amount remaining after costs; loss — when costs exceed money received.. Revisit this section tomorrow and explain the worked example without looking."
+          "content": "Plan a project, share roles fairly and subtract costs from receipts. Adult supervision comes first."
+        },
+        {
+          "id": "vsg4sst-4-3-b023",
+          "type": "heading2",
+          "content": "Chapter review"
+        },
+        {
+          "id": "vsg4sst-4-3-b024",
+          "type": "project",
+          "content": "Choose a useful product made or sold in your county. Explain its raw materials, the people involved in producing it, how customers obtain it and how a school group could safely model a small enterprise related to the product."
+        },
+        {
+          "id": "vsg4sst-v2-review-4-heading",
+          "type": "heading2",
+          "content": "Chapter revision test"
+        },
+        {
+          "id": "vsg4sst-v2-review-4-1",
+          "type": "question",
+          "content": "Identify a resource, economic activity and product in one example."
+        },
+        {
+          "id": "vsg4sst-v2-review-4-2",
+          "type": "question",
+          "content": "Explain how an industry adds value to grain."
+        },
+        {
+          "id": "vsg4sst-v2-review-4-3",
+          "type": "question",
+          "content": "A project spends KSh 150 and receives KSh 180. Calculate the surplus."
+        },
+        {
+          "id": "vsg4sst-v2-review-4-4",
+          "type": "question",
+          "content": "Name two ethical and safe practices for a school enterprise."
         }
       ],
       "sourceOutcomeIds": [
@@ -2824,9 +2924,9 @@
         "4.3.c"
       ],
       "sourceSection": "4.3",
-      "word_count": 531,
+      "word_count": 855,
       "alignment_status": "unclaimed",
-      "reading_time_min": 3
+      "reading_time_min": 5
     },
     {
       "number": 13,
@@ -2891,36 +2991,6 @@
           "content": "Choose one duty you can carry out safely for a week, such as organising shared books, including others in games or using materials carefully. Record how the action helped the community. At the end of the week, reflect on what you could improve."
         },
         {
-          "id": "vsg4sst-5-1-b011",
-          "type": "heading2",
-          "content": "Check your understanding"
-        },
-        {
-          "id": "vsg4sst-5-1-b012",
-          "type": "question",
-          "content": "1. Name four qualities of a good citizen at school."
-        },
-        {
-          "id": "vsg4sst-5-1-b013",
-          "type": "question",
-          "content": "2. Why is returning a lost pencil case an example of honesty?"
-        },
-        {
-          "id": "vsg4sst-5-1-b014",
-          "type": "question",
-          "content": "3. Describe a responsible way to disagree with a classmate."
-        },
-        {
-          "id": "vsg4sst-5-1-b015",
-          "type": "question",
-          "content": "4. A group refuses to include a learner because of a disability. Suggest a fair action."
-        },
-        {
-          "id": "vsg4sst-5-1-b016",
-          "type": "question",
-          "content": "5. Give one example of good digital citizenship."
-        },
-        {
           "id": "vsg4sst-v2-5-1-1",
           "type": "heading2",
           "content": "Good citizenship in small decisions"
@@ -2983,6 +3053,36 @@
           }
         },
         {
+          "id": "vsg4sst-5-1-b011",
+          "type": "heading2",
+          "content": "Check your understanding"
+        },
+        {
+          "id": "vsg4sst-5-1-b012",
+          "type": "question",
+          "content": "1. Name four qualities of a good citizen at school."
+        },
+        {
+          "id": "vsg4sst-5-1-b013",
+          "type": "question",
+          "content": "2. Why is returning a lost pencil case an example of honesty?"
+        },
+        {
+          "id": "vsg4sst-5-1-b014",
+          "type": "question",
+          "content": "3. Describe a responsible way to disagree with a classmate."
+        },
+        {
+          "id": "vsg4sst-5-1-b015",
+          "type": "question",
+          "content": "4. A group refuses to include a learner because of a disability. Suggest a fair action."
+        },
+        {
+          "id": "vsg4sst-5-1-b016",
+          "type": "question",
+          "content": "5. Give one example of good digital citizenship."
+        },
+        {
           "id": "vsg4sst-v2-5-1-10",
           "type": "heading2",
           "content": "Apply what you know"
@@ -3015,7 +3115,7 @@
         {
           "id": "vsg4sst-v2-5-1-16",
           "type": "summary",
-          "content": "Citizenship — responsible participation in community life; integrity — choosing honesty even when unobserved; inclusion — enabling everyone to participate.. Revisit this section tomorrow and explain the worked example without looking."
+          "content": "Honesty, inclusion and responsibility make a school community fairer."
         }
       ],
       "sourceOutcomeIds": [
@@ -3029,9 +3129,9 @@
         "5.1.c"
       ],
       "sourceSection": "5.1",
-      "word_count": 315,
+      "word_count": 569,
       "alignment_status": "unclaimed",
-      "reading_time_min": 2
+      "reading_time_min": 3
     },
     {
       "number": 14,
@@ -3106,36 +3206,6 @@
           "content": "With your teacher, identify a common, non-private classroom problem. Write two peaceful ways to respond. Design a poster or organise a cooperative activity. Do not use real classmates' names in a poster about disagreements. If you are working alone, write a dialogue showing a peaceful solution."
         },
         {
-          "id": "vsg4sst-5-2-b013",
-          "type": "heading2",
-          "content": "Check your understanding"
-        },
-        {
-          "id": "vsg4sst-5-2-b014",
-          "type": "question",
-          "content": "1. Name three factors that promote peace at school."
-        },
-        {
-          "id": "vsg4sst-5-2-b015",
-          "type": "question",
-          "content": "2. How can a learner respond when feeling angry during a disagreement?"
-        },
-        {
-          "id": "vsg4sst-5-2-b016",
-          "type": "question",
-          "content": "3. Explain why taking turns can help resolve a conflict over a shared item."
-        },
-        {
-          "id": "vsg4sst-5-2-b017",
-          "type": "question",
-          "content": "4. What should you do if another learner threatens your safety?"
-        },
-        {
-          "id": "vsg4sst-5-2-b018",
-          "type": "question",
-          "content": "5. Describe a peacebuilding activity and how you would know whether it helped."
-        },
-        {
           "id": "vsg4sst-v2-5-2-1",
           "type": "heading2",
           "content": "Peace is more than silence"
@@ -3188,14 +3258,44 @@
           "meta": {
             "kind": "textbook-self-check-v1",
             "options": [
-              "Safety and trusted adult help",
               "A forced negotiation",
-              "Keeping the threat secret"
+              "Keeping the threat secret",
+              "Safety and trusted adult help"
             ],
             "revealChoice": "Safety and trusted adult help",
             "explanation": "Threats require protection rather than ordinary peer mediation.",
             "ungraded": true
           }
+        },
+        {
+          "id": "vsg4sst-5-2-b013",
+          "type": "heading2",
+          "content": "Check your understanding"
+        },
+        {
+          "id": "vsg4sst-5-2-b014",
+          "type": "question",
+          "content": "1. Name three factors that promote peace at school."
+        },
+        {
+          "id": "vsg4sst-5-2-b015",
+          "type": "question",
+          "content": "2. How can a learner respond when feeling angry during a disagreement?"
+        },
+        {
+          "id": "vsg4sst-5-2-b016",
+          "type": "question",
+          "content": "3. Explain why taking turns can help resolve a conflict over a shared item."
+        },
+        {
+          "id": "vsg4sst-5-2-b017",
+          "type": "question",
+          "content": "4. What should you do if another learner threatens your safety?"
+        },
+        {
+          "id": "vsg4sst-5-2-b018",
+          "type": "question",
+          "content": "5. Describe a peacebuilding activity and how you would know whether it helped."
         },
         {
           "id": "vsg4sst-v2-5-2-10",
@@ -3230,7 +3330,7 @@
         {
           "id": "vsg4sst-v2-5-2-16",
           "type": "summary",
-          "content": "Conflict — a disagreement; cooperation — working together; resolution — a way of settling a problem safely.. Revisit this section tomorrow and explain the worked example without looking."
+          "content": "Listen and seek fair solutions to ordinary disagreements. Threats need trusted adult help."
         }
       ],
       "sourceOutcomeIds": [
@@ -3244,9 +3344,9 @@
         "5.2.c"
       ],
       "sourceSection": "5.2",
-      "word_count": 392,
+      "word_count": 655,
       "alignment_status": "unclaimed",
-      "reading_time_min": 2
+      "reading_time_min": 4
     },
     {
       "number": 15,
@@ -3332,36 +3432,6 @@
           "content": "A class can promote children's rights through a poster about kindness, inclusion, safe transport and seeking help. No learner should be asked to tell a personal story of abuse in front of the class. Adults are responsible for protection and for responding safely to a disclosure."
         },
         {
-          "id": "vsg4sst-5-3-b015",
-          "type": "heading2",
-          "content": "Check your understanding"
-        },
-        {
-          "id": "vsg4sst-5-3-b016",
-          "type": "question",
-          "content": "1. Give three examples of children's rights."
-        },
-        {
-          "id": "vsg4sst-5-3-b017",
-          "type": "question",
-          "content": "2. Explain why a child's rights do not depend on whether they finish their duties."
-        },
-        {
-          "id": "vsg4sst-5-3-b018",
-          "type": "question",
-          "content": "3. Name three forms of child abuse or exploitation and explain why they are harmful."
-        },
-        {
-          "id": "vsg4sst-5-3-b019",
-          "type": "question",
-          "content": "4. Explain one possible effect of child abuse on a learner's education."
-        },
-        {
-          "id": "vsg4sst-5-3-b020",
-          "type": "question",
-          "content": "5. What could a child do if a trusted adult does not respond to a safety concern?"
-        },
-        {
           "id": "vsg4sst-v2-5-3-1",
           "type": "heading2",
           "content": "Protection and children's responsibilities"
@@ -3414,14 +3484,44 @@
           "meta": {
             "kind": "textbook-self-check-v1",
             "options": [
+              "Abuse is a child's fault",
               "Every child has rights",
-              "Rights are rewards for good marks",
-              "Abuse is a child's fault"
+              "Rights are rewards for good marks"
             ],
             "revealChoice": "Every child has rights",
             "explanation": "Rights are not earned through good behaviour. Abuse is never the child's fault.",
             "ungraded": true
           }
+        },
+        {
+          "id": "vsg4sst-5-3-b015",
+          "type": "heading2",
+          "content": "Check your understanding"
+        },
+        {
+          "id": "vsg4sst-5-3-b016",
+          "type": "question",
+          "content": "1. Give three examples of children's rights."
+        },
+        {
+          "id": "vsg4sst-5-3-b017",
+          "type": "question",
+          "content": "2. Explain why a child's rights do not depend on whether they finish their duties."
+        },
+        {
+          "id": "vsg4sst-5-3-b018",
+          "type": "question",
+          "content": "3. Name three forms of child abuse or exploitation and explain why they are harmful."
+        },
+        {
+          "id": "vsg4sst-5-3-b019",
+          "type": "question",
+          "content": "4. Explain one possible effect of child abuse on a learner's education."
+        },
+        {
+          "id": "vsg4sst-5-3-b020",
+          "type": "question",
+          "content": "5. What could a child do if a trusted adult does not respond to a safety concern?"
         },
         {
           "id": "vsg4sst-v2-5-3-10",
@@ -3456,7 +3556,7 @@
         {
           "id": "vsg4sst-v2-5-3-16",
           "type": "summary",
-          "content": "Right — something every child is entitled to; responsibility — a safe action to respect self and others; protection — keeping children safe from harm.. Revisit this section tomorrow and explain the worked example without looking."
+          "content": "Every child has rights. Abuse is never a child's fault. Tell a safe adult or seek help through 116."
         }
       ],
       "sourceOutcomeIds": [
@@ -3472,9 +3572,9 @@
         "5.3.d"
       ],
       "sourceSection": "5.3",
-      "word_count": 512,
+      "word_count": 806,
       "alignment_status": "unclaimed",
-      "reading_time_min": 3
+      "reading_time_min": 5
     },
     {
       "number": 16,
@@ -3540,36 +3640,6 @@
           "content": "With your teacher, choose a fictional class role or harmless classroom decision. Establish fair rules, invite volunteers to explain their ideas, vote and count the results. Discuss how the process could include everyone. If learning independently, design a sample ballot and describe how the votes would be counted."
         },
         {
-          "id": "vsg4sst-5-4-b011",
-          "type": "heading2",
-          "content": "Check your understanding"
-        },
-        {
-          "id": "vsg4sst-5-4-b012",
-          "type": "question",
-          "content": "1. What does democracy mean?"
-        },
-        {
-          "id": "vsg4sst-5-4-b013",
-          "type": "question",
-          "content": "2. Name three democratic practices at school."
-        },
-        {
-          "id": "vsg4sst-5-4-b014",
-          "type": "question",
-          "content": "3. Why might a secret ballot be useful?"
-        },
-        {
-          "id": "vsg4sst-5-4-b015",
-          "type": "question",
-          "content": "4. Explain why the elected representative should listen to people who voted for another candidate."
-        },
-        {
-          "id": "vsg4sst-5-4-b016",
-          "type": "question",
-          "content": "5. Write four steps for conducting a fair class election."
-        },
-        {
           "id": "vsg4sst-v2-5-4-1",
           "type": "heading2",
           "content": "Fair decisions and minority views"
@@ -3632,6 +3702,36 @@
           }
         },
         {
+          "id": "vsg4sst-5-4-b011",
+          "type": "heading2",
+          "content": "Check your understanding"
+        },
+        {
+          "id": "vsg4sst-5-4-b012",
+          "type": "question",
+          "content": "1. What does democracy mean?"
+        },
+        {
+          "id": "vsg4sst-5-4-b013",
+          "type": "question",
+          "content": "2. Name three democratic practices at school."
+        },
+        {
+          "id": "vsg4sst-5-4-b014",
+          "type": "question",
+          "content": "3. Why might a secret ballot be useful?"
+        },
+        {
+          "id": "vsg4sst-5-4-b015",
+          "type": "question",
+          "content": "4. Explain why the elected representative should listen to people who voted for another candidate."
+        },
+        {
+          "id": "vsg4sst-5-4-b016",
+          "type": "question",
+          "content": "5. Write four steps for conducting a fair class election."
+        },
+        {
           "id": "vsg4sst-v2-5-4-10",
           "type": "heading2",
           "content": "Apply what you know"
@@ -3664,7 +3764,7 @@
         {
           "id": "vsg4sst-v2-5-4-16",
           "type": "summary",
-          "content": "Consultation — asking for views; ballot — a way of recording a choice; minority — the smaller group in a decision.. Revisit this section tomorrow and explain the worked example without looking."
+          "content": "Fair decisions give everyone a voice and protect rights, even when opinions differ."
         }
       ],
       "sourceOutcomeIds": [
@@ -3680,9 +3780,9 @@
         "5.4.d"
       ],
       "sourceSection": "5.4",
-      "word_count": 327,
+      "word_count": 587,
       "alignment_status": "unclaimed",
-      "reading_time_min": 2
+      "reading_time_min": 3
     },
     {
       "number": 17,
@@ -3783,36 +3883,6 @@
           "content": "In a supervised group, choose an imaginary issue, such as improving a reading corner. Assign roles, hear suggestions, agree on one action and record the decision. At home, write a short example of meeting minutes."
         },
         {
-          "id": "vsg4sst-5-5-b018",
-          "type": "heading2",
-          "content": "Check your understanding"
-        },
-        {
-          "id": "vsg4sst-5-5-b019",
-          "type": "question",
-          "content": "1. Name four possible roles in a children's government."
-        },
-        {
-          "id": "vsg4sst-5-5-b020",
-          "type": "question",
-          "content": "2. Explain two functions of learner representatives."
-        },
-        {
-          "id": "vsg4sst-5-5-b021",
-          "type": "question",
-          "content": "3. What is the work of a meeting secretary?"
-        },
-        {
-          "id": "vsg4sst-5-5-b022",
-          "type": "question",
-          "content": "4. Give one way a learner without an elected role can participate."
-        },
-        {
-          "id": "vsg4sst-5-5-b023",
-          "type": "question",
-          "content": "5. Why should a learner representative not threaten or punish classmates?"
-        },
-        {
           "id": "vsg4sst-v2-5-5-1",
           "type": "heading2",
           "content": "A learner council at work"
@@ -3865,14 +3935,44 @@
           "meta": {
             "kind": "textbook-self-check-v1",
             "options": [
-              "Share class suggestions",
               "Investigate abuse alone",
-              "Punish classmates"
+              "Punish classmates",
+              "Share class suggestions"
             ],
             "revealChoice": "Share class suggestions",
             "explanation": "Representatives communicate views; responsible adults handle safeguarding and discipline.",
             "ungraded": true
           }
+        },
+        {
+          "id": "vsg4sst-5-5-b018",
+          "type": "heading2",
+          "content": "Check your understanding"
+        },
+        {
+          "id": "vsg4sst-5-5-b019",
+          "type": "question",
+          "content": "1. Name four possible roles in a children's government."
+        },
+        {
+          "id": "vsg4sst-5-5-b020",
+          "type": "question",
+          "content": "2. Explain two functions of learner representatives."
+        },
+        {
+          "id": "vsg4sst-5-5-b021",
+          "type": "question",
+          "content": "3. What is the work of a meeting secretary?"
+        },
+        {
+          "id": "vsg4sst-5-5-b022",
+          "type": "question",
+          "content": "4. Give one way a learner without an elected role can participate."
+        },
+        {
+          "id": "vsg4sst-5-5-b023",
+          "type": "question",
+          "content": "5. Why should a learner representative not threaten or punish classmates?"
         },
         {
           "id": "vsg4sst-v2-5-5-10",
@@ -3907,7 +4007,7 @@
         {
           "id": "vsg4sst-v2-5-5-16",
           "type": "summary",
-          "content": "Representative — a person who communicates others' views; agenda — topics for a meeting; minutes — record of a meeting.. Revisit this section tomorrow and explain the worked example without looking."
+          "content": "Learner representatives communicate views and organise approved activities. Adults remain responsible for safety."
         }
       ],
       "sourceOutcomeIds": [
@@ -3923,9 +4023,9 @@
         "5.5.d"
       ],
       "sourceSection": "5.5",
-      "word_count": 439,
+      "word_count": 686,
       "alignment_status": "unclaimed",
-      "reading_time_min": 3
+      "reading_time_min": 4
     },
     {
       "number": 18,
@@ -4001,36 +4101,6 @@
           "content": "Ask a willing community leader, through a trusted adult, about one of their duties and one quality that helps them perform it. Alternatively, use a fictional role-play in which a group must plan a safe community activity. Show how the leader listens, includes others and explains a decision."
         },
         {
-          "id": "vsg4sst-5-6-b013",
-          "type": "heading2",
-          "content": "Check your understanding"
-        },
-        {
-          "id": "vsg4sst-5-6-b014",
-          "type": "question",
-          "content": "1. Identify three kinds of community leaders."
-        },
-        {
-          "id": "vsg4sst-5-6-b015",
-          "type": "question",
-          "content": "2. Explain a duty that a village leader may perform."
-        },
-        {
-          "id": "vsg4sst-5-6-b016",
-          "type": "question",
-          "content": "3. Name four qualities of a good leader."
-        },
-        {
-          "id": "vsg4sst-5-6-b017",
-          "type": "question",
-          "content": "4. How can a group leader include a learner who rarely speaks?"
-        },
-        {
-          "id": "vsg4sst-5-6-b018",
-          "type": "question",
-          "content": "5. Give an example of a decision that shows honesty and fairness."
-        },
-        {
           "id": "vsg4sst-v2-5-6-1",
           "type": "heading2",
           "content": "Leadership depends on actions"
@@ -4083,14 +4153,44 @@
           "meta": {
             "kind": "textbook-self-check-v1",
             "options": [
+              "Ignore quieter members",
               "Listen and include people fairly",
-              "Demand unsafe tasks",
-              "Ignore quieter members"
+              "Demand unsafe tasks"
             ],
             "revealChoice": "Listen and include people fairly",
             "explanation": "Good leaders support people and take responsibility.",
             "ungraded": true
           }
+        },
+        {
+          "id": "vsg4sst-5-6-b013",
+          "type": "heading2",
+          "content": "Check your understanding"
+        },
+        {
+          "id": "vsg4sst-5-6-b014",
+          "type": "question",
+          "content": "1. Identify three kinds of community leaders."
+        },
+        {
+          "id": "vsg4sst-5-6-b015",
+          "type": "question",
+          "content": "2. Explain a duty that a village leader may perform."
+        },
+        {
+          "id": "vsg4sst-5-6-b016",
+          "type": "question",
+          "content": "3. Name four qualities of a good leader."
+        },
+        {
+          "id": "vsg4sst-5-6-b017",
+          "type": "question",
+          "content": "4. How can a group leader include a learner who rarely speaks?"
+        },
+        {
+          "id": "vsg4sst-5-6-b018",
+          "type": "question",
+          "content": "5. Give an example of a decision that shows honesty and fairness."
         },
         {
           "id": "vsg4sst-v2-5-6-10",
@@ -4125,7 +4225,7 @@
         {
           "id": "vsg4sst-v2-5-6-16",
           "type": "summary",
-          "content": "Leadership — guiding people towards a common purpose; accountability — being responsible for decisions; fairness — treating people justly.. Revisit this section tomorrow and explain the worked example without looking."
+          "content": "Good leaders listen, include others and take responsibility for decisions."
         }
       ],
       "sourceOutcomeIds": [
@@ -4141,9 +4241,9 @@
         "5.6.d"
       ],
       "sourceSection": "5.6",
-      "word_count": 373,
+      "word_count": 626,
       "alignment_status": "unclaimed",
-      "reading_time_min": 2
+      "reading_time_min": 4
     },
     {
       "number": 19,
@@ -4249,46 +4349,6 @@
           "content": "Draw the two main parts of a county government. Under each, write two duties. With a teacher or guardian, find the current name of your county and one county service. Discuss how residents can give feedback about that service. Do not assume a named official still holds office without checking a current official source."
         },
         {
-          "id": "vsg4sst-5-7-b019",
-          "type": "heading2",
-          "content": "Check your understanding"
-        },
-        {
-          "id": "vsg4sst-5-7-b020",
-          "type": "question",
-          "content": "1. How many counties are there in Kenya?"
-        },
-        {
-          "id": "vsg4sst-5-7-b021",
-          "type": "question",
-          "content": "2. Name the two main parts of a county government."
-        },
-        {
-          "id": "vsg4sst-5-7-b022",
-          "type": "question",
-          "content": "3. Explain two duties of a county governor."
-        },
-        {
-          "id": "vsg4sst-5-7-b023",
-          "type": "question",
-          "content": "4. Describe two roles of an MCA."
-        },
-        {
-          "id": "vsg4sst-5-7-b024",
-          "type": "question",
-          "content": "5. A local market needs better waste collection. Explain how county services and public feedback could help."
-        },
-        {
-          "id": "vsg4sst-5-7-b025",
-          "type": "heading2",
-          "content": "Chapter review"
-        },
-        {
-          "id": "vsg4sst-5-7-b026",
-          "type": "project",
-          "content": "Imagine your class wants to improve the school environment. Write a short plan showing good citizenship, peaceful cooperation, respect for every child's rights, fair decision-making and responsible leadership. Explain one way an adult or county service could support the activity safely."
-        },
-        {
           "id": "vsg4sst-v2-5-7-1",
           "type": "heading2",
           "content": "How county responsibilities connect"
@@ -4351,6 +4411,36 @@
           }
         },
         {
+          "id": "vsg4sst-5-7-b019",
+          "type": "heading2",
+          "content": "Check your understanding"
+        },
+        {
+          "id": "vsg4sst-5-7-b020",
+          "type": "question",
+          "content": "1. How many counties are there in Kenya?"
+        },
+        {
+          "id": "vsg4sst-5-7-b021",
+          "type": "question",
+          "content": "2. Name the two main parts of a county government."
+        },
+        {
+          "id": "vsg4sst-5-7-b022",
+          "type": "question",
+          "content": "3. Explain two duties of a county governor."
+        },
+        {
+          "id": "vsg4sst-5-7-b023",
+          "type": "question",
+          "content": "4. Describe two roles of an MCA."
+        },
+        {
+          "id": "vsg4sst-5-7-b024",
+          "type": "question",
+          "content": "5. A local market needs better waste collection. Explain how county services and public feedback could help."
+        },
+        {
           "id": "vsg4sst-v2-5-7-10",
           "type": "heading2",
           "content": "Apply what you know"
@@ -4383,7 +4473,42 @@
         {
           "id": "vsg4sst-v2-5-7-16",
           "type": "summary",
-          "content": "Executive — the part that carries out county functions; assembly — the county lawmaking and oversight body; oversight — checking how public duties are carried out.. Revisit this section tomorrow and explain the worked example without looking."
+          "content": "The county executive implements functions; the assembly makes county laws and oversees executive work."
+        },
+        {
+          "id": "vsg4sst-5-7-b025",
+          "type": "heading2",
+          "content": "Chapter review"
+        },
+        {
+          "id": "vsg4sst-5-7-b026",
+          "type": "project",
+          "content": "Imagine your class wants to improve the school environment. Write a short plan showing good citizenship, peaceful cooperation, respect for every child's rights, fair decision-making and responsible leadership. Explain one way an adult or county service could support the activity safely."
+        },
+        {
+          "id": "vsg4sst-v2-review-5-heading",
+          "type": "heading2",
+          "content": "Chapter revision test"
+        },
+        {
+          "id": "vsg4sst-v2-review-5-1",
+          "type": "question",
+          "content": "What would a good citizen do with a lost item?"
+        },
+        {
+          "id": "vsg4sst-v2-review-5-2",
+          "type": "question",
+          "content": "Explain why a learner should not have to negotiate alone with someone threatening them."
+        },
+        {
+          "id": "vsg4sst-v2-review-5-3",
+          "type": "question",
+          "content": "What can a learner council do, and who remains responsible for safety?"
+        },
+        {
+          "id": "vsg4sst-v2-review-5-4",
+          "type": "question",
+          "content": "Distinguish the county executive from the county assembly."
         }
       ],
       "sourceOutcomeIds": [
@@ -4399,9 +4524,9 @@
         "5.7.d"
       ],
       "sourceSection": "5.7",
-      "word_count": 539,
+      "word_count": 875,
       "alignment_status": "unclaimed",
-      "reading_time_min": 3
+      "reading_time_min": 5
     }
   ],
   "revisionOf": "71a76cd8-f209-4f99-a1d0-7e5b66f42e43",
@@ -4417,6 +4542,8 @@
     "constitution": "https://www.mod.go.ke/the-constitution-of-kenya-2010-online/",
     "assembly": "https://www.parliament.go.ke/node/247",
     "eef": "https://educationendowmentfoundation.org.uk/education-evidence/teaching-learning-toolkit/reading-comprehension-strategies",
-    "ies": "https://ies.ed.gov/ncee/WWC/PracticeGuide/1/Published"
+    "ies": "https://ies.ed.gov/ncee/WWC/PracticeGuide/1/Published",
+    "geoBoundaries": "https://www.geoboundaries.org/api/current/gbOpen/KEN/ADM1/",
+    "geoBoundariesAttribution": "RCMRD GeoPortal and Africa GeoPortal via geoBoundaries, KEN-ADM1-32016919, 2020, Public Domain; geometry not yet acquired"
   }
 }
