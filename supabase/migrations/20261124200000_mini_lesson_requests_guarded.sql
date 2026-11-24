@@ -78,10 +78,18 @@ create policy mini_requests_owner_delete_pending on public.mini_requests for del
 using (requester_id=(select auth.uid()) and status='pending');
 create policy mini_support_read_own on public.mini_request_supports for select to authenticated
 using (user_id=(select auth.uid()));
+-- This check must bypass the owner's private request SELECT policy without disclosing identity.
+create or replace function public.mini_support_allowed(p_request uuid,p_user uuid)
+returns boolean language sql stable security definer set search_path=''
+as $
+ select exists(select 1 from public.mini_requests r
+ where r.id=p_request and r.status='approved' and r.requester_id<>p_user);
+$;
+revoke all on function public.mini_support_allowed(uuid,uuid) from public,anon,authenticated;
+grant execute on function public.mini_support_allowed(uuid,uuid) to authenticated;
 create policy mini_support_write_own on public.mini_request_supports for insert to authenticated
 with check (user_id=(select auth.uid()) and public.mini_active_account(user_id)
- and user_id <> (select r.requester_id from public.mini_requests r where r.id=request_id)
- and public.mini_request_available(request_id));
+ and public.mini_support_allowed(request_id,user_id));
 create policy mini_support_delete_own on public.mini_request_supports for delete to authenticated
 using (user_id=(select auth.uid()));
 
