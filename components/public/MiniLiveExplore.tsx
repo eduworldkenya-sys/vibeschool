@@ -8,7 +8,7 @@ import { fetchMiniPage, fetchOwnMiniStatus, loadApprovedComments, loadMiniCovers
 import { miniPublicPath, miniExplorePath } from '@/lib/minis/public-url'
 import { rankMiniLessons } from '@/lib/minis/recommendation'
 import { currentMiniUser, miniIsVerifiedAdult, changeMiniFollow, changeMiniInteraction, submitMini,
-  addMiniComment, reportMini, recordMiniLearningSignal, publishMiniSafely } from '@/lib/minis/actions'
+  addMiniComment, reportMini, recordMiniLearningSignal, publishMiniSafely, MiniSubmissionSavedError } from '@/lib/minis/actions'
 import { miniTagLabel, parseMiniHashtags } from '@/lib/minis/tags'
 import { prepareMiniPhoto } from '@/lib/minis/photo'
 import { MiniLiveRequests } from './MiniLiveRequests'
@@ -17,7 +17,7 @@ import styles from './MiniExplore.module.css'
 
 type Section = 'feed' | 'read' | 'compose' | 'creator' | 'mine' | 'profile' | 'request'
 type Tab = 'For You' | 'Following' | 'New'
-type Submission = { id: string; title: string; tags: string[]; status: string; created_at: string }
+type Submission = { id: string; title: string; tags: string[]; status: string; created_at: string; like_count:number; save_count:number; learned_count:number }
 
 const ensureSignIn = (user: string | null) => {
   if (user) return true
@@ -58,6 +58,12 @@ export function MiniLiveExplore() {
   const [knownTags,setKnownTags] = useState<string[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [creatorId, setCreatorId] = useState<string | null>(null)
+  const [creatorPosts,setCreatorPosts]=useState<MiniPost[]>([])
+  const [creatorCursor,setCreatorCursor]=useState<MiniCursor|null>(null)
+  const [creatorBusy,setCreatorBusy]=useState(false)
+  const [creatorError,setCreatorError]=useState('')
+  const creatorSequence=useRef(0)
+  const [creatorRefresh,setCreatorRefresh]=useState(0)
   const [comments, setComments] = useState<ApprovedComment[]>([])
   const [commentText, setCommentText] = useState('')
   const [reportReason, setReportReason] = useState('incorrect')
@@ -206,8 +212,34 @@ export function MiniLiveExplore() {
     finally{if(sequence===feedSequence.current)setPageBusy(false)}
   }
 
-  const current = posts.find(post => post.id === selectedId)
-  const creator = posts.find(post => post.creator_id === creatorId)
+  useEffect(()=>{
+    if(section!=='creator'||!creatorId)return
+    const sequence=++creatorSequence.current
+    setCreatorPosts([]);setCreatorCursor(null);setCreatorBusy(true);setCreatorError('')
+    void fetchMiniPage({creators:[creatorId]}).then(page=>{
+      if(sequence!==creatorSequence.current)return
+      setCreatorPosts(page.posts);setCreatorCursor(page.nextCursor)
+      void loadMiniCovers(page.posts).then(urls=>{if(sequence===creatorSequence.current)setCovers(old=>({...old,...urls}))}).catch(()=>{})
+    }).catch(()=>{if(sequence===creatorSequence.current)setCreatorError('Unable to load creator Minis.')})
+    .finally(()=>{if(sequence===creatorSequence.current)setCreatorBusy(false)})
+    return ()=>{++creatorSequence.current}
+  },[section,creatorId,creatorRefresh])
+  async function loadCreatorMore(){
+    if(!creatorId||!creatorCursor||creatorBusy)return
+    const sequence=creatorSequence.current
+    setCreatorBusy(true);setCreatorError('')
+    try{
+      const page=await fetchMiniPage({creators:[creatorId],cursor:creatorCursor})
+      if(sequence!==creatorSequence.current)return
+      setCreatorPosts(old=>[...old,...page.posts.filter(p=>!old.some(item=>item.id===p.id))])
+      setCreatorCursor(page.nextCursor)
+      const urls=await loadMiniCovers(page.posts)
+      if(sequence===creatorSequence.current)setCovers(old=>({...old,...urls}))
+    }catch{if(sequence===creatorSequence.current)setCreatorError('Unable to load more creator Minis.')}
+    finally{if(sequence===creatorSequence.current)setCreatorBusy(false)}
+  }
+  const current = posts.find(post => post.id === selectedId)||creatorPosts.find(post=>post.id===selectedId)
+  const creator = creatorPosts.find(post=>post.creator_id===creatorId)||posts.find(post => post.creator_id === creatorId)
   const interests = useMemo(() => {
     if (!adult) return new Set<string>()
     return new Set(posts.filter(post => saves.has(post.id)).map(post => post.subject))
@@ -241,10 +273,11 @@ export function MiniLiveExplore() {
         else next.delete(target.id)
         return next
       })
-      setPosts(old => old.map(post => post.id === target.id ?
+      const update=(old:MiniPost[])=>old.map(post => post.id === target.id ?
         { ...post, [kind === 'like' ? 'like_count' : 'save_count']:
             Math.max(0,(kind === 'like' ? post.like_count : post.save_count) + (adding ? 1 : -1)) }
-        : post))
+        : post)
+      setPosts(update);setCreatorPosts(update)
     } catch(e) {setError(e instanceof Error ? e.message : 'Unable to update Mini.')}
     finally {setBusy(false)}
   }
@@ -325,7 +358,14 @@ export function MiniLiveExplore() {
       setNotice(answerRequest ? 'Your explanation is published on the request.' : 'Mini Lesson published.')
       back()
       setRefreshKey(key=>key+1)
-    } catch(e) {setError(e instanceof Error ? e.message : 'Unable to submit Mini.')}
+    } catch(e) {
+      setError(e instanceof Error ? e.message : 'Unable to submit Mini.')
+      if(e instanceof MiniSubmissionSavedError){
+        setDraftTitle('');setDraftBody('');setDraftTags('');setPhoto(null);setPhotoRotation(0);setPhotoZoom(1);setQuizEnabled(false);setQuizQuestion('');setQuizOptions(['','','']);setQuizCorrect(0);setQuizExplanation('');setAnswerRequest(null)
+        setSection('mine')
+        try{setMine(await fetchOwnMiniStatus(viewer))}catch{setError(old=>old+' Open My Minis to reload the saved submission.')}
+      }
+    }
     finally {setBusy(false)}
   }
 
@@ -392,9 +432,13 @@ export function MiniLiveExplore() {
     finally {setBusy(false)}
   }
 
+  function openCreator(id:string){
+    if(id!==creatorId){++creatorSequence.current;setCreatorPosts([]);setCreatorCursor(null);setCreatorError('')}
+    setCreatorId(id);setSection('creator')
+  }
   const card = (post: MiniPost) => <article key={post.id} className={styles.feedCard}>
     <div className={styles.feedCreator}>
-      <button type="button" className={styles.linkButton} onClick={() => {setCreatorId(post.creator_id);setSection('creator')}}>
+      <button type="button" className={styles.linkButton} onClick={() => {openCreator(post.creator_id)}}>
         <span className={styles.avatar} aria-hidden="true">{post.creator_label.charAt(0).toUpperCase()}</span>
         <span>@{post.creator_label}</span>
       </button>
@@ -484,7 +528,7 @@ export function MiniLiveExplore() {
           <div className={styles.creatorLeft}>
             <span className={styles.avatar} aria-hidden="true">{current.creator_label.slice(0,1).toUpperCase()}</span>
             <div><button type="button" className={styles.linkButton} onClick={() => {
-                setCreatorId(current.creator_id);setSection('creator')
+                openCreator(current.creator_id)
               }}>@{current.creator_label}</button><p className={styles.previewNote}>VibeSchool creator · View Minis</p></div>
           </div>
           <button type="button" className={styles.smallButton} disabled={busy || current.creator_id===viewer}
@@ -618,6 +662,7 @@ export function MiniLiveExplore() {
       <p className={styles.subline}>View your Mini Lessons and their automatic safety status.</p>
       {mine.length ? mine.map(p=><div key={p.id} className={styles.comment}><strong>{p.title}</strong>
         {p.tags.map(miniTagLabel).join(' ')} · {p.status==='approved'?'Published':p.status==='pending'?'Safety check pending':p.status}
+        {p.status==='approved'&&<p className={styles.previewNote}>{p.like_count} likes · {p.save_count} saves · {p.learned_count} understood</p>}
         {p.status==='pending' && <button type="button" className={styles.secondary} disabled={busy} onClick={()=>void retryPublication(p.id)}>Retry safety check</button>}</div>)
         : <p>No Mini Lessons submitted yet.</p>}
     </section>}
@@ -643,7 +688,11 @@ export function MiniLiveExplore() {
     {section === 'creator' && creator && <section className={styles.profile}>
       <button type="button" className={styles.back} onClick={back}>← Explore</button>
       <h1>@{creator.creator_label}</h1>
-      <div className={styles.grid}>{posts.filter(post=>post.creator_id===creatorId).map(card)}</div>
+      {creatorError&&<p role="alert">{creatorError} <button type="button" onClick={()=>setCreatorRefresh(k=>k+1)}>Retry</button></p>}
+      <div className={styles.grid}>{creatorPosts.map(card)}</div>
+      {creatorBusy&&<p role="status">Loading Minis…</p>}
+      {!creatorBusy&&!creatorError&&!creatorPosts.length&&<p>No public Minis available.</p>}
+      {creatorCursor&&<button type="button" className={styles.loadMore} disabled={creatorBusy} onClick={()=>void loadCreatorMore()}>Load more</button>}
     </section>}
   </div></div>
 }

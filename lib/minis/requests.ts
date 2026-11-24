@@ -1,6 +1,6 @@
 import { supabase } from '@/lib/supabase'
 import { parseMiniHashtags } from './tags'
-import { currentMiniUser, publishMiniSafely } from './actions'
+import { currentMiniUser, publishMiniSafely, MiniSubmissionSavedError } from './actions'
 
 export type MiniPublicRequest = {
   id: string
@@ -56,7 +56,8 @@ export async function submitMiniRequest(question: string, hashtags: string): Pro
   const { data, error } = await supabase.from('mini_requests')
     .insert({ requester_id: verified, question: clean, tags }).select('id').single()
   if (error || !data?.id) throw Error('Request not submitted. Check your account and daily limit.')
-  await publishMiniSafely('request',data.id as string)
+  try {await publishMiniSafely('request',data.id as string)}
+  catch(error){throw new MiniSubmissionSavedError(data.id as string,error instanceof Error?error.message:'Saved privately. Check request status.')}
   return data.id as string
 }
 
