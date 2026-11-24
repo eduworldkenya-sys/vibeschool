@@ -18,8 +18,18 @@ export function PublicSkipFocus() {
         main.scrollIntoView({ block: 'start', behavior: 'auto' })
       })
     }
-    link.addEventListener('click', focusTarget)
-    return () => link.removeEventListener('click', focusTarget)
+    const activate = () => {
+      // Keep the native fragment destination and explicitly focus its landmark.
+      // This is resilient when Next.js hydrates around keyboard activation.
+      if (window.location.hash !== '#main-content') window.location.hash = 'main-content'
+      focusTarget()
+    }
+    link.addEventListener('click', activate)
+    link.dataset.vsSkipReady = 'true'
+    return () => {
+      link.removeEventListener('click', activate)
+      delete link.dataset.vsSkipReady
+    }
   }, [])
   return null
 }

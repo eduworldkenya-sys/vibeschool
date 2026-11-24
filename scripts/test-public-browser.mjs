@@ -104,6 +104,10 @@ try {
   const context = await browser.newContext({viewport:{width:390,height:844}})
   const page = await context.newPage()
   await page.goto(base+'/',{waitUntil:'domcontentloaded'})
+  // Verify keyboard activation on the hydrated client, not during a moving
+  // hydration boundary that can replace the focused element between Tab and Enter.
+  await page.locator('a[data-vs-public-skip][data-vs-skip-ready="true"]')
+    .waitFor({state:'attached',timeout:10000})
   await page.keyboard.press('Tab')
   const firstFocused = await page.evaluate(() => ({text:document.activeElement?.textContent?.trim(),href:document.activeElement?.getAttribute('href'),outline:getComputedStyle(document.activeElement).outlineStyle}))
   if (firstFocused.href !== '#main-content') fail(`keyboard: first focus is not skip link (${JSON.stringify(firstFocused)})`)
@@ -116,6 +120,9 @@ try {
     const hash = await page.evaluate(() => location.hash)
     fail(`keyboard: skip link did not target main content (${hash})`)
   }
+  try {
+    await page.waitForFunction(() => document.activeElement?.id === 'main-content', { timeout: 3000 })
+  } catch { fail('keyboard: skip link did not transfer focus to the main landmark') }
 
   const menu = page.locator('details summary[aria-label="Open public navigation"]')
   if (await menu.count()) {
