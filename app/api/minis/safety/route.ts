@@ -38,7 +38,7 @@ function service():SupabaseClient {
 async function moderate(input:{target:Target;title:string;body:string;photo?:{data:string;mimeType:string}}):Promise<SafetyVerdict>{
   const key=process.env.MINI_GOOGLE_SAFETY_API_KEY
   if(!key) throw new Error('Automatic safety checks are unavailable.')
-  const text=[input.title,input.body].join('\n').trim()
+  let text=[input.title,input.body].join('\n').trim()
   if(!text||text.length>5000)throw new Error('Invalid safety input.')
   const contact=/https?:\/\/|www\.|[\w.+-]+@[\w.-]+\.[a-z]{2,}|(?:\+?254|0)[17]\d{8}/i
   if(contact.test(text))return {safe:false,reason:'Contact information or links are not allowed'}
@@ -46,27 +46,6 @@ async function moderate(input:{target:Target;title:string;body:string;photo?:{da
   if(input.target==='request'&&/\b(my|our)\s+(school|phone|address|teacher's\s+phone)\b/i.test(text))
     return {safe:false,reason:'Remove identifying personal details'}
   const headers={'Content-Type':'application/json','x-goog-api-key':key}
-  const language=await fetch('https://language.googleapis.com/v2/documents:moderateText',{
-    method:'POST',headers,cache:'no-store',signal:AbortSignal.timeout(20000),
-    body:JSON.stringify({document:{type:'PLAIN_TEXT',content:text}}),
-  })
-  if(!language.ok)throw new Error('Text safety service unavailable.')
-  const classified:unknown=await language.json()
-  if(!classified||typeof classified!=='object')throw new Error('Invalid text safety response.')
-  const report=classified as {languageSupported?:boolean;moderationCategories?:Array<{name?:string;confidence?:number}>}
-  if(report.languageSupported!==true)throw new Error('Unsupported or unconfirmed text safety language.')
-  if(!Array.isArray(report.moderationCategories)||report.moderationCategories.length===0)
-    throw new Error('Missing text safety categories.')
-  const thresholds:Record<string,number>={
-    Toxic:0.7,Derogatory:0.55,Violent:0.7,Sexual:0.5,Insult:0.7,Profanity:0.7,
-    'Death, Harm & Tragedy':0.8,
-  }
-  for(const item of report.moderationCategories){
-    if(typeof item.name!=='string'||typeof item.confidence!=='number'||!Number.isFinite(item.confidence))
-      throw new Error('Invalid text safety category.')
-    if(Object.prototype.hasOwnProperty.call(thresholds,item.name)&&item.confidence>=thresholds[item.name])
-      return {safe:false,reason:'Content did not meet the safety policy'}
-  }
   if(input.photo){
     if(!['image/jpeg','image/png','image/webp'].includes(input.photo.mimeType)||
        input.photo.data.length>7_200_000)
@@ -100,7 +79,33 @@ async function moderate(input:{target:Target;title:string;body:string;photo?:{da
       return {safe:false,reason:'Use a teaching image without identifiable people'}
     const detectedText=img.textAnnotations?.[0]?.description??''
     if(contact.test(detectedText))return {safe:false,reason:'Contact information in image is not allowed'}
+    if(detectedText.trim())text+='\n'+detectedText
+    if(text.length>12000)throw new Error('Image text exceeds safety screening limit.')
   }
+  const language=await fetch('https://language.googleapis.com/v2/documents:moderateText',{
+    method:'POST',headers,cache:'no-store',signal:AbortSignal.timeout(20000),
+    body:JSON.stringify({document:{type:'PLAIN_TEXT',content:text}}),
+  })
+  if(!language.ok)throw new Error('Text safety service unavailable.')
+  const classified:unknown=await language.json()
+  if(!classified||typeof classified!=='object')throw new Error('Invalid text safety response.')
+  const report=classified as {languageSupported?:boolean;moderationCategories?:Array<{name?:string;confidence?:number}>}
+  if(report.languageSupported!==true)throw new Error('Unsupported or unconfirmed text safety language.')
+  if(!Array.isArray(report.moderationCategories)||report.moderationCategories.length===0)
+    throw new Error('Missing text safety categories.')
+  const thresholds:Record<string,number>={
+    Toxic:0.7,Derogatory:0.55,Violent:0.7,Sexual:0.5,Insult:0.7,Profanity:0.7,
+    'Death, Harm & Tragedy':0.8,
+  }
+  const seen=new Set<string>()
+  for(const item of report.moderationCategories){
+    if(typeof item.name!=='string'||typeof item.confidence!=='number'||!Number.isFinite(item.confidence)||item.confidence<0||item.confidence>1||seen.has(item.name))
+      throw new Error('Invalid text safety category.')
+    seen.add(item.name)
+    if(Object.prototype.hasOwnProperty.call(thresholds,item.name)&&item.confidence>=thresholds[item.name])
+      return {safe:false,reason:'Content did not meet the safety policy'}
+  }
+  if(Object.keys(thresholds).some(category=>!seen.has(category)))throw new Error('Missing text safety categories.')
   return {safe:true,reason:'Automated screening passed'}
 }
 

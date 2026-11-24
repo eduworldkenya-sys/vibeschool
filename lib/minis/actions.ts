@@ -11,6 +11,11 @@ export async function currentMiniUser(): Promise<string | null> {
  * Request immediate automated safety screening; publishing is never manually approved in HQ.
  * API is fail-closed if its release flag or classifier is unavailable.
  */
+export class MiniSubmissionSavedError extends Error {
+  readonly submissionId:string
+  constructor(submissionId:string,message:string){super(message);this.name='MiniSubmissionSavedError';this.submissionId=submissionId;Object.setPrototypeOf(this,MiniSubmissionSavedError.prototype)}
+}
+
 export async function publishMiniSafely(target:'mini'|'request'|'comment',id:string):Promise<void> {
   const {data:{session},error:sessionError}=await supabase.auth.getSession()
   if(sessionError||!session?.access_token)throw Error('Sign in to publish.')
@@ -86,7 +91,8 @@ export async function submitMini({
     await supabase.storage.from('mini-covers').remove([coverPath])
     throw Error('The Mini could not be submitted. Your profile may need additional verification.')
   }
-  await publishMiniSafely('mini',submitted.id as string)
+  try {await publishMiniSafely('mini',submitted.id as string)}
+  catch(error){throw new MiniSubmissionSavedError(submitted.id as string,error instanceof Error?error.message:'Saved privately. Check publication status.')}
   return submitted.id as string
 }
 
