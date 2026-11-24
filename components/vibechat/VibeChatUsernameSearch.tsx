@@ -6,7 +6,7 @@ import { getSupabaseClient } from '@/lib/supabase'
 import styles from './VibeChat.module.css'
 import VibeChatAvatar from './VibeChatAvatar'
 
-type Match = { handle: string; display_name: string; account_role: string; avatar_url: string | null }
+type Match = { handle: string; display_name: string; account_role: string; avatar_url: string | null; username: string | null }
 
 export default function VibeChatUsernameSearch({query, role, onRequested, onOpenThread}: {
   query: string; role: string; onRequested?: () => void; onOpenThread?: (threadId: string) => void
@@ -47,7 +47,7 @@ export default function VibeChatUsernameSearch({query, role, onRequested, onOpen
       setSent(previous => [...previous, handle])
       onRequested?.()
     } catch {
-      setRequestError('Could not send connection request. Please try again.')
+      setRequestError('Could not open this contact. Please try again.')
     } finally { setBusy(null) }
   }
 
@@ -61,7 +61,7 @@ export default function VibeChatUsernameSearch({query, role, onRequested, onOpen
       current.rows.map(row => <div className={styles.contactRow} key={row.handle}>
         <VibeChatAvatar name={row.display_name} avatarUrl={row.avatar_url}/>
         <div style={{flex:1,minWidth:0,overflowWrap:'anywhere'}}>
-          <strong>{row.display_name}</strong><div className={styles.subtitle}>{row.handle}</div>
+          <strong>{row.display_name}</strong><div className={styles.subtitle}>{row.username ? '@'+row.username : row.handle}</div>
         </div>
         <button type="button" className={styles.primary} disabled={!!busy || sent.includes(row.handle)}
           onClick={()=>void connect(row.handle)}><UserPlus size={16} aria-hidden/> {sent.includes(row.handle)?'Requested':busy===row.handle?'Sending…':'Chat'}</button>
