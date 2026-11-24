@@ -175,16 +175,17 @@
         "source_ref===config.ref"
       ]
     },
-    "app/api/hq/minis/review/route.ts": {
-      "authority": "active_hq_founder_or_content_approve_reviewer_verified_bearer_and_independent_default_off",
+    "app/api/minis/safety/route.ts": {
+      "authority": "verified_bearer_creator_or_request_owner_with_default_off_automatic_safety_and_private_media",
       "requiredEvidence": [
-        "MINI_LESSONS_REVIEW_ENABLED === 'true'",
+        "MINI_LESSONS_OPEN_PUBLISHING_ENABLED!=='true'",
+        "SUPABASE_SERVICE_ROLE_KEY",
         "getUser(bearer)",
-        "hq_human_members",
-        "membership.status !== 'active'",
-        "content.approve",
-        "mini_review_item",
-        "HQ reviewer authorization required"
+        "item[owners[target] as keyof PendingItem]!==actor",
+        "mini_safety_claim",
+        "status:verdict.safe?'approved':'rejected'",
+        "Forbidd",
+        "Blocked by safety policy"
       ]
     }
   }
