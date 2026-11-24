@@ -13,16 +13,18 @@ export async function miniIsVerifiedAdult(userId: string): Promise<boolean> {
 }
 
 export async function submitMini({
-  title, body, hashtags, photo, userId, challenge,
+  title, body, hashtags, photo, userId, challenge, requestId,
 }: {
   title: string
   body: string
   hashtags: string
   photo: File
   userId: string
+  requestId?: string | null
   challenge?: { question: string; options: string[]; correct: number; explanation: string } | null
 }): Promise<string> {
   const cleanTitle = title.trim()
+  if (requestId && !/^[0-9a-f]{8}-[0-9a-f-]{27,}$/i.test(requestId)) throw Error('Invalid request link.')
   const cleanBody = body.trim()
   if (cleanTitle.length < 5 || cleanTitle.length > 100) throw Error('Use a title between 5 and 100 characters.')
   if (cleanBody.length < 40 || cleanBody.length > 3000) throw Error('Write a short, useful explanation of at least 40 characters.')
@@ -55,7 +57,7 @@ export async function submitMini({
   if (uploadError) throw Error('Unable to upload this image. Please try again.')
 
   const { data: submitted, error: publishError } = await supabase.from('mini_lessons')
-    .insert({ creator_id: userId, title: cleanTitle, body: cleanBody, subject, tags, quiz_question:question, quiz_options:options, quiz_correct:correct, quiz_explanation:explanation, cover_path: coverPath, status: 'pending' })
+    .insert({ creator_id: userId, title: cleanTitle, body: cleanBody, subject, tags, quiz_question:question, quiz_options:options, quiz_correct:correct, quiz_explanation:explanation, cover_path: coverPath, status: 'pending', request_id: requestId ?? null })
     .select('id').single()
   if (publishError || !submitted?.id) {
     // Best-effort rollback of an unused, private file; the DB stays fail-closed.
