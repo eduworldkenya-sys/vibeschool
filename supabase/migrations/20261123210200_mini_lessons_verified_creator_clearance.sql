@@ -1,3 +1,5 @@
+-- access: service-only public.mini_creator_clearances
+-- authorization-test: public.mini_creator_clearances - authenticated/anon have no table grants or RLS access
 -- A self-editable profiles.date_of_birth cannot prove adulthood.
 -- This separate service-owned clearance is fail-closed. Never auto-create a clearance.
 -- Before public commissioning, eligible creators need independent adult verification.
