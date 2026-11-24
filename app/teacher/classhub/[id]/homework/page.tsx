@@ -123,7 +123,8 @@ function HomeworkInner() {
     const draft=liveHomeworkDraft(data,liveRoomId);
     const bridge=await supabase.rpc('vibe_live_lesson_bridge',{p_action:'review',p_session_id:liveRoomId,p_lesson_plan_id:null,p_occurrence_id:null});
     if(bridge.error||!bridge.data||typeof bridge.data!=='object')throw new Error('Could not verify the source lesson.');
-    const row=bridge.data as unknown as {lessonPlanId:string|null;occurrenceId:string|null};
+    const row=bridge.data;
+    if(Array.isArray(row)||!('lessonPlanId' in row)||!('occurrenceId' in row))throw new Error('Invalid lesson verification response.');
     if(row.lessonPlanId!==sourceLessonPlanId||row.occurrenceId!==sourceOccurrenceId)throw new Error('The Live lesson link has changed. Reopen homework from the ended Live lesson.');
     return draft;
   },[classId,liveRoomId,sourceLessonPlanId,sourceOccurrenceId]);
