@@ -12,6 +12,7 @@ export type MiniPost = RankedMini & {
   quiz_explanation: string | null
   cover_path: string | null
   status: string
+  request_id: string | null
   created_at: string
 }
 
@@ -46,7 +47,7 @@ export function isMiniPost(value: unknown): value is MiniPost {
 
 export async function fetchApprovedMinis(limit = 120): Promise<MiniPost[]> {
   const { data, error } = await supabase.from('mini_lessons')
-    .select('id,creator_id,creator_label,title,body,subject,tags,quiz_question,quiz_options,quiz_correct,quiz_explanation,cover_path,status,quality_score,like_count,save_count,learned_count,published_at,created_at')
+    .select('id,creator_id,creator_label,title,body,subject,tags,quiz_question,quiz_options,quiz_correct,quiz_explanation,cover_path,status,request_id,quality_score,like_count,save_count,learned_count,published_at,created_at')
     .eq('status','approved')
     .order('published_at', { ascending: false })
     .limit(Math.min(120, Math.max(1, limit)))
@@ -82,4 +83,13 @@ export async function loadApprovedComments(id: string): Promise<ApprovedComment[
     return typeof item.id === 'string' && typeof item.body === 'string'
       && typeof item.author_label === 'string' && typeof item.created_at === 'string'
   })
+}
+
+export async function fetchMiniRequestAnswers(requestId: string): Promise<MiniPost[]> {
+  const { data, error } = await supabase.from('mini_lessons')
+    .select('id,creator_id,creator_label,title,body,subject,tags,quiz_question,quiz_options,quiz_correct,quiz_explanation,cover_path,status,request_id,quality_score,like_count,save_count,learned_count,published_at,created_at')
+    .eq('status','approved').eq('request_id',requestId)
+    .order('published_at',{ascending:false}).limit(60)
+  if (error) throw Error('Unable to load explanations.')
+  return (Array.isArray(data) ? data : []).filter(isMiniPost)
 }
