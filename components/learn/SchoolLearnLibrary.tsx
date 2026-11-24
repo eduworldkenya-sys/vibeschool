@@ -84,6 +84,17 @@ function uniqueNames(names: string[]) {
   })
 }
 
+/** Keep the published CRE identity, but present one Religious Education entry
+ * in Learn for Grades 4 and 5. IRE/HRE retain separate subject identities. */
+function isCreLearnAlias(grade: string, subject?: string | null) {
+  return (grade === 'Grade 4' || grade === 'Grade 5') &&
+    ['religiouseducation', 'christianreligiouseducation'].includes(subjectKey(subject))
+}
+
+function sameLearnSubject(grade: string, a?: string | null, b?: string | null) {
+  return subjectKey(a) === subjectKey(b) || (isCreLearnAlias(grade, a) && isCreLearnAlias(grade, b))
+}
+
 function buildUrl(path: string, grade: string, subject?: string) {
   const params = new URLSearchParams({ grade })
   if (subject) params.set('subject', subject)
@@ -179,24 +190,23 @@ function SchoolLearnLibraryContent({ mode = 'public', learnerGrade }: Props) {
   const subjectGroups: SubjectGroup[] = useMemo(() => {
     const bookSubjects = uniqueNames(gradeBooks.map(book => book.cbc_subject?.trim() || '').filter(Boolean))
     const base = groupsForTextbookShells(grade, registeredSubjects ?? [])
-      .map(group => grade === 'Grade 4'
-        ? { ...group, subjects: group.subjects.filter(name => subjectKey(name) !== 'religiouseducation') }
-        : group)
+      .map(group => ({ ...group, subjects: uniqueNames(group.subjects.map(name =>
+        isCreLearnAlias(grade, name) ? 'Religious Education' : name)) }))
       .filter(group => group.subjects.length)
     const existing = new Set(base.flatMap(group => group.subjects).map(subjectKey))
-    const extraBooks = bookSubjects.filter(name => !existing.has(subjectKey(name)))
+    const extraBooks = bookSubjects
+      .map(name => isCreLearnAlias(grade, name) ? 'Religious Education' : name)
+      .filter(name => !existing.has(subjectKey(name)))
     return extraBooks.length
-      ? [...base, { title: 'Additional published materials', subjects: extraBooks }]
+      ? [...base, { title: 'Additional published materials', subjects: uniqueNames(extraBooks) }]
       : base
   }, [grade, gradeBooks, registeredSubjects])
-  // Grade 4 generic Religious Education is a legacy catalogue shell, not a
-  // curriculum subject. Resolve existing links to CRE without changing other grades.
   const subjectNames = useMemo(() => uniqueNames(subjectGroups.flatMap(group => group.subjects)), [subjectGroups])
-  const requestedSubject = grade === 'Grade 4' && subjectKey(selectedSubject) === 'religiouseducation'
-    ? 'Christian Religious Education' : selectedSubject
-  const activeName = subjectNames.find(name => subjectKey(name) === subjectKey(requestedSubject))
-  const activeBooks = gradeBooks.filter(book => subjectKey(book.cbc_subject) === subjectKey(activeName))
-  const activeReaders = activeName ? readersForSubject(grade, activeName) : []
+  const requestedSubject = isCreLearnAlias(grade, selectedSubject) ? 'Religious Education' : selectedSubject
+  const activeName = subjectNames.find(name => sameLearnSubject(grade, name, requestedSubject))
+  const activeBooks = gradeBooks.filter(book => sameLearnSubject(grade, book.cbc_subject, activeName))
+  const activeReaders = activeName ? readersForSubject(grade,
+    isCreLearnAlias(grade, activeName) ? 'Christian Religious Education' : activeName) : []
   // Reuse the existing reader catalogue so the released pilot is discoverable
   // from Learn itself without a duplicate lesson or publication record.
   const grade4MathsLesson = grade === 'Grade 4'
@@ -207,7 +217,7 @@ function SchoolLearnLibraryContent({ mode = 'public', learnerGrade }: Props) {
     subjects: group.subjects.filter(name => {
       if (!query.trim()) return true
       const text = [name, subjectDescription(name), ...gradeBooks
-        .filter(book => subjectKey(book.cbc_subject) === subjectKey(name))
+        .filter(book => sameLearnSubject(grade, book.cbc_subject, name))
         .map(book => `${book.title} ${book.description ?? ''}`)].join(' ').toLowerCase()
       return text.includes(query.trim().toLowerCase())
     }),
@@ -326,7 +336,7 @@ function SchoolLearnLibraryContent({ mode = 'public', learnerGrade }: Props) {
               <section key={group.title} aria-label={group.title}>
                 <div className={styles.sectionHead}><h2>{group.title}</h2><span>{group.subjects.length} subjects</span></div>
                 <div className={styles.subjectGrid}>{group.subjects.map((name, index) => {
-                  const count = gradeBooks.filter(book => subjectKey(book.cbc_subject) === subjectKey(name)).length
+                  const count = gradeBooks.filter(book => sameLearnSubject(grade, book.cbc_subject, name)).length
                   const readers = readersForSubject(grade, name).length
                   return <Link key={name} className={styles.subjectCard} href={buildUrl(basePath, grade, name)}>
                     <span className={`${styles.subjectIcon} ${styles[`tone${(index + groupIndex) % 6}`] ?? ''}`}><IconForSubject name={name}/></span>
