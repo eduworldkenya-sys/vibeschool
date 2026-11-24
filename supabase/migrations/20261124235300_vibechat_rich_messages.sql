@@ -95,6 +95,9 @@ begin
      delete from private.vibechat_reactions where kind=p_kind and room_id=p_room and message_id=p_message;
    end if;
  else raise exception 'Invalid message action' using errcode='22023';end if;
+ if p_kind='vc' and p_action in ('edit','delete') then
+   update public.vc_threads t set last_message_preview=coalesce((select left(m.body,80) from public.vc_messages m where m.thread_id=p_room and m.deleted_at is null order by m.created_at desc,m.id desc limit 1),'') where t.id=p_room;
+ end if;
  perform private.vibechat_notify_room(p_kind,p_room);
  return true;
 end;$change$;
@@ -128,5 +131,84 @@ begin
 end;$read$;
 revoke all on function public.vibechat_rich_messages(text,uuid) from public,anon,authenticated;
 grant execute on function public.vibechat_rich_messages(text,uuid) to authenticated;
+-- Deleted tuition messages must not contribute to receipts, unread counts or previews.
+create or replace function public.vibechat_ack_message(p_kind text,p_room uuid,p_message uuid,p_read boolean default false)
+returns boolean language plpgsql volatile security definer set search_path='' as $ack$
+declare v_user uuid:=auth.uid(); v_peer uuid; v_at timestamptz;
+begin
+  v_peer:=private.vibechat_room_peer(p_kind,p_room);
+  if v_user is null or v_peer is null or private.vibechat_pair_blocked(v_user,v_peer) or not exists(select 1 from public.profiles p where p.id=v_user and p.account_status::text='active' and not coalesce(p.is_anonymized,false)) then return false; end if;
+  if p_kind='vc' then
+    select m.created_at into v_at from public.vc_messages m where m.thread_id=p_room and m.id=p_message and m.sender_id=v_peer and m.deleted_at is null;
+  elsif p_kind='tuition' then
+    select m.created_at into v_at from public.vibetutor_lesson_messages m where m.invitation_id=p_room and m.id=p_message and m.sender_id=v_peer and m.deleted_at is null;
+  end if;
+  if v_at is null then return false; end if;
+  insert into private.vibechat_receipts(kind,room_id,profile_id,delivered_at,read_at)
+    values(p_kind,p_room,v_user,v_at,case when p_read then v_at end)
+  on conflict(kind,room_id,profile_id) do update set
+    delivered_at=greatest(vibechat_receipts.delivered_at,excluded.delivered_at),
+    read_at=greatest(vibechat_receipts.read_at,excluded.read_at)
+  where excluded.delivered_at>coalesce(vibechat_receipts.delivered_at,'-infinity'::timestamptz)
+    or excluded.read_at>coalesce(vibechat_receipts.read_at,'-infinity'::timestamptz);
+  if p_kind='vc' and p_read then
+    update public.vc_participants p set last_read_at=greatest(p.last_read_at,v_at)
+      where p.thread_id=p_room and p.profile_id=v_user and p.left_at is null;
+  end if;
+  return true;
+end;
+$ack$;
+revoke all on function public.vibechat_ack_message(text,uuid,uuid,boolean) from public,anon,authenticated;
+grant execute on function public.vibechat_ack_message(text,uuid,uuid,boolean) to authenticated;
+
+create or replace function public.vibechat_my_inbox_state()
+returns jsonb language sql stable security definer set search_path='' as $state$
+  with rooms as (
+    select 'vc'::text as kind,t.id as room_id,p.last_read_at as legacy_read
+    from public.vc_participants p join public.vc_threads t on t.id=p.thread_id and t.type='direct'
+    where p.profile_id=auth.uid() and p.left_at is null and private.vc_user_is_thread_participant(t.id)
+    union all
+    select 'tuition',i.id,null::timestamptz from public.vibetutor_student_invitations i
+      join lateral public.vibetutor_private_access(i.id) a on true where i.status='accepted'
+  ), scoped as (
+    select r.*,private.vibechat_room_peer(r.kind,r.room_id) as peer from rooms r
+  )
+  select coalesce(jsonb_agg(jsonb_build_object('kind',r.kind,'room_id',r.room_id,
+    'updated',last_message.created_at,'preview',left(last_message.body,80),
+    'unread',coalesce(unread.n,0),
+    'latest_incoming_id',incoming.id,
+    'peer_online',case when r.kind='vc' and not private.vibechat_pair_blocked(auth.uid(),r.peer)
+      and private.vibechat_presence_eligible(auth.uid()) and private.vibechat_presence_eligible(r.peer)
+      and coalesce(my_presence.enabled,false) and coalesce(peer_presence.enabled,false)
+      then coalesce(peer_presence.seen_at>now()-interval '60 seconds',false) else false end,
+    'peer_delivered_at',case when not private.vibechat_pair_blocked(auth.uid(),r.peer) then theirs.delivered_at end,
+    'peer_read_at',case when not private.vibechat_pair_blocked(auth.uid(),r.peer) then theirs.read_at end)), '[]'::jsonb)
+  from scoped r
+  left join private.vibechat_presence my_presence on my_presence.profile_id=auth.uid()
+  left join private.vibechat_presence peer_presence on peer_presence.profile_id=r.peer
+  left join private.vibechat_receipts mine on mine.kind=r.kind and mine.room_id=r.room_id and mine.profile_id=auth.uid()
+  left join private.vibechat_receipts theirs on theirs.kind=r.kind and theirs.room_id=r.room_id and theirs.profile_id=r.peer
+  left join lateral (
+    select x.id,x.created_at,x.body from (
+      select m.id,m.created_at,m.body from public.vc_messages m where r.kind='vc' and m.thread_id=r.room_id and m.deleted_at is null
+      union all select m.id,m.created_at,m.body from public.vibetutor_lesson_messages m where r.kind='tuition' and m.invitation_id=r.room_id and m.deleted_at is null
+    ) x order by x.created_at desc,x.id desc limit 1
+  ) last_message on true
+  left join lateral (
+    select x.id from (
+      select m.id,m.created_at from public.vc_messages m where r.kind='vc' and m.thread_id=r.room_id and m.deleted_at is null and m.sender_id=r.peer
+      union all select m.id,m.created_at from public.vibetutor_lesson_messages m where r.kind='tuition' and m.invitation_id=r.room_id and m.deleted_at is null and m.sender_id=r.peer
+    ) x order by x.created_at desc,x.id desc limit 1
+  ) incoming on true
+  left join lateral (
+    select count(*) as n from (
+      select m.created_at from public.vc_messages m where r.kind='vc' and m.thread_id=r.room_id and m.deleted_at is null and m.sender_id=r.peer
+      union all select m.created_at from public.vibetutor_lesson_messages m where r.kind='tuition' and m.invitation_id=r.room_id and m.deleted_at is null and m.sender_id=r.peer
+    ) x where x.created_at>coalesce(greatest(mine.read_at,r.legacy_read),'-infinity'::timestamptz)
+  ) unread on true
+  where auth.uid() is not null and r.peer is not null and exists(select 1 from public.profiles p where p.id=auth.uid() and p.account_status::text='active' and not coalesce(p.is_anonymized,false));
+$state$;
+revoke all on function public.vibechat_my_inbox_state() from public,anon,authenticated;
+grant execute on function public.vibechat_my_inbox_state() to authenticated;
 notify pgrst,'reload schema';
 commit;
