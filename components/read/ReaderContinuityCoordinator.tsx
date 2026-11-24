@@ -8,6 +8,7 @@ type ReaderChapterEventDetail = {
   chapterId?: unknown;
   progressPercent?: unknown;
   canRead?: unknown;
+  searchBlockId?: unknown;
 };
 
 type ActiveReader = {
@@ -167,6 +168,7 @@ export function ReaderContinuityCoordinator() {
   useEffect(() => {
     // A delayed restore cannot scroll or save a different active chapter.
     let chapterGeneration = 0;
+    let searchJump = false;
     async function writeSnapshot(snapshot: ActiveReader) {
       const { data, error } = await supabase.rpc("record_reading_progress", {
         publication_id_input: snapshot.publicationId,
@@ -208,7 +210,7 @@ export function ReaderContinuityCoordinator() {
     }
 
     async function persist(snapshot: ActiveReader, force = false) {
-      if (!authenticatedRef.current) return;
+      if (searchJump || !authenticatedRef.current) return;
       const viewerId = viewerIdRef.current;
       if (!viewerId) return;
 
@@ -290,6 +292,7 @@ export function ReaderContinuityCoordinator() {
     }
 
     function measure(force = false) {
+      if (searchJump) return;
       const current = activeRef.current;
       const unit = document.getElementById("reader-active-unit");
       if (!current || !unit) return;
@@ -336,6 +339,9 @@ export function ReaderContinuityCoordinator() {
       const event = rawEvent as CustomEvent<ReaderChapterEventDetail>;
       const detail = event.detail;
       const generation = ++chapterGeneration;
+      if (writeTimerRef.current) clearTimeout(writeTimerRef.current);
+      const explicitBlock = typeof detail?.searchBlockId === 'string' && detail.searchBlockId.length <= 128 ? detail.searchBlockId : null;
+      searchJump = Boolean(explicitBlock);
       if (
         typeof detail?.publicationId !== "string" ||
         typeof detail?.chapterId !== "string" ||
@@ -369,6 +375,13 @@ export function ReaderContinuityCoordinator() {
         )?.textContent?.trim();
         setChapterTitle(heading || "Current unit");
         setMinutesLeft(estimateMinutesLeft(supplied));
+        if (generation !== chapterGeneration) return;
+        if (explicitBlock) {
+          setResumed(false);
+          findBlockById(explicitBlock)?.scrollIntoView({behavior:'auto',block:'center'});
+          // A search result is navigation, not completed reading evidence.
+          return;
+        }
         void restore(next, generation).finally(() => {
           if (generation === chapterGeneration && activeRef.current?.chapterId === next.chapterId) {
             window.requestAnimationFrame(() => {
@@ -381,6 +394,11 @@ export function ReaderContinuityCoordinator() {
 
     function onScroll() {
       measure(false);
+    }
+
+    function onReadingIntent(event: Event) {
+      if (event instanceof KeyboardEvent && !['ArrowDown','ArrowUp','PageDown','PageUp','Home','End',' '].includes(event.key)) return;
+      if (event.isTrusted) searchJump = false;
     }
 
     function onVisibility() {
@@ -397,7 +415,7 @@ export function ReaderContinuityCoordinator() {
     function onOffline() {
       setOnline(false);
       const current = activeRef.current;
-      if (current && viewerIdRef.current) {
+      if (!searchJump && current && viewerIdRef.current) {
         queuePendingProgress(current, viewerIdRef.current);
         setPendingSync(true);
       }
@@ -405,6 +423,9 @@ export function ReaderContinuityCoordinator() {
 
     window.addEventListener("vibe:reader-chapter", onChapter);
     window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener('wheel', onReadingIntent, {passive:true});
+    window.addEventListener('touchmove', onReadingIntent, {passive:true});
+    window.addEventListener('keydown', onReadingIntent);
     window.addEventListener("resize", onScroll);
     window.addEventListener("online", onOnline);
     window.addEventListener("offline", onOffline);
@@ -417,6 +438,9 @@ export function ReaderContinuityCoordinator() {
       if (current) void persist(current, true);
       window.removeEventListener("vibe:reader-chapter", onChapter);
       window.removeEventListener("scroll", onScroll);
+      window.removeEventListener('wheel', onReadingIntent);
+      window.removeEventListener('touchmove', onReadingIntent);
+      window.removeEventListener('keydown', onReadingIntent);
       window.removeEventListener("resize", onScroll);
       window.removeEventListener("online", onOnline);
       window.removeEventListener("offline", onOffline);
