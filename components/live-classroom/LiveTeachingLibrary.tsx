@@ -10,6 +10,7 @@ import {LiveResourcePicker} from './LiveResourcePicker'
 import {validateStudioResources} from './LiveStudioResourceValidation'
 import {exportDeck,importDeck,MAX_DECK_FILE_BYTES,buildTextRevealSlides,isPhotoBody,studioMinutes,setStudioMinutes,studioResource} from './LiveSlideProtocol'
 type Summary={id:string;title:string;revision:number;slideCount:number;updatedAt:string}
+type Version=Omit<Summary,'id'>
 type Material={id:string;title:string;revision:number;slides:LiveSlide[]}
 type Command=(action:string,id?:string|null,version?:number|null,payload?:Record<string,unknown>)=>Promise<unknown>
 const blank=()=>({title:'',body:''})
@@ -25,6 +26,7 @@ export function TeachingLibrary({command,currentDeck,onUse,onClose}:{command:Com
  const [autoSave,setAutoSave]=useState(true)
  const [rehearsing,setRehearsing]=useState(false)
  const [resourceOpen,setResourceOpen]=useState(false)
+ const [history,setHistory]=useState<{id:string;versions:Version[]}|null>(null)
  const [printDeck,setPrintDeck]=useState<Material|null>(null)
  const onUseRef=useRef(onUse)
  useEffect(()=>{onUseRef.current=onUse},[onUse])
@@ -53,6 +55,20 @@ export function TeachingLibrary({command,currentDeck,onUse,onClose}:{command:Com
    if(!alive.current)return
    if(use){if(onClose)await validateStudioResources(result.slides);if(alive.current)onUse(result);return}
    setEdit(copy?{...result,id:crypto.randomUUID(),title:result.title.slice(0,113)+' (copy)',revision:0}:result);setIndex(0);setDirty(copy);setSaveProblem('')
+  })
+ }
+ function openHistory(item:Summary){
+  void run(async()=>{const response=await command('materials_versions',null,null,{id:item.id}) as {versions?:Version[]}
+   if(!Array.isArray(response.versions)||!response.versions.every(v=>Number.isInteger(v.revision)&&v.revision>0&&typeof v.title==='string'&&typeof v.updatedAt==='string'&&Number.isInteger(v.slideCount)))throw Error('Invalid version history response.')
+   if(alive.current)setHistory({id:item.id,versions:response.versions})
+  })
+ }
+ function restoreVersion(revision:number){
+  if(!history||!mayReplace())return
+  void run(async()=>{const source=await command('materials_version_get',null,null,{id:history.id,revision})
+   if(!isMaterial(source)||source.id!==history.id||source.revision!==revision)throw Error('Invalid saved version.')
+   if(!alive.current)return
+   setEdit({...source,id:crypto.randomUUID(),title:source.title.slice(0,108)+' (restored)',revision:0});setIndex(0);setDirty(true);setSaveProblem('');setHistory(null)
   })
  }
  function patch(p:Partial<LiveSlide>){
@@ -109,6 +125,7 @@ export function TeachingLibrary({command,currentDeck,onUse,onClose}:{command:Com
  function changeDeck(slides:LiveSlide[],nextIndex:number){if(lock.current)return;setEdit(m=>m?{...m,slides}:m);setIndex(nextIndex);setDirty(true)}
  function move(delta:number){if(!edit)return;const target=index+delta;if(target<0||target>=edit.slides.length)return;const next=[...edit.slides];[next[index],next[target]]=[next[target],next[index]];changeDeck(next,target)}
  const slide=edit?.slides[index]
+ if(history)return <section className={styles.slideFields} aria-label="Presentation versions"><div className={styles.controls}><strong>Version history</strong><button type="button" disabled={busy} onClick={()=>setHistory(null)}>Back to preparation</button></div>{error&&<p role="alert">{error}</p>}<small>Latest version and up to ten earlier saves. Restore creates a separate copy.</small>{history.versions.map(v=><div key={v.revision} className={styles.controls}><span>Version {v.revision} · {v.title} · {v.slideCount} slides</span><button type="button" disabled={busy} onClick={()=>restoreVersion(v.revision)}>Restore as copy</button></div>)}</section>
  if(resourceOpen&&edit)return <LiveResourcePicker classId={null} lessonPlanId={null} schemeLessonId={null} canPresent={!busy&&edit.slides.length<30} onPresent={()=>{}} onPrepare={page=>{if(lock.current||edit.slides.length>=30)return;changeDeck([...edit.slides,page],edit.slides.length);setResourceOpen(false)}} onClose={()=>setResourceOpen(false)}/>
  if(rehearsing&&edit)return <LiveStudioRehearsal slides={edit.slides} onClose={()=>setRehearsing(false)}/>
  return <div className={styles.teachingLibrary}>
@@ -116,7 +133,7 @@ export function TeachingLibrary({command,currentDeck,onUse,onClose}:{command:Com
  {printDeck&&<SlidePrintPreview title={printDeck.title} slides={printDeck.slides} onClose={()=>setPrintDeck(null)}/>}
   <div className={styles.controls}><button type="button" disabled={busy} onClick={()=>create()}>New presentation</button>{currentDeck&&<button type="button" disabled={busy} onClick={()=>create(true)}>Save current deck</button>}<button type="button" disabled={busy} onClick={()=>fileInput.current?.click()}>Import JSON / PDF / PPTX</button><input ref={fileInput} type="file" accept=".json,application/json,.pdf,application/pdf,.pptx,application/vnd.openxmlformats-officedocument.presentationml.presentation" hidden onChange={e=>{const file=e.target.files?.[0];e.target.value='';if(file)loadFile(file)}}/><button type="button" disabled={busy} onClick={()=>void run(refresh)}>Refresh</button></div>
   {error&&<p role="alert">{error}</p>}
-  <div className={styles.materialList}>{items.length===0?<p>No saved presentations</p>:items.map(item=><div key={item.id}><div><strong>{item.title}</strong><small>{item.slideCount} slides</small></div><button disabled={busy} onClick={()=>open(item)}>Edit</button>{onClose&&<button type="button" disabled={busy} onClick={()=>open(item,false,true)}>Duplicate</button>}<button disabled={busy} onClick={()=>open(item,true)}>Use</button><button disabled={busy} onClick={()=>{if(!window.confirm('Delete this saved presentation? Shared lesson history remains.'))return;void run(async()=>{await command('materials_delete',null,null,{id:item.id,revision:item.revision});if(alive.current&&edit?.id===item.id){setEdit(null);setDirty(false)}await refresh()})}}>Delete</button></div>)}</div>
+  <div className={styles.materialList}>{items.length===0?<p>No saved presentations</p>:items.map(item=><div key={item.id}><div><strong>{item.title}</strong><small>{item.slideCount} slides</small></div><button disabled={busy} onClick={()=>open(item)}>Edit</button>{onClose&&<button type="button" disabled={busy} onClick={()=>open(item,false,true)}>Duplicate</button>}{onClose&&<button type="button" disabled={busy} onClick={()=>openHistory(item)}>Versions</button>}<button disabled={busy} onClick={()=>open(item,true)}>Use</button><button disabled={busy} onClick={()=>{if(!window.confirm('Delete this saved presentation? Shared lesson history remains.'))return;void run(async()=>{await command('materials_delete',null,null,{id:item.id,revision:item.revision});if(alive.current&&edit?.id===item.id){setEdit(null);setDirty(false)}await refresh()})}}>Delete</button></div>)}</div>
   {edit&&slide&&<section className={styles.slideFields} aria-label="Prepare presentation">
    <label><input type="checkbox" checked={autoSave} disabled={busy} onChange={e=>setAutoSave(e.target.checked)}/> Auto-save</label>
    {saveProblem&&<div role="alert"><p>{saveProblem.includes('live_material_conflict')?'A newer version exists. Your draft is intact. Save a separate recovered copy or reopen the latest saved version.':saveProblem}</p><button type="button" disabled={busy} onClick={()=>void save()}>Retry save</button>{saveProblem.includes('live_material_conflict')&&<button type="button" disabled={busy} onClick={preserveCopy}>Recover as new copy</button>}</div>}
