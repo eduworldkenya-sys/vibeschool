@@ -713,3 +713,12 @@ await db.close()
  assert.equal(adjacentSlide([{...deck[0],notes:'Changed private notes'},...deck.slice(1)],first,1),2)
  assert.equal(adjacentSlide([deck[0],deck[1],deck[1]],first,1),null)
 }
+
+// Science and Geography simulations use the existing versioned slide protocol.
+const {simulationSummary}=await import('../components/live-classroom/LiveSimulationModel.ts')
+assert.equal(simulationSummary({kind:'electric-circuit',a:0,b:2}),'Open circuit — bulb off · 2 cells')
+assert.equal(simulationSummary({kind:'electric-circuit',a:1,b:1}),'Closed circuit — bulb on · 1 cell')
+assert.equal(simulationSummary({kind:'lever-balance',a:6,b:4}),'Left 12 N m · Right 12 N m · Balanced')
+assert.equal(simulationSummary({kind:'map-scale',a:5,b:2}),'5 cm × 2 km/cm = 10 km')
+assert.equal(encodeDemo({kind:'electric-circuit',a:2,b:1}),'')
+assert.equal(encodeDemo({kind:'map-scale',a:0,b:1}),'')
