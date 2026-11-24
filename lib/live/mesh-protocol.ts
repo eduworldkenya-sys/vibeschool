@@ -1,4 +1,21 @@
-export type MeshState = {role:'teacher'|'learner';epoch:number;peerPresent:boolean;offer:string|null;answer:string|null;speaking:boolean;fallback:boolean;expiresAt:string;learnerStudentId:string|null};
+export type MeshPeer = {
+  studentId: string
+  epoch: number
+  speaking: boolean
+  offer: string | null
+  answer: string | null
+}
+
+export type MeshState = {
+  role: 'teacher' | 'learner'
+  peers: MeshPeer[]
+  fallback: boolean
+  expiresAt: string
+}
+
+export const MAX_MESH_LEARNERS = 8
+const UUID = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i
+
 export function audioSdp(sdp:unknown):sdp is string {
   if(typeof sdp!=='string'||sdp.length>24000||!/^v=0\r?\n/.test(sdp))return false;
   const lines=sdp.split(/\r?\n/),media=lines.filter(x=>/^m=/i.test(x));
@@ -6,9 +23,24 @@ export function audioSdp(sdp:unknown):sdp is string {
 }
 export function validateMeshState(x:unknown,teacher:boolean,now=Date.now()):MeshState {
   if(!x||typeof x!=='object')throw Error('Invalid voice authorization');
-  const s=x as Partial<MeshState>;
-  if(s.role!==(teacher?'teacher':'learner')||!Number.isSafeInteger(s.epoch)||Number(s.epoch)<0||typeof s.peerPresent!=='boolean'||typeof s.speaking!=='boolean'||typeof s.fallback!=='boolean'||(s.fallback&&(s.peerPresent||s.speaking||s.offer!==null||s.answer!==null||s.learnerStudentId!==null))||!(s.learnerStudentId===null||(teacher&&typeof s.learnerStudentId==='string'&&/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(s.learnerStudentId)))||typeof s.expiresAt!=='string'||!Number.isFinite(Date.parse(s.expiresAt))||Date.parse(s.expiresAt)<=now||!(s.offer===null||audioSdp(s.offer))||!(s.answer===null||audioSdp(s.answer))||(teacher?s.offer!==null:s.answer!==null))throw Error('Invalid voice authorization');
-  return s as MeshState;
+  const s = x as Partial<MeshState>
+  if (s.role !== (teacher ? 'teacher' : 'learner') || typeof s.fallback !== 'boolean'
+    || typeof s.expiresAt !== 'string' || !Number.isFinite(Date.parse(s.expiresAt)) || Date.parse(s.expiresAt) <= now
+    || !Array.isArray(s.peers) || s.peers.length > (teacher ? MAX_MESH_LEARNERS : 1)
+    || (s.fallback && s.peers.length !== 0)) throw Error('Invalid voice authorization')
+
+  const ids = new Set<string>()
+  let speaker = false
+  for (const peer of s.peers) {
+    if (!peer || typeof peer.studentId !== 'string' || !UUID.test(peer.studentId)
+      || ids.has(peer.studentId) || !Number.isSafeInteger(peer.epoch) || peer.epoch < 0
+      || typeof peer.speaking !== 'boolean' || (speaker && peer.speaking)
+      || !(peer.offer === null || audioSdp(peer.offer)) || !(peer.answer === null || audioSdp(peer.answer))
+      || (teacher ? peer.offer !== null : peer.answer !== null)) throw Error('Invalid voice peer')
+    ids.add(peer.studentId)
+    speaker ||= peer.speaking
+  }
+  return { role: s.role, peers: s.peers, fallback: s.fallback, expiresAt: s.expiresAt }
 }
 export function gatherIce(pc:RTCPeerConnection,signal:AbortSignal):Promise<void>{
   return new Promise((resolve,reject)=>{

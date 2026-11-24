@@ -194,6 +194,7 @@ type LiveDatabase = Omit<Database, 'public'> & {
           p_client: string
           p_epoch: number | null
           p_sdp: string | null
+          p_target: string | null
         }
         Returns: unknown
       }
