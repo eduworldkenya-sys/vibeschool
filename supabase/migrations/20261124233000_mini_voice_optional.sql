@@ -17,6 +17,7 @@ alter table public.mini_lessons
 create unique index mini_voice_unique_path on public.mini_lessons(audio_path) where audio_path is not null;
 -- Creator can attach exactly once at insertion; cannot update either field.
 grant insert(audio_path) on public.mini_lessons to authenticated;
+grant update(audio_sha256) on public.mini_lessons to service_role;
 revoke insert(audio_sha256), update(audio_path,audio_sha256) on public.mini_lessons from anon,authenticated;
 
 insert into storage.buckets(id,name,public,file_size_limit,allowed_mime_types)
