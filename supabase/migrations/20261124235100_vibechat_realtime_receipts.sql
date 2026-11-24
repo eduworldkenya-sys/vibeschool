@@ -1,7 +1,7 @@
 -- Server-authorized inbox invalidation and receipt watermarks.
 begin;
 -- access: service-only private.vibechat_receipts
--- authorization-test: scripts/test-vibechat-realtime-receipts.mjs
+-- authorization-test: scripts/test-vibechat-contact-discovery.mjs; scripts/sql/vibechat_two_account_authorization.sql
 create table if not exists private.vibechat_receipts(
   kind text not null check(kind in ('vc','tuition')),
   room_id uuid not null,
@@ -132,7 +132,7 @@ grant execute on function public.vibechat_ack_message(text,uuid,uuid,boolean) to
 
 
 -- access: service-only private.vibechat_presence
--- authorization-test: scripts/test-vibechat-realtime-receipts.mjs
+-- authorization-test: scripts/test-vibechat-contact-discovery.mjs; scripts/sql/vibechat_two_account_authorization.sql
 create table if not exists private.vibechat_presence(
   profile_id uuid primary key references public.profiles(id) on delete cascade,
   enabled boolean not null default false,
