@@ -133,7 +133,9 @@ export function MeshLiveVoice({ roomId, classId, teacher, enabled, status, learn
         p_epoch: edge?.epoch ?? null, p_sdp: sdp ?? null, p_target: teacher ? edge?.studentId ?? null : null,
       }).abortSignal(signal)
       if (error) {
-        if (action === 'join' && error.code === 'P0002') return null
+        // During a rolling deploy the app can reach PostgREST before the
+        // migration is visible in its schema cache.
+        if (action === 'join' && ['P0002', 'PGRST202'].includes(error.code)) return null
         throw Error('Voice access or connection unavailable')
       }
       return validateMeshState(data, teacher)
