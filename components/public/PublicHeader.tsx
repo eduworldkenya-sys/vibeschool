@@ -37,7 +37,7 @@ export function PublicHeader({ product, compact = false, navigation }: PublicHea
     <PublicSkipLink className={styles.skip}>Skip to content</PublicSkipLink>
     <header className={`${styles.header} ${compact ? styles.compactHeader : ''}`}>
       <div className={styles.headerInner}>
-        <Link href="/" aria-label="VibeSchool home" className={styles.brand}>
+        <Link href="/home" aria-label="VibeSchool home" className={styles.brand}>
           <span className={styles.productLockup}>
             <Image src="/brand/vibeschool-wordmark.svg" alt="VibeSchool" width={620} height={160} priority className={styles.logo}/>
             <Image src="/brand/vibeschool-wordmark-dark.svg" alt="" aria-hidden="true" width={620} height={160} className={styles.logoDark}/>

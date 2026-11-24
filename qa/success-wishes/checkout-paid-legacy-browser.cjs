@@ -40,14 +40,14 @@ fs.mkdirSync(artifacts,{recursive:true})
     }
     await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({order:stored})})
    })
-   await page.goto(root+'/',{waitUntil:'domcontentloaded',timeout:120000})
+   await page.goto(root+'/home',{waitUntil:'domcontentloaded',timeout:120000})
    assert.equal(await page.getByRole('link',{name:/Explore Success Wishes/}).count(),1,'Exactly one public homepage wish promotion')
    await page.waitForFunction(mobile=>[...document.querySelectorAll('footer details[data-footer-group]')].every(d=>d.open!==mobile),width<=640)
    assert.equal(await page.locator('footer details[data-footer-group]').count(),4,'Four accessible footer disclosures')
    if(width===320){
      const noJs=await browser.newContext({javaScriptEnabled:false,viewport:{width:320,height:840}})
      const staticPage=await noJs.newPage()
-     await staticPage.goto(root+'/',{waitUntil:'domcontentloaded'})
+     await staticPage.goto(root+'/home',{waitUntil:'domcontentloaded'})
      assert.equal(await staticPage.locator('footer details[data-footer-group][open]').count(),4,'Footer links remain available without JavaScript')
      await noJs.close()
    }

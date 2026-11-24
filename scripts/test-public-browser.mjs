@@ -1,7 +1,7 @@
 import { chromium } from 'playwright'
 
 const base = process.env.PUBLIC_TEST_BASE_URL || 'http://127.0.0.1:3000'
-const routes = ['/', '/product', '/evidence', '/about', '/contact', '/careers', '/institutions', '/trust', '/trust/child-safety', '/trust/security', '/trust/responsible-ai', '/legal', '/legal/privacy', '/legal/terms', '/legal/aup', '/pathways', '/pathways/check', '/pathways/subjects', '/pathways/schools', '/learn/careers', '/teacher/marketplace', '/teacher/marketplace/sandbox']
+const routes = ['/home', '/product', '/evidence', '/about', '/contact', '/careers', '/institutions', '/trust', '/trust/child-safety', '/trust/security', '/trust/responsible-ai', '/legal', '/legal/privacy', '/legal/terms', '/legal/aup', '/pathways', '/pathways/check', '/pathways/subjects', '/pathways/schools', '/learn/careers', '/teacher/marketplace', '/teacher/marketplace/sandbox']
 const viewports = [{width:360,height:800},{width:390,height:844},{width:768,height:1024},{width:1440,height:900}]
 const failures=[]
 const internalLinks=new Set()
@@ -103,6 +103,12 @@ try {
 
   const context = await browser.newContext({viewport:{width:390,height:844}})
   const page = await context.newPage()
+  await page.goto(base+'/',{waitUntil:'domcontentloaded'})
+  const publicBar = page.getByRole('navigation', { name: 'Public bottom navigation' })
+  if (await publicBar.getByRole('link', {name:'Explore', exact:true}).getAttribute('aria-current') !== 'page') fail('root: Explore is not selected')
+  if (await page.locator('header').getByRole('link', {name:'VibeSchool home'}).getAttribute('href') !== '/home') fail('root: original homepage link missing')
+  await publicBar.getByRole('link', {name:'VibeTutor', exact:true}).click()
+  await page.waitForURL('**/vibetutor')
   await page.goto(base+'/',{waitUntil:'domcontentloaded'})
   // Verify keyboard activation on the hydrated client, not during a moving
   // hydration boundary that can replace the focused element between Tab and Enter.

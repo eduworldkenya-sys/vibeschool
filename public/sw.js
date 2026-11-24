@@ -1,7 +1,7 @@
 // Public offline foundation. Never cache authenticated, user-specific or API data.
-const CACHE_NAME = 'vibeschool-v10-public-games'
+const CACHE_NAME = 'vibeschool-v11-public-games'
 const STATIC_ROUTES = ['/offline.html']
-const SAFE_PUBLIC_ROUTES = ['/', '/about', '/contact', '/careers', '/institutions', '/sandbox', '/trust', '/legal']
+const SAFE_PUBLIC_ROUTES = ['/home', '/about', '/contact', '/careers', '/institutions', '/sandbox', '/trust', '/legal']
 const OFFLINE_GAME_ROUTES = ['/marketing-studio', '/spin-studio', '/coin-studio', '/pendulum-studio', '/games-studio']
 const SAFE_PUBLIC_PATHS = new Set([...SAFE_PUBLIC_ROUTES, ...OFFLINE_GAME_ROUTES])
 const PUBLIC_ASSET_PREFIXES = ['/_next/static/', '/icons/', '/pwa-icons/', '/fonts/']
@@ -109,4 +109,24 @@ self.addEventListener('fetch', event => {
         || new Response('', { status: 503, statusText: 'Offline' })
     }
   })())
+})
+
+self.addEventListener('notificationclick', event => {
+  if (event.notification.tag !== 'vibechat-new-message') return
+  event.notification.close()
+  event.waitUntil((async () => {
+    const windows = await self.clients.matchAll({type:'window',includeUncontrolled:true})
+    const existing = windows.find(client => new URL(client.url).origin === self.location.origin && new URL(client.url).pathname === '/vibechat')
+    if (existing) { await existing.focus(); return }
+    await self.clients.openWindow('/vibechat')
+  })())
+})
+
+self.addEventListener('push', event => {
+  // Do not read payloads or display sender names/message bodies on the lock screen.
+  event.waitUntil(self.registration.showNotification('VibeChat', {
+    body:'You have a new message.',
+    tag:'vibechat-new-message',
+    data:{path:'/vibechat'}
+  }))
 })

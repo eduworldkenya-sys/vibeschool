@@ -46,7 +46,7 @@ export default function UsernameSetupForm({ next }: { next: string | null }) {
   return <main style={{ minHeight: '100dvh', display: 'grid', placeItems: 'center', padding: 20 }}>
     <form onSubmit={submit} style={{ width: '100%', maxWidth: 390, display: 'grid', gap: 14 }}>
       <h1>Choose your VibeSchool username</h1>
-      <p>One identity across VibeSchool. School membership is optional.</p>
+      <p>You can choose a public username later. No school or parent account setup is required to continue.</p>
       <label htmlFor="username">Username</label>
       <input id="username" required minLength={3} maxLength={25} autoComplete="nickname"
         value={username} onChange={e => setUsername(normalizeUsername(e.target.value))}
@@ -54,6 +54,10 @@ export default function UsernameSetupForm({ next }: { next: string | null }) {
       <p>@{username || 'yourname'}</p>
       {message && <p role="alert">{message}</p>}
       <button type="submit" disabled={busy} style={{ minHeight: 48 }}>{busy ? 'Saving…' : 'Continue'}</button>
+      <button type="button" disabled={busy} onClick={() => router.replace(destination)}
+        style={{ minHeight: 48, background:'transparent', border: '1px solid #cbd5e1', color:'#334155' }}>
+        Skip for now
+      </button>
     </form>
   </main>
 }

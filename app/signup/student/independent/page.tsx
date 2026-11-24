@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { learnerDisplayName } from '@/lib/student/learner-welcome'
@@ -19,6 +20,7 @@ export default function IndependentLearnerSignup() {
   const [level,setLevel] = useState('')
   const [choice,setChoice] = useState('')
   const [name,setName] = useState('')
+  const [ageBand,setAgeBand] = useState<''|'adult'|'under_18'>('')
   const [editing,setEditing] = useState(false)
   const [busy,setBusy] = useState(false)
   const [message,setMessage] = useState('')
@@ -37,7 +39,7 @@ export default function IndependentLearnerSignup() {
   },[])
 
   async function continueLearning() {
-    if (!resolveRegistrationLearningSelection(level,choice)||!name.trim()||busy) return
+    if (!resolveRegistrationLearningSelection(level,choice)||!name.trim()||busy||ageBand!=='adult') return
     setBusy(true)
     setMessage('')
     try {
@@ -46,7 +48,7 @@ export default function IndependentLearnerSignup() {
       const response = await fetch('/api/learner/independent/grade',{
         method:'POST',
         headers:{'Content-Type':'application/json',Authorization:'Bearer '+session.access_token},
-        body:JSON.stringify({level,choice,name:name.trim()}),
+        body:JSON.stringify({level,choice,name:name.trim(),ageBand}),
       })
       const result = await response.json()
       if (!response.ok) throw new Error(result.error||'Could not save your learning level.')
@@ -73,9 +75,14 @@ export default function IndependentLearnerSignup() {
           </label> : <div className={styles.name}><span className={styles.nameText}>{name}</span>
             <button type="button" className={styles.edit} onClick={()=>setEditing(true)}>Edit name</button>
           </div>}
+          <fieldset style={{border:0,padding:0,margin:'12px 0'}}><legend>Who is learning?</legend>
+            <label style={{display:'block',margin:'8px 0'}}><input type="radio" checked={ageBand==='adult'} onChange={()=>setAgeBand('adult')} /> I am 18 or older</label>
+            <label style={{display:'block',margin:'8px 0'}}><input type="radio" checked={ageBand==='under_18'} onChange={()=>setAgeBand('under_18')} /> I am under 18</label>
+          </fieldset>
+          {ageBand==='under_18' && <p role="status">You can read lessons now without registering. A parent or authorized guardian can create your private learning account when needed. <Link href="/learn">Open Learn</Link> · <Link href="/join?role=parent">Set up with an adult</Link></p>}
           <LearningLevelSelect level={level} choice={choice} onLevelChange={setLevel}
             onChoiceChange={setChoice} disabled={busy}/>
-          <button className={styles.primary} disabled={!resolveRegistrationLearningSelection(level,choice)||!name.trim()||busy}
+          <button className={styles.primary} disabled={!resolveRegistrationLearningSelection(level,choice)||!name.trim()||busy||ageBand!=='adult'}
             type="button" onClick={()=>void continueLearning()}>{busy?'Saving…':'Continue'}</button>
         </>}
       {message && <p className={styles.message} role="alert">{message}</p>}

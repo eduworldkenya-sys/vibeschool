@@ -54,6 +54,36 @@ export default function PwaServiceWorker() {
     }
   }, [])
 
+  // Subscribe to auth changes only on browsers that opted into VibeChat push.
+  // A shared browser must not retain another account's subscription.
+  useEffect(()=>{
+    const key='vibechat:push-owner:v1'
+    const eventName='vibechat-push-changed'
+    let stopped=false
+    let loading=false
+    let unsubscribe:(()=>void)|undefined
+    const connect=async()=>{
+      if(stopped||loading||unsubscribe)return
+      try{
+        if(!localStorage.getItem(key))return
+        loading=true
+        const [{getSupabaseClient},{removeLocalPush}]=await Promise.all([import('@/lib/supabase'),import('@/components/vibechat/useVibeChatWebPush')])
+        if(stopped)return
+        const db=getSupabaseClient()
+        const {data:{subscription}}=db.auth.onAuthStateChange((event,session)=>{
+          try{
+            const owner=localStorage.getItem(key)
+            if(owner&&(event==='SIGNED_OUT'||(session?.user&&session.user.id!==owner)))void removeLocalPush(owner)
+          }catch{}
+        })
+        unsubscribe=()=>subscription.unsubscribe()
+      }catch{}finally{loading=false}
+    }
+    void connect()
+    window.addEventListener(eventName,connect)
+    return()=>{stopped=true;unsubscribe?.();window.removeEventListener(eventName,connect)}
+  },[])
+
   if (!waiting) return null
 
   const update = () => {
