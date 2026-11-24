@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Flag, ShieldCheck, X } from 'lucide-react'
 import styles from './LiveClassroom.module.css'
+import {LiveBreakoutDiscussion} from './LiveBreakoutDiscussion'
 
 type Message={id:string;body:string;author:string;own:boolean;hidden:boolean;sentAt:string;reports:number}
 type Command=(action:string,id?:string|null,version?:number|null,payload?:Record<string,unknown>)=>Promise<unknown>
@@ -104,6 +105,7 @@ export function LiveClassChat({roomId,version,teacher,status,command,onClose}:{
      <button type="button" aria-label="Close class chat" onClick={onClose}><X size={18}/></button></div>
    <small>Only learners admitted to this Live class can participate. The teacher can close chat or hide messages.</small>
    {teacher&&<button type="button" disabled={busy||status==='ended'} onClick={()=>void toggle()}>{enabled?'Close learner chat':'Enable class chat'}</button>}
+   <LiveBreakoutDiscussion roomId={roomId} teacher={teacher} status={status} command={command}/>
    {!enabled&&<p role="status">Class chat is closed by the teacher.</p>}
    <div className={styles.chatMessages} role="log" aria-live="polite" aria-relevant="additions text">
      {enabled&&!messages.length&&<p>There are no class messages yet.</p>}
