@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8')
 const api=read('app/api/minis/safety/route.ts')
-const schema=read('supabase/migrations/20261124230000_mini_open_creator_safety_scans.sql')
+const schema=read('supabase/migrations/20261124072331_mini_open_creator_safety_scans.sql')
 const actions=read('lib/minis/actions.ts')
 const requests=read('lib/minis/requests.ts')
 const requestUi=read('components/public/MiniLiveRequests.tsx')
@@ -101,7 +101,7 @@ test('public discovery is anonymous RLS-bound and pagination is cursor-based',()
 })
 
 test('scanner commissioning grants only the server moderation columns and protects the scanned version',()=>{
- const grants=read('supabase/migrations/20261124230100_mini_scanner_service_permissions.sql')
+ const grants=read('supabase/migrations/20261124072333_mini_scanner_service_permissions.sql')
  assert.match(grants,/grant select on public\.mini_lessons, public\.mini_requests, public\.mini_comments to service_role/)
  assert.match(grants,/grant update\(status,reviewed_at,published_at,moderation_note\) on public\.mini_lessons to service_role/)
  assert.match(grants,/grant update\(verdict,reason,model,checked_at,lease_until\) on public\.mini_safety_scans to service_role/)

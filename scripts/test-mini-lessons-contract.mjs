@@ -4,14 +4,14 @@ import { miniRecommendationScore, rankMiniLessons } from '../lib/minis/recommend
 import { parseMiniHashtags, miniSubjectFromTags } from '../lib/minis/tags.ts'
 
 const read = p => readFileSync(new URL('../'+p,import.meta.url),'utf8')
-const schema = read('supabase/migrations/20261123210000_mini_lessons_foundation_v1.sql')
-const review = read('supabase/migrations/20261123210100_mini_lessons_review_and_abuse_limits.sql')
+const schema = read('supabase/migrations/20261124044148_mini_lessons_foundation_v1.sql')
+const review = read('supabase/migrations/20261124044153_mini_lessons_review_and_abuse_limits.sql')
 const actions = read('lib/minis/actions.ts')
 const realExplore = read('components/public/MiniLiveExplore.tsx')
 const explore = read('app/explore/page.tsx')
 const home = read('components/public/MiniHomeSection.tsx')
 const safetyApi = read('app/api/minis/safety/route.ts')
-const safetyDb = read('supabase/migrations/20261124230000_mini_open_creator_safety_scans.sql')
+const safetyDb = read('supabase/migrations/20261124072331_mini_open_creator_safety_scans.sql')
 const oldHq = read('app/api/hq/minis/review/route.ts')
 
 assert.deepEqual(parseMiniHashtags('#Mathematics #Fractions #Mathematics'),['mathematics','fractions'])
