@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, type FormEvent } from 'react'
+import Link from 'next/link'
 
 type Child = {
   id: string
@@ -87,7 +88,7 @@ export default function ManagedLearners() {
         <button type="button" onClick={()=>void navigator.clipboard?.writeText(
           `VibeSchool learner sign-in\nID: ${credentials.loginId}\nPassword: ${credentials.password}\nhttps://vibeschool.co.ke/login/student`
         )} style={{padding:12,marginTop:10}}>Copy login details</button>
-        <p><a href="/login/student">Open learner sign-in</a></p>
+        <p><Link href="/login/student">Open learner sign-in</Link></p>
       </section>}
       <h2 style={{fontSize:18,marginBottom:10}}>Children</h2>
       {(data?.managed_learners?.length ?? 0) === 0 && <p style={{color:'#64748b'}}>No learners yet.</p>}
