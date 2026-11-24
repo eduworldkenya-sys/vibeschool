@@ -5,10 +5,11 @@ import { createPortal } from 'react-dom'
 import { Maximize, Minimize, Users, PanelTop, Pencil, HelpCircle, ClipboardList, BarChart3, MoreHorizontal, X, Video, Move, GripHorizontal, Hand, MessageSquare, NotebookPen, History, Wifi, WifiOff, BookOpen } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import styles from './LiveClassroom.module.css'
-import { adjacentSlide, buildTextRevealSlides, decodeAssessment, assessmentPrompt, decodePhotoSlide, visualSlideBody, visualSlidePayload } from './LiveSlideProtocol'
+import { adjacentSlide, buildTextRevealSlides, decodeAssessment, assessmentPrompt, decodePhotoSlide, visualSlideBody, visualSlidePayload, preparedAssessment } from './LiveSlideProtocol'
 import { SlideCanvas, encodeSlide, decodeSlide, validSlide, diagramLabel, SLIDE_DIAGRAMS, SLIDE_THEMES, type LiveSlide, type SlideDiagram, type SlideTheme } from './LiveSlideCanvas'
 import { ObjectBoard, SharedObjectBoard } from './LiveObjectBoard'
 import {LiveSelfPacedReview} from './LiveSelfPacedReview'
+import {PrivateSlideFields} from './LivePreparedAssessment'
 import {SlideBodyEditor} from './LiveSlideBodyEditor'
 import { TeachingLibrary } from './LiveTeachingLibrary'
 import { LiveResourcePicker } from './LiveResourcePicker'
@@ -963,7 +964,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
     const question=assessmentPrompt(activity)
     const saved=activity.kind===mode?{body,key}:composerDrafts.current[activity.kind]
     if((saved?.body||saved?.key)&&!window.confirm('Replace the unsent activity draft?'))return
-    chooseMode(activity.kind);setBody(question);setKey('')
+    chooseMode(activity.kind);setBody(question);const draft=liveSlide&&slides[liveSlide.number-1];setKey(draft&&draft.body===liveSlide?.body?preparedAssessment(draft)?.answer??'':'')
   }
   const lastPresentedSlide=[...history].reverse().map(p=>p.kind==='teach'?decodeSlide(p.body):null).find(p=>p!==null)
   const resumeAfterActivity=lastPresentedSlide?adjacentSlide(slides,lastPresentedSlide,1):null
@@ -1039,7 +1040,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
               <label>Layout<select aria-label="Layout" disabled={busy} value={slide.layout??'wide'} onChange={e=>editSlide({layout:e.target.value==='portrait'?'portrait':'wide'})}><option value="wide">Wide 16:9</option><option value="portrait">Portrait</option></select></label>
               <label>Text size<select aria-label="Text size" disabled={busy} value={slide.font??'normal'} onChange={e=>editSlide({font:e.target.value==='large'?'large':'normal'})}><option value="normal">Normal</option><option value="large">Large</option></select></label>
             </div>
-            <label>Presenter notes (private)<textarea maxLength={2000} value={slide.notes??''} disabled={busy} onChange={e=>editSlide({notes:e.target.value})}/></label>
+            <PrivateSlideFields key={room.id+':private:'+slideIndex} slide={slide} disabled={busy} onChange={notes=>editSlide({notes})}/>
             <div className={styles.slideToolbar}><button type="button" disabled={busy||slideIndex===0} onClick={()=>moveSlide(-1)}>Move left</button><button type="button" disabled={busy||slideIndex===slides.length-1} onClick={()=>moveSlide(1)}>Move right</button><button type="button" disabled={busy||slides.length>=30} onClick={()=>addSlide(true)}>Duplicate</button><button type="button" disabled={busy||slides.length<=1} onClick={deleteSlide}>Delete</button>{deletedSlide&&<button type="button" disabled={busy||slides.length>=30} onClick={undoSlideDelete}>Undo delete</button>}</div>
             {!slideText&&<small role="status">Add content or shorten text to fit the shared slide limit.</small>}
             <small>{workspaceStatus||'Draft'} · published slides remain in lesson history.</small>

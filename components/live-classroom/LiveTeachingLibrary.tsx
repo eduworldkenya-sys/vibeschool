@@ -3,6 +3,7 @@ import {useEffect,useState,useRef,useCallback} from 'react'
 import {SlideCanvas,validSlide,diagramLabel,SLIDE_DIAGRAMS,SLIDE_THEMES,type LiveSlide,type SlideDiagram,type SlideTheme} from './LiveSlideCanvas'
 import styles from './LiveClassroom.module.css'
 import {SlidePrintPreview} from './LiveSlidePrintPreview'
+import {PrivateSlideFields} from './LivePreparedAssessment'
 import {SlideBodyEditor} from './LiveSlideBodyEditor'
 import {exportDeck,importDeck,MAX_DECK_FILE_BYTES,buildTextRevealSlides,isPhotoBody} from './LiveSlideProtocol'
 type Summary={id:string;title:string;revision:number;slideCount:number;updatedAt:string}
@@ -120,7 +121,7 @@ export function TeachingLibrary({command,currentDeck,onUse}:{command:Command;cur
     <label>Layout<select aria-label="Layout" disabled={busy} value={slide.layout??'wide'} onChange={e=>patch({layout:e.target.value==='portrait'?'portrait':'wide'})}><option value="wide">Wide</option><option value="portrait">Portrait</option></select></label>
     <label>Text size<select aria-label="Text size" disabled={busy} value={slide.font??'normal'} onChange={e=>patch({font:e.target.value==='large'?'large':'normal'})}><option value="normal">Normal</option><option value="large">Large</option></select></label>
    </div>
-   <label>Presenter notes (private)<textarea maxLength={2000} disabled={busy} value={slide.notes??''} onChange={e=>patch({notes:e.target.value})}/></label>
+   <PrivateSlideFields key={edit.id+':private:'+index} slide={slide} disabled={busy} onChange={notes=>patch({notes})}/>
    <div className={styles.controls}><button className={styles.primary} disabled={busy||!edit.title.trim()} onClick={()=>void save()}>Save presentation</button><button disabled={busy||!edit.title.trim()} onClick={()=>void save(true)}>Save & use</button><button disabled={busy} onClick={()=>{if(mayReplace()){setEdit(null);setDirty(false);setSaveProblem('')}}}>Close editor</button><button type="button" disabled={busy||!edit.title.trim()} onClick={download} >Export slides (without private notes)</button><button type="button" disabled={busy||!edit.title.trim()||edit.slides.some(s=>isPhotoBody(s.body))} onClick={()=>setPrintDeck(edit)}>Print / Save PDF</button><small>{busy?'Saving…':dirty?'Changes not yet saved':edit.revision>0?'Saved privately · recover from My Presentations':'New presentation'}</small></div>
   </section>}
  </div>

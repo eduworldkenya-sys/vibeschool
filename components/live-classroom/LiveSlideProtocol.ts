@@ -8,7 +8,7 @@ const prefix='VSLIDE1:'
 export function validSlide(s:unknown):s is LiveSlide {
  if(!s||typeof s!=='object')return false
  const x=s as LiveSlide
- return typeof x.title==='string'&&x.title.length<=120&&typeof x.body==='string'&&x.body.length<=3878&&(!isDemoBody(x.body)||decodeDemo(x.body)!==null)&&(!isAssessmentBody(x.body)||decodeAssessment(x.body)!==null)&&(!isPhotoBody(x.body)||decodePhotoSlide(x.body)!==null)
+ return typeof x.title==='string'&&x.title.length<=120&&typeof x.body==='string'&&x.body.length<=3878&&(!isDemoBody(x.body)||decodeDemo(x.body)!==null)&&(!isAssessmentBody(x.body)||decodeAssessment(x.body)!==null)&&(!isPhotoBody(x.body)||decodePhotoSlide(x.body)!==null)&&(!isMultiDemoBody(x.body)||decodeMultiDemo(x.body)!==null)
  &&(x.diagram===undefined||SLIDE_DIAGRAMS.includes(x.diagram))&&(x.theme===undefined||SLIDE_THEMES.includes(x.theme))
  &&(x.layout===undefined||x.layout==='wide'||x.layout==='portrait')&&(x.font===undefined||x.font==='normal'||x.font==='large')
  &&(x.notes===undefined||(typeof x.notes==='string'&&x.notes.length<=2000))
@@ -135,7 +135,7 @@ export function changeDemo(d:SlideDemo,field:'a'|'b',value:number):SlideDemo{
  return next
 }
 export function buildTextRevealSlides(slide:LiveSlide,available:number):LiveSlide[]{
- if(isDemoBody(slide.body)||isAssessmentBody(slide.body)||isPhotoBody(slide.body)||visualSlidePayload(slide.body)!==null)return []
+ if(isDemoBody(slide.body)||isMultiDemoBody(slide.body)||isAssessmentBody(slide.body)||isPhotoBody(slide.body)||visualSlidePayload(slide.body)!==null)return []
  const lines=slide.body.split(/\r?\n/).map(line=>line.trim()).filter(Boolean)
  if(lines.length<2||lines.length>available||lines.length>30)return []
  const steps=lines.map((_,i)=>({...slide,body:lines.slice(0,i+1).join('\n')}))
@@ -186,4 +186,55 @@ export function updatePhoto(p:SlidePhoto,patch:Partial<Pick<SlidePhoto,'x'|'y'|'
  n.w=bound(n.w,20,100,p.w);n.h=bound(n.h,20,100,p.h)
  n.x=bound(n.x,0,100-n.w,p.x);n.y=bound(n.y,0,100-n.h,p.y)
  return validPhoto(n)?n:p
+}
+
+/** Private preparation stays in the existing owner-only notes field. The public
+ * projection never includes this field. Bind answers to the exact question body
+ * so editing a question cannot silently reuse a stale answer key. */
+const PRIVATE_ASSESSMENT_PREFIX='VSLIDENOTES1:'
+type PrivateSlideNotes={text:string;assessment?:{body:string;option:number;explanation:string}}
+function unpackNotes(notes:string|undefined):PrivateSlideNotes{
+ const value=notes??''
+ if(!value.startsWith(PRIVATE_ASSESSMENT_PREFIX))return {text:value}
+ try{
+  const n:unknown=JSON.parse(value.slice(PRIVATE_ASSESSMENT_PREFIX.length))
+  if(!n||typeof n!=='object')return {text:value}
+  const obj=n as PrivateSlideNotes
+  if(typeof obj.text!=='string')return {text:value}
+  const a=obj.assessment
+  const question=a&&typeof a.body==='string'?decodeAssessment(a.body):null
+  if(!a||!question||question.kind!=='quiz'||!Number.isInteger(a.option)||a.option<0||a.option>=question.options.length||typeof a.explanation!=='string')return {text:obj.text}
+  return {text:obj.text,assessment:{body:a.body,option:a.option,explanation:a.explanation}}
+ }catch{return {text:value}}
+}
+function packNotes(value:PrivateSlideNotes):string|null{
+ const n=value.assessment?PRIVATE_ASSESSMENT_PREFIX+JSON.stringify(value):value.text
+ return n.length<=2000?n:null
+}
+export function presenterNotes(notes:string|undefined):string{return unpackNotes(notes).text}
+export function setPresenterNotes(notes:string|undefined,text:string):string|null{return packNotes({...unpackNotes(notes),text})}
+export function preparedAssessment(slide:LiveSlide):{option:number;explanation:string;answer:string}|null{
+ const a=unpackNotes(slide.notes).assessment,q=decodeAssessment(slide.body)
+ if(!a||!q||q.kind!=='quiz'||a.body!==slide.body)return null
+ const answer=String.fromCharCode(65+a.option)+'. '+q.options[a.option]
+ return {option:a.option,explanation:a.explanation,answer:a.explanation.trim()?answer+'\n\nExplanation: '+a.explanation.trim():answer}
+}
+export function prepareAssessment(slide:LiveSlide,option:number|null,explanation:string):string|null{
+ const notes=unpackNotes(slide.notes),q=decodeAssessment(slide.body)
+ if(option===null)return packNotes({text:notes.text})
+ if(!q||q.kind!=='quiz'||!Number.isInteger(option)||option<0||option>=q.options.length||explanation.length>800)return null
+ return packNotes({text:notes.text,assessment:{body:slide.body,option,explanation}})
+}
+const MULTI_DEMO_PREFIX='VSLIDEMULTIDEMO1:'
+export type PositionedDemo={id:string;demo:SlideDemo}
+export function isMultiDemoBody(body:string):boolean{return body.startsWith(MULTI_DEMO_PREFIX)}
+function validMultiDemo(value:unknown):value is PositionedDemo[]{
+ return Array.isArray(value)&&value.length>=1&&value.length<=4&&value.every(v=>v&&typeof v==='object'&&!Array.isArray(v)&&Object.keys(v).every(k=>k==='id'||k==='demo')&&typeof v.id==='string'&&/^[A-Za-z0-9-]{1,40}$/.test(v.id)&&validDemo(v.demo))&&new Set(value.map(v=>v.id)).size===value.length
+}
+export function encodeMultiDemo(value:PositionedDemo[]):string{
+ return validMultiDemo(value)?MULTI_DEMO_PREFIX+JSON.stringify(value.map(v=>({id:v.id,demo:{kind:v.demo.kind,a:v.demo.a,b:v.demo.b}}))):''
+}
+export function decodeMultiDemo(body:string):PositionedDemo[]|null{
+ if(!isMultiDemoBody(body)||body.length>2000)return null
+ try{const v:unknown=JSON.parse(body.slice(MULTI_DEMO_PREFIX.length));return validMultiDemo(v)?v.map(o=>({id:o.id,demo:{kind:o.demo.kind,a:o.demo.a,b:o.demo.b}})):null}catch{return null}
 }

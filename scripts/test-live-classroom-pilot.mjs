@@ -1,4 +1,4 @@
-import {exportDeck,importDeck,MAX_DECK_FILE_BYTES,defaultDemo,decodeDemo,encodeDemo,changeDemo,buildTextRevealSlides,DEMO_RANGES,encodeAssessment,decodeAssessment,assessmentPrompt,encodePhotoSlide,decodePhotoSlide,updatePhoto} from '../components/live-classroom/LiveSlideProtocol.ts'
+import {exportDeck,importDeck,MAX_DECK_FILE_BYTES,defaultDemo,decodeDemo,encodeDemo,changeDemo,buildTextRevealSlides,DEMO_RANGES,encodeAssessment,decodeAssessment,assessmentPrompt,encodePhotoSlide,decodePhotoSlide,updatePhoto,prepareAssessment,preparedAssessment,presenterNotes,setPresenterNotes,encodeMultiDemo,decodeMultiDemo} from '../components/live-classroom/LiveSlideProtocol.ts'
 // Install the pinned test-only engine outside the repo: npm install --prefix /tmp/live-test --no-audit --no-fund @electric-sql/pglite@0.3.14
 import {createLiveFixture} from './live-classroom-test-fixture.mjs'
 import {readFileSync} from 'node:fs'
@@ -71,6 +71,24 @@ assert.equal(encodePhotoSlide({...photoDoc,photos:[{...photo,url:'https://exampl
 assert.deepEqual(updatePhoto(photo,{x:90}),{...photo,x:40})
 assert.equal(decodeSlide(encodeSlide({title:'Photo',body:photoBody},1,1)).body,photoBody)
 assert.throws(()=>exportDeck('Photo',[{title:'Photo',body:photoBody}]),/Room-specific photos/)
+const quizDraft={title:'Private key',body:activityBody,notes:'Private notes'}
+const notesWithKey=prepareAssessment(quizDraft,0,'Because two equal parts make a whole.')
+assert.ok(notesWithKey)
+const preparedQuiz={...quizDraft,notes:notesWithKey}
+assert.equal(presenterNotes(notesWithKey),'Private notes')
+assert.equal(preparedAssessment(preparedQuiz).option,0)
+assert.ok(preparedAssessment(preparedQuiz).answer.includes('Because two'))
+assert.equal(preparedAssessment({...preparedQuiz,body:encodeAssessment({...activity,question:'Different question?'})}),null)
+assert.equal(preparedAssessment({...preparedQuiz,notes:setPresenterNotes(notesWithKey,'New notes')}).option,0)
+assert.ok(!encodeSlide(preparedQuiz,1,1).includes('Because two'))
+assert.ok(!exportDeck('Quiz',[preparedQuiz]).includes('Because two'))
+assert.equal(prepareAssessment(quizDraft,99,''),null)
+const demos=[{id:'a',demo:defaultDemo('clock')},{id:'b',demo:defaultDemo('ruler')}]
+const multiBody=encodeMultiDemo(demos)
+assert.deepEqual(decodeMultiDemo(multiBody),demos)
+assert.equal(encodeMultiDemo([demos[0],demos[0]]),'')
+assert.equal(decodeSlide(encodeSlide({title:'Compare',body:multiBody},1,1)).body,multiBody)
+assert.equal(buildTextRevealSlides({title:'Compare',body:multiBody},3).length,0)
 const encodedSlide=encodeSlide(privateSlide,2,5)
 assert.ok(encodedSlide)
 assert.ok(!encodedSlide.includes(privateSlide.notes))
