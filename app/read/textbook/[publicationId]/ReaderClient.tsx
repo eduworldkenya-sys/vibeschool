@@ -57,6 +57,23 @@ export default function ReaderClient({publicationId,initialPayload,initialChapte
   const previousIndex=Array.from({length:index},(_,n)=>index-n-1).find(i=>readableChapter(chapters[i]))??-1;
   const nextIndex=chapters.findIndex((chapter,i)=>i>index&&readableChapter(chapter));
 
+  // The continuity toolbar calls these existing reader actions directly.
+  // No DOM text searching or second navigation implementation is needed.
+  useEffect(()=>{
+    const openContents=()=>setContents(true);
+    const navigate=(raw:Event)=>{
+      const detail=(raw as CustomEvent<{direction?:string}>).detail;
+      const destination=detail?.direction==="previous"?previousIndex:detail?.direction==="next"?nextIndex:-1;
+      if(destination>=0)go(destination);
+    };
+    window.addEventListener("vibe:reader-open-contents",openContents);
+    window.addEventListener("vibe:reader-navigate",navigate);
+    return()=>{
+      window.removeEventListener("vibe:reader-open-contents",openContents);
+      window.removeEventListener("vibe:reader-navigate",navigate);
+    };
+  },[previousIndex,nextIndex,chapters,publicationId]);
+
   function go(i:number){if(!readableChapter(chapters[i]))return;narrator.stop();setIndex(i);setContents(false);setSheet(null);window.history.replaceState(window.history.state,"",`/read/textbook/${publicationId}/${encodeURIComponent(chapters[i].id)}`);setTimeout(()=>document.getElementById("reader-active-unit")?.scrollIntoView({behavior:"smooth",block:"start"}),20)}
   function openPractice(){
     if(!active?.can_read)return;
@@ -79,7 +96,7 @@ export default function ReaderClient({publicationId,initialPayload,initialChapte
   return <div className={editorial.premiumShell} style={{minHeight:"100dvh",background:C.bg,color:C.text,fontFamily:"Inter,system-ui,-apple-system,sans-serif",fontSize:font,lineHeight:1.72}}>
     <style>{`[data-reader-speaking="true"]{outline:2px solid rgba(22,134,89,.5);outline-offset:7px;border-radius:8px;background:rgba(22,134,89,.035);transition:background .18s ease}`}</style>
     {!focus&&<header className={editorial.premiumHeader} style={{position:"sticky"}}><div className={editorial.premiumHeaderBar}><button aria-label="Back" onClick={()=>router.back()} style={iconBtn}>←</button><div className={editorial.premiumTitle}>{activeTitle||pub.title||"VibeLearn"}</div><button type="button" onClick={()=>setContents(true)} className={editorial.premiumTool}>Contents</button><button type="button" aria-label="Open reading tools" onClick={()=>setSheet("tools")} className={editorial.premiumTool}>•••</button></div></header>}
-    <main id="reader-active-unit" className={timeStyles.page+" "+editorial.premiumPage} style={{scrollMarginTop:70,fontSize:16,lineHeight:1.75}}>
+    <main id="reader-active-unit" className={timeStyles.page+" "+editorial.premiumPage} style={{scrollMarginTop:70,fontSize:font,lineHeight:1.75}}>
       <div className={timeStyles.wrap}>
         {!focus&&<nav className={timeStyles.breadcrumbs+" "+editorial.premiumBreadcrumbs} aria-label="Breadcrumb">
           <Link href="/learn">Learn</Link><ChevronRight size={15} aria-hidden="true"/>
@@ -119,7 +136,7 @@ export default function ReaderClient({publicationId,initialPayload,initialChapte
           </div>
         </div>
         <h2 className={timeStyles.articleTitle}>{activeTitle||"Lesson "+active.number}</h2>{path&&<div style={{fontSize:13,color:C.muted,marginBottom:18}}>{path}</div>}{!lessonActive&&active.curriculum.learning_outcomes.length>0&&<section className={timeStyles.goal} aria-labelledby="outcomes-title"><h3 id="outcomes-title" className={timeStyles.goalLabel}>What you’ll learn</h3><ul style={{margin:0,paddingLeft:20,fontSize:15,lineHeight:1.55,color:"#385b49"}}>{active.curriculum.learning_outcomes.slice(0,4).map((o,i)=><li key={i} style={{marginBottom:6}}>{o}</li>)}</ul>{(active.curriculum.learning_outcomes.length>4||active.curriculum.key_inquiry_questions.length>0||active.curriculum.suggested_experiences.length>0)&&<button onClick={()=>setDetails(v=>!v)} style={{...linkBtn,marginTop:7}}>{details?"Hide learning details":"More learning details"}</button>}{details&&<div style={{marginTop:12,fontSize:14,color:C.muted}}>{active.curriculum.learning_outcomes.slice(4).map((o,i)=><div key={`o${i}`}>• {o}</div>)}{active.curriculum.key_inquiry_questions.length>0&&<><strong style={{display:"block",color:C.text,marginTop:12}}>Questions to think about</strong>{active.curriculum.key_inquiry_questions.map((q,i)=><div key={`q${i}`}>• {q}</div>)}</>}{active.curriculum.suggested_experiences.length>0&&<><strong style={{display:"block",color:C.text,marginTop:12}}>Ways to learn this</strong>{active.curriculum.suggested_experiences.map((x,i)=><div key={`x${i}`}>• {x}</div>)}</>}</div>}</section>}</div>
-      <div className={paperStyles.plainReader} style={{width:"min(calc(100% - 36px),700px)",maxWidth:"100%",margin:"0 auto",padding:"clamp(16px,3vw,30px)",boxSizing:"border-box"}}>{active.can_read?activeBlocks.length?<><PublishedTextbookLearnReader subject={active.curriculum?.subject||pub.cbc_subject||"Learning"} blocks={activeBlocks} chapterId={active.id}/>
+      <div className={paperStyles.plainReader} style={{width:"min(calc(100% - 36px),700px)",maxWidth:"100%",margin:"0 auto",padding:"clamp(16px,3vw,30px)",boxSizing:"border-box","--reader-book-font-size":font+"px"} as React.CSSProperties}>{active.can_read?activeBlocks.length?<><PublishedTextbookLearnReader subject={active.curriculum?.subject||pub.cbc_subject||"Learning"} blocks={activeBlocks} chapterId={active.id}/>
         {lessonActive&&<section aria-label="Explore and practise place value" style={{marginTop:28}}>
           <div style={{color:"#172f25",background:"#fff",borderRadius:16,padding:"1px 14px"}}><PlaceValuePreviewChart/></div>
           <nav aria-label="Next learning step" style={{display:"flex",gap:12,flexWrap:"wrap",marginTop:18}}>
