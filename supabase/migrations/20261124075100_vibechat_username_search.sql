@@ -35,4 +35,44 @@ end;
 $search$;
 revoke all on function public.vibechat_search_handles(text) from public,anon,authenticated;
 grant execute on function public.vibechat_search_handles(text) to authenticated;
+-- Existing authorized conversation peers also support username filtering.
+create or replace function public.vibechat_my_chat_peers()
+returns jsonb language sql stable security definer set search_path = '' as $vcchatpeers$
+  select coalesce(jsonb_agg(jsonb_build_object(
+    'thread_id', t.id, 'name', peer.full_name, 'avatar_url', peer.avatar_url, 'handle', peer.vc_id
+  )),'[]'::jsonb)
+  from public.vc_participants mine
+  join public.vc_threads t on t.id = mine.thread_id and t.type='direct'
+  join public.vc_participants other on other.thread_id = t.id
+    and other.profile_id <> mine.profile_id and other.left_at is null
+  join public.profiles peer on peer.id = other.profile_id
+  where auth.uid() is not null
+    and mine.profile_id = auth.uid() and mine.left_at is null
+    and private.vc_user_is_thread_participant(t.id)
+    and peer.account_status::text='active'
+    and not coalesce(peer.is_anonymized,false)
+$vcchatpeers$;
+revoke all on function public.vibechat_my_chat_peers() from public, anon, authenticated;
+grant execute on function public.vibechat_my_chat_peers() to authenticated;
+
+-- In tuition, the existing accepted-invitation RPC is the authority.
+-- A learner profile is returned only to its accepted tutor, or vice versa.
+create or replace function public.vibechat_my_tuition_peers()
+returns jsonb language sql stable security definer set search_path = '' as $vctuitionpeers$
+  select coalesce(jsonb_agg(jsonb_build_object(
+    'invitation_id', i.id, 'name', peer.full_name, 'avatar_url', peer.avatar_url, 'handle', peer.vc_id
+  )),'[]'::jsonb)
+  from public.vibetutor_student_invitations i
+  join lateral public.vibetutor_private_access(i.id) access on true
+  join public.profiles peer on peer.id = case
+    when access.tutor_id = auth.uid() then access.student_profile_id
+    else access.tutor_id end
+  where auth.uid() is not null and i.status = 'accepted'
+    and peer.account_status::text='active'
+    and not coalesce(peer.is_anonymized,false)
+$vctuitionpeers$;
+revoke all on function public.vibechat_my_tuition_peers() from public, anon, authenticated;
+grant execute on function public.vibechat_my_tuition_peers() to authenticated;
+
+
 commit;
