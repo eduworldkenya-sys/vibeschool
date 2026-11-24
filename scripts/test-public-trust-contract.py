@@ -17,7 +17,7 @@ def text(rel: str) -> str:
 
 # Public surfaces that must remain inside the canonical VibeSchool shell.
 shell_pages = [
-    'app/page.tsx','app/product/page.tsx','app/explore/page.tsx','app/about/page.tsx','app/contact/page.tsx','app/careers/page.tsx',
+    'app/home/page.tsx','app/product/page.tsx','app/explore/page.tsx','app/about/page.tsx','app/contact/page.tsx','app/careers/page.tsx',
     'app/institutions/page.tsx','app/trust/page.tsx','app/trust/child-safety/page.tsx',
     'app/trust/security/page.tsx','app/trust/responsible-ai/page.tsx','app/legal/page.tsx',
     'app/legal/privacy/page.tsx','app/legal/terms/page.tsx','app/legal/aup/page.tsx',
@@ -78,7 +78,8 @@ for fragment in [':focus-visible','@media(max-width:640px)','min-height:44px','p
 # contact CTAs or signed-in global activity/profile routes.
 bottom_nav = text('components/public/PublicBottomNav.tsx')
 for label, destination in [
-    ('Home', '/'),
+    ('Home', '/home'),
+    ('VibeTutor', '/vibetutor'),
     ('Explore', '/explore'),
     ('Learn', '/learn'),
     ('Schools', '/schools'),
@@ -146,7 +147,12 @@ for fragment in [
 ]:
     if fragment not in mission: errors.append(f'mission/vision lock missing: {fragment}')
 
-home = text('app/page.tsx')
+home = text('app/home/page.tsx')
+landing = text('app/page.tsx')
+if "export { default } from './explore/page'" not in landing:
+    errors.append('public root must reuse Explore')
+if 'href="/home" aria-label="VibeSchool home"' not in header:
+    errors.append('public wordmark must retain original homepage access')
 for fragment in ['RoleJourneySelector','ConnectedEducationExplorer','SchoolReadinessAssessment','GET TO KNOW VIBESCHOOL','FOR SCHOOLS &amp; EDUCATION INSTITUTIONS','Pathways','Trust Centre','/product','/institutions']:
     if fragment not in home: errors.append(f'homepage communication missing: {fragment}')
 

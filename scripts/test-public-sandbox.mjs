@@ -30,6 +30,7 @@ try {
     main: Boolean(document.getElementById('main-content')),
     officialLogo: Boolean(document.querySelector('header img[alt="VibeSchool"]')),
     focusedFooter: Boolean(document.querySelector('footer a[href="/trust"]')),
+    bottomLinks: [...document.querySelectorAll('nav[aria-label="Public bottom navigation"] a')].map(link => link.getAttribute('href')),
     mobileNavigationVisible: [...document.querySelectorAll('nav[aria-label="Public bottom navigation"]')].some(nav => getComputedStyle(nav).display !== 'none'),
     overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
     body: document.body.innerText,
@@ -43,7 +44,10 @@ try {
   if (!initial.focusedFooter) fail('sandbox missing public trust/footer navigation')
   if (!initial.mobileNavigationVisible) fail('sandbox missing public mobile bottom navigation')
   if (initial.overflow > 2) fail('mobile horizontal overflow: ' + initial.overflow + 'px')
-  for (const href of ['/', '/sandbox', '/learn', '/product', '/evidence', '/login/global', '/learn?grade=Grade+8&subject=Mathematics']) {
+  for (const href of ['/explore', '/vibetutor']) {
+    if (!initial.bottomLinks.includes(href)) fail('sandbox bottom navigation missing: ' + href)
+  }
+  for (const href of ['/home', '/sandbox', '/learn', '/product', '/evidence', '/login/global', '/learn?grade=Grade+8&subject=Mathematics']) {
     if (!initial.links.includes(href)) fail('sandbox shared navigation missing: ' + href)
   }
   if (initial.links.includes('/global/signup')) fail('sandbox reintroduced legacy global signup entry')
