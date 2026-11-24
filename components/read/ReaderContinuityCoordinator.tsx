@@ -34,7 +34,7 @@ function clampProgress(value: number): number {
 function readPendingProgress(): PendingProgress[] {
   if (typeof window === "undefined") return [];
   try {
-    const value = JSON.parse(window.localStorage.getItem(PENDING_PROGRESS_KEY) || "[]") as unknown;
+    const value: unknown = JSON.parse(window.localStorage.getItem(PENDING_PROGRESS_KEY) || "[]");
     if (!Array.isArray(value)) return [];
     return value.filter((item): item is PendingProgress => Boolean(
       item && typeof item === "object" &&
