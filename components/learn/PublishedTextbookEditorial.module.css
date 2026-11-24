@@ -82,7 +82,7 @@
 .premiumTool:hover { background:#f0f5f0; }
 .premiumBreadcrumbs { margin:11px 0 14px; }
 @media(max-width:700px) {
-  .book { font-size:1.04rem; line-height:1.72; }
+  .book { font-size:var(--reader-book-font-size, 1.04rem); line-height:1.72; }
   .premiumHero { margin-bottom:12px; }
   .premiumPaper { border-left:0; border-right:0; box-shadow:0 2px 6px rgba(30,45,33,.05); }
   .premiumHeaderBar { height:48px; }

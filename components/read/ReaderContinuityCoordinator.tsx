@@ -7,6 +7,7 @@ type ReaderChapterEventDetail = {
   publicationId?: unknown;
   chapterId?: unknown;
   progressPercent?: unknown;
+  canRead?: unknown;
 };
 
 type ActiveReader = {
@@ -33,7 +34,7 @@ function clampProgress(value: number): number {
 function readPendingProgress(): PendingProgress[] {
   if (typeof window === "undefined") return [];
   try {
-    const value = JSON.parse(window.localStorage.getItem(PENDING_PROGRESS_KEY) || "[]") as unknown;
+    const value: unknown = JSON.parse(window.localStorage.getItem(PENDING_PROGRESS_KEY) || "[]");
     if (!Array.isArray(value)) return [];
     return value.filter((item): item is PendingProgress => Boolean(
       item && typeof item === "object" &&
@@ -99,30 +100,8 @@ function findBlockById(blockId: string): HTMLElement | null {
   );
 }
 
-function findNavigationSection(): HTMLElement | null {
-  return (
-    Array.from(
-      document.querySelectorAll<HTMLElement>("#vibetextbook-reading-content main section")
-    ).find((section) =>
-      Array.from(section.querySelectorAll<HTMLElement>("div")).some(
-        (node) => node.textContent?.trim() === "SEARCH AND NAVIGATION"
-      )
-    ) ?? null
-  );
-}
-
 function clickReaderNavigation(direction: "previous" | "next") {
-  const label = direction === "previous" ? "previous" : "next";
-  const buttons = Array.from(
-    document.querySelectorAll<HTMLButtonElement>(
-      "#vibetextbook-reading-content button"
-    )
-  );
-  const target = buttons.find((button) => {
-    const text = button.textContent?.trim().toLocaleLowerCase("en") ?? "";
-    return text.startsWith(label);
-  });
-  target?.click();
+  window.dispatchEvent(new CustomEvent("vibe:reader-navigate", { detail: { direction } }));
 }
 
 function estimateMinutesLeft(progressPercent: number): number | null {
@@ -186,6 +165,8 @@ export function ReaderContinuityCoordinator() {
   }, [supabase]);
 
   useEffect(() => {
+    // A delayed restore cannot scroll or save a different active chapter.
+    let chapterGeneration = 0;
     async function writeSnapshot(snapshot: ActiveReader) {
       const { data, error } = await supabase.rpc("record_reading_progress", {
         publication_id_input: snapshot.publicationId,
@@ -267,12 +248,12 @@ export function ReaderContinuityCoordinator() {
       };
     }
 
-    async function restore(snapshot: ActiveReader) {
+    async function restore(snapshot: ActiveReader, generation: number) {
       setResumed(false);
       if (!authenticatedRef.current || !navigator.onLine) return;
 
       const { data: authData } = await supabase.auth.getUser();
-      if (!authData.user) return;
+      if (!authData.user || generation !== chapterGeneration) return;
 
       const { data, error } = await supabase
         .from("vibe_reading_progress")
@@ -282,7 +263,7 @@ export function ReaderContinuityCoordinator() {
         .eq("chapter_id", snapshot.chapterId)
         .maybeSingle();
 
-      if (error || !data) return;
+      if (error || !data || generation !== chapterGeneration || activeRef.current?.chapterId !== snapshot.chapterId) return;
       const position = data.reading_position as Record<string, unknown> | null;
       const blockId =
         typeof position?.block_id === "string" && position.block_id.trim()
@@ -291,6 +272,7 @@ export function ReaderContinuityCoordinator() {
       if (!blockId) return;
 
       await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
+      if (generation !== chapterGeneration || activeRef.current?.chapterId !== snapshot.chapterId) return;
       const target = findBlockById(blockId);
       if (!target) return;
 
@@ -353,10 +335,16 @@ export function ReaderContinuityCoordinator() {
     function onChapter(rawEvent: Event) {
       const event = rawEvent as CustomEvent<ReaderChapterEventDetail>;
       const detail = event.detail;
+      const generation = ++chapterGeneration;
       if (
         typeof detail?.publicationId !== "string" ||
-        typeof detail?.chapterId !== "string"
+        typeof detail?.chapterId !== "string" ||
+        detail.canRead !== true
       ) {
+        // Never record progress for locked, draft or lesson-preview content.
+        if (writeTimerRef.current) clearTimeout(writeTimerRef.current);
+        activeRef.current = null;
+        setActive(false);
         return;
       }
 
@@ -381,8 +369,12 @@ export function ReaderContinuityCoordinator() {
         )?.textContent?.trim();
         setChapterTitle(heading || "Current unit");
         setMinutesLeft(estimateMinutesLeft(supplied));
-        void restore(next).finally(() => {
-          window.requestAnimationFrame(() => measure(true));
+        void restore(next, generation).finally(() => {
+          if (generation === chapterGeneration && activeRef.current?.chapterId === next.chapterId) {
+            window.requestAnimationFrame(() => {
+              if (generation === chapterGeneration && activeRef.current?.chapterId === next.chapterId) measure(true);
+            });
+          }
         });
       });
     }
@@ -435,12 +427,7 @@ export function ReaderContinuityCoordinator() {
   if (!active) return null;
 
   function openContents() {
-    const section = findNavigationSection();
-    section?.scrollIntoView({ behavior: "smooth", block: "start" });
-    const input = section?.querySelector<HTMLInputElement>(
-      'input[aria-label="Search this textbook"]'
-    );
-    window.setTimeout(() => input?.focus(), 350);
+    window.dispatchEvent(new Event("vibe:reader-open-contents"));
   }
 
   return (

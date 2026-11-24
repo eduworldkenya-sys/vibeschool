@@ -56,12 +56,13 @@ export async function fetchApprovedMinis(limit = 120): Promise<MiniPost[]> {
 }
 
 export const MINI_PAGE_SIZE = 24
+export type MiniCursor = { publishedAt: string; id: string }
 
 /** Search all publicly readable approved rows, not just the initial feed. */
-export async function fetchMiniPage({ search = '', tag = 'All', offset = 0, creators }: {
-  search?: string; tag?: string; offset?: number; creators?: readonly string[]
-} = {}): Promise<{ posts: MiniPost[]; nextOffset: number | null }> {
-  if (creators && !creators.length) return { posts: [], nextOffset: null }
+export async function fetchMiniPage({ search = '', tag = 'All', cursor, creators }: {
+  search?: string; tag?: string; cursor?: MiniCursor; creators?: readonly string[]
+} = {}): Promise<{ posts: MiniPost[]; nextCursor: MiniCursor | null }> {
+  if (creators && !creators.length) return { posts: [], nextCursor: null }
   // Only allow ordinary search characters in the PostgREST OR expression.
   const term = search.normalize('NFKC').replace(new RegExp('[^\\p{L}\\p{N}\\s_-]', 'gu'), ' ').replace(/\s+/g, ' ').trim().slice(0, 80)
   const exactTag = search.trim().replace(/^#/, '').toLowerCase()
@@ -75,14 +76,18 @@ export async function fetchMiniPage({ search = '', tag = 'All', offset = 0, crea
     const filters = ['title','body','creator_label','subject'].map(column => column + '.ilike.' + pattern)
     if (/^[a-z][a-z0-9_]{1,29}$/.test(exactTag)) filters.push('tags.cs.{' + exactTag + '}')
     query = query.or(filters.join(','))
-  } else if (search.trim()) return { posts: [], nextOffset: null }
-  const start = Math.max(0, Math.floor(offset))
+  } else if (search.trim()) return { posts: [], nextCursor: null }
+  if(cursor){
+    if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cursor.id) || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/.test(cursor.publishedAt) || !Number.isFinite(Date.parse(cursor.publishedAt))) throw Error('Invalid feed cursor.')
+    query=query.or('published_at.lt.'+cursor.publishedAt+',and(published_at.eq.'+cursor.publishedAt+',id.lt.'+cursor.id+')')
+  }
   const { data, error } = await query.order('published_at',{ascending:false})
-    .order('id',{ascending:false}).range(start,start + MINI_PAGE_SIZE)
+    .order('id',{ascending:false}).limit(MINI_PAGE_SIZE+1)
   if (error) throw Error('Unable to load Mini Lessons. Try again.')
   const rows = Array.isArray(data) ? data : []
-  return { posts: rows.slice(0, MINI_PAGE_SIZE).filter(isMiniPost),
-    nextOffset: rows.length > MINI_PAGE_SIZE ? start + MINI_PAGE_SIZE : null }
+  const posts = rows.slice(0, MINI_PAGE_SIZE).filter(isMiniPost)
+  const last = posts[posts.length-1]
+  return { posts, nextCursor: rows.length > MINI_PAGE_SIZE && last?.published_at ? {publishedAt:last.published_at,id:last.id} : null }
 }
 
 export async function fetchOwnMiniStatus(userId: string) {
