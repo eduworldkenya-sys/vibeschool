@@ -34,7 +34,7 @@ function Cover({ url, subject, title }: { url?: string; subject: string; title: 
   </div>
 }
 
-export function MiniLiveExplore() {
+export function MiniLiveExplore({ enabled = true }: { enabled?: boolean } = {}) {
   const [posts, setPosts] = useState<MiniPost[]>([])
   const [covers, setCovers] = useState<Record<string,string>>({})
   const [viewer, setViewer] = useState<string | null>(null)
@@ -68,7 +68,7 @@ export function MiniLiveExplore() {
   const [commentText, setCommentText] = useState('')
   const [reportReason, setReportReason] = useState('incorrect')
   const [mine, setMine] = useState<Submission[]>([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(enabled)
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState('')
   const [error, setError] = useState('')
@@ -118,6 +118,7 @@ export function MiniLiveExplore() {
   }
 
   useEffect(() => {
+    if (!enabled) return
     let mounted = true
     async function load() {
       try {
@@ -167,7 +168,7 @@ export function MiniLiveExplore() {
     }
     void load()
     return () => { mounted = false }
-  }, [open])
+  }, [open,enabled])
 
   const mergePage = useCallback((items: MiniPost[], append: boolean) => {
     setPosts(old => {
@@ -180,7 +181,7 @@ export function MiniLiveExplore() {
   }, [])
 
   useEffect(()=>{
-    if (!identityReady || section !== 'feed') return
+    if (!enabled || !identityReady || section !== 'feed') return
     const sequence = ++feedSequence.current
     setLoading(true);setPageBusy(false);setFeedError('');setNextCursor(null)
     const timer = window.setTimeout(()=>{
@@ -196,10 +197,10 @@ export function MiniLiveExplore() {
         .finally(()=>{if(sequence===feedSequence.current)setLoading(false)})
     },query.trim()?250:0)
     return ()=>{window.clearTimeout(timer);++feedSequence.current}
-  },[identityReady,section,query,tag,tab,follows,refreshKey,mergePage])
+  },[enabled,identityReady,section,query,tag,tab,follows,refreshKey,mergePage])
 
   async function loadMore() {
-    if(pageBusy||loading||nextCursor===null||!feedReady.current)return
+    if(!enabled||pageBusy||loading||nextCursor===null||!feedReady.current)return
     const sequence=feedSequence.current
     setPageBusy(true);setFeedError('')
     try {
@@ -213,7 +214,7 @@ export function MiniLiveExplore() {
   }
 
   useEffect(()=>{
-    if(section!=='creator'||!creatorId)return
+    if(!enabled||section!=='creator'||!creatorId)return
     const sequence=++creatorSequence.current
     setCreatorPosts([]);setCreatorCursor(null);setCreatorBusy(true);setCreatorError('')
     void fetchMiniPage({creators:[creatorId]}).then(page=>{
@@ -223,9 +224,9 @@ export function MiniLiveExplore() {
     }).catch(()=>{if(sequence===creatorSequence.current)setCreatorError('Unable to load creator Minis.')})
     .finally(()=>{if(sequence===creatorSequence.current)setCreatorBusy(false)})
     return ()=>{++creatorSequence.current}
-  },[section,creatorId,creatorRefresh])
+  },[enabled,section,creatorId,creatorRefresh])
   async function loadCreatorMore(){
-    if(!creatorId||!creatorCursor||creatorBusy)return
+    if(!enabled||!creatorId||!creatorCursor||creatorBusy)return
     const sequence=creatorSequence.current
     setCreatorBusy(true);setCreatorError('')
     try{
@@ -259,6 +260,7 @@ export function MiniLiveExplore() {
   }, [posts,feedIds,tab,interests,follows,dismissed,adult])
 
   async function interact(kind: 'like' | 'save', post?: MiniPost) {
+    if (!enabled) { setNotice('Publishing is not yet available.'); return }
     const target = post ?? current
     if (!target || !ensureSignIn(viewer) || !viewer || busy) return
     const oldSet = kind === 'like' ? likes : saves
@@ -283,6 +285,7 @@ export function MiniLiveExplore() {
   }
 
   async function follow(post?: MiniPost) {
+    if (!enabled) { setNotice('Publishing is not yet available.'); return }
     const target = post ?? current
     if (!target || !ensureSignIn(viewer) || !viewer || busy || target.creator_id===viewer) return
     const adding = !follows.has(target.creator_id)
@@ -296,6 +299,7 @@ export function MiniLiveExplore() {
 
   async function sendComment(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (!enabled) return
     if (!current || !ensureSignIn(viewer) || !viewer || busy) return
     setBusy(true);setError('')
     try {
@@ -308,6 +312,7 @@ export function MiniLiveExplore() {
   }
 
   async function sendReport() {
+    if (!enabled) { setNotice('Publishing is not yet available.'); return }
     if (!current || !ensureSignIn(viewer) || !viewer || busy) return
     setBusy(true);setError('')
     try {
@@ -318,6 +323,7 @@ export function MiniLiveExplore() {
   }
 
   async function learning(signal: 'understood' | 'not_interested') {
+    if (!enabled) { setNotice('Publishing is not yet available.'); return }
     if (!current || !ensureSignIn(viewer) || !viewer || busy || !adult) return
     setBusy(true);setError('')
     try {
@@ -331,6 +337,7 @@ export function MiniLiveExplore() {
   }
 
   const explainRequest = (request: MiniPublicRequest) => {
+    if (!enabled) return
     if (!viewer || !adult) {
       setError('Verified adult creators may submit explanations. Sign in and verify your public profile first.')
       return
@@ -345,6 +352,7 @@ export function MiniLiveExplore() {
 
   async function publish(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (!enabled) return
     if (!ensureSignIn(viewer) || !viewer || busy) return
     if (!photo) {setError('Add a cover photo to publish a Mini Lesson.');return}
     setBusy(true);setError('');setNotice('')
@@ -370,6 +378,7 @@ export function MiniLiveExplore() {
   }
 
   async function retryPublication(id: string) {
+    if (!enabled) { setNotice('Publishing is not yet available.'); return }
     if (!viewer || busy) return
     setBusy(true);setError('');setNotice('')
     try {
@@ -385,6 +394,7 @@ export function MiniLiveExplore() {
   }
 
   async function openMine() {
+    if (!enabled) { setNotice('Publishing is not yet available.'); return }
     if (!ensureSignIn(viewer) || !viewer || busy) return
     setBusy(true);setError('')
     try {setMine(await fetchOwnMiniStatus(viewer));setSection('mine')}
@@ -393,6 +403,7 @@ export function MiniLiveExplore() {
   }
 
   async function editProfile() {
+    if (!enabled) { setNotice('Publishing is not yet available.'); return }
     if (!ensureSignIn(viewer) || !viewer || busy) return
     setError('');setNotice('')
     if (!adult) {
@@ -413,6 +424,7 @@ export function MiniLiveExplore() {
 
   async function saveProfile(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (!enabled) return
     if (!viewer || !adult || busy) return
     const username = profileUsername.trim().toLowerCase().replace(/^@/,'')
     const displayName = profileName.trim()
@@ -503,21 +515,23 @@ export function MiniLiveExplore() {
             onClick={()=>chooseTag(name)}>{name==='All'?'All':miniTagLabel(name)}</button>)}
         </div>
       </div>
-      {tab !== 'Following' && <MiniLiveRequests query={query} onExplain={explainRequest}/>}
+      {tab !== 'Following' && <MiniLiveRequests enabled={enabled} query={query} onExplain={explainRequest}/>}
       <div className={styles.resultsLabel}><strong>{tab==='Following'?'Creators you follow':'Mini Lessons'}</strong>
         <span>{visible.length} loaded</span></div>
       {feedError && <div role="alert" className={styles.formNote}>{feedError} <button type="button" onClick={()=>setRefreshKey(key=>key+1)}>Retry</button></div>}
       {loading ? <p role="status">Loading Mini Lessons…</p> : visible.length
         ? <div className={styles.grid}>{visible.map(card)}</div>
         : <div className={styles.empty}>
-          <p>{error || (tab==='Following'?'Follow an educator to see their Minis here.':'No published Minis found.')}</p>
+          <p>{error || (query.trim()?'No matching Mini Lessons.':tab==='Following'?'Follow an educator to see their Minis here.':'No published Mini Lessons yet.')}</p>
+          {!enabled && <p role="status">Publishing is not yet available.</p>}
+          {!query.trim() && <button type="button" className={styles.primary} onClick={()=>{setAnswerRequest(null);setSection('compose')}}>Create Mini Lesson</button>}
           <button type="button" className={styles.primary} onClick={()=>setSection('request')}>Request this topic</button>
           <button type="button" className={styles.secondary} onClick={()=>{setTag('All');setQuery('');setTab('For You')}}>Explore all</button>
         </div>}
       {!loading && nextCursor!==null && <button type="button" className={styles.loadMore} disabled={pageBusy} onClick={()=>void loadMore()}>{pageBusy?'Loading…':'Load more'}</button>}
     </>}
 
-    {section === 'request' && <MiniLiveRequests mode="compose" query={query} onBack={back} onExplain={explainRequest}/>}
+    {section === 'request' && <MiniLiveRequests enabled={enabled} mode="compose" query={query} onBack={back} onExplain={explainRequest}/>}
     {section === 'read' && current && <article className={styles.reader}>
       <div className={styles.readerHeader}><button className={styles.back} type="button" onClick={back}>← Explore</button></div>
       <Cover url={covers[current.id]} subject={current.subject} title={current.title}/>
@@ -596,7 +610,8 @@ export function MiniLiveExplore() {
       {answerRequest&&<p className={styles.formNote}>{answerRequest.question}</p>}
       <h1>Share what you know.</h1>
       <p className={styles.subline}>One photo and a short educational explanation.</p>
-      {!viewer && <p className={styles.formNote}>Sign in before publishing. <Link href="/login?redirect=%2Fexplore">Sign in</Link></p>}
+      {!enabled && <p role="status" className={styles.formNote}>Publishing is not yet available. You can prepare a draft here; it will not be saved or posted.</p>}
+      {enabled && !viewer && <p className={styles.formNote}>Sign in before publishing. <Link href="/login?redirect=%2Fexplore">Sign in</Link></p>}
       {viewer && <p className={styles.formNote}>Minis use your existing VibeSchool public username. <button type="button" className={styles.linkButton} onClick={() => void editProfile()}>Set up your creator profile</button>.</p>}
       <form onSubmit={event=>void publish(event)}>
         <label htmlFor="mini-title" className={styles.label}>Title</label>
@@ -651,7 +666,7 @@ export function MiniLiveExplore() {
               value={quizExplanation} onChange={e=>setQuizExplanation(e.target.value)} rows={3}/>
           </div>}
         </div>
-        <button type="submit" className={styles.primary} disabled={!viewer || busy || !draftTitle.trim() || !draftBody.trim() || !photo}>
+        <button type="submit" className={styles.primary} disabled={!enabled || !viewer || busy || !draftTitle.trim() || !draftBody.trim() || !photo}>
           {busy?'Checking safety…':'Publish Mini Lesson'}</button>
       </form>
     </section>}

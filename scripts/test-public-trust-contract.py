@@ -164,11 +164,21 @@ mini_ui = text('components/public/MiniExplore.tsx')
 mini_home = text('components/public/MiniHomeSection.tsx')
 for fragment in ['MiniExplore', "canonical: '/explore'", 'PublicHeader', 'main-content', 'MiniLiveExplore']:
     if fragment not in mini_page: errors.append(f'Mini Explore shell missing: {fragment}')
-for source in [mini_ui, mini_home]:
+mini_live = text('components/public/MiniLiveExplore.tsx')
+if '<MiniLiveExplore enabled={false}/>' not in mini_ui:
+    errors.append('Disabled Explore must use the authentic shared interface without backend access')
+for label in ['+ Create', 'Search Mini Lessons', 'For You', 'Following', 'New', 'Request an explanation']:
+    if label not in mini_live: errors.append(f'Mini discovery interface missing: {label}')
+if 'Publishing is not yet available' not in mini_live:
+    errors.append('Shared Mini interface must disclose unavailable publishing')
+for source in [mini_home]:
     if 'Publishing is not yet available' not in source:
         errors.append('Uncommissioned Mini surface must report availability honestly')
     for forbidden in ['MINI_EXAMPLES', 'EXAMPLE_REQUESTS', 'local-request-', 'local-answer-', 'Add to preview', 'setComments(', 'setLiked(', 'setRequests(', 'supabase.from(', 'fetch(', 'localStorage.', 'sessionStorage.', 'service_role', 'publish_mini(']:
         if forbidden in source: errors.append(f'Uncommissioned Mini surface must not simulate engagement or activate publishing: {forbidden}')
+for source in [mini_ui, mini_live, text('components/public/MiniLiveRequests.tsx')]:
+    for forbidden in ['MINI_EXAMPLES', 'EXAMPLE_REQUESTS', 'local-request-', 'local-answer-', 'Add to preview']:
+        if forbidden in source: errors.append(f'Mini interface must not simulate engagement: {forbidden}')
 if 'MiniHomeSection' not in home or '/explore' not in home or 'MiniLiveHome' not in mini_home:
     errors.append('Home must retain real Mini discovery and existing roles and trust content')
 if "NEXT_PUBLIC_MINI_LESSONS_BACKEND_ENABLED === 'true'" not in mini_page or "NEXT_PUBLIC_MINI_LESSONS_BACKEND_ENABLED === 'true'" not in mini_home:
