@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { getRevisionWorkspace } from '@/lib/student/vibelearn'
@@ -50,9 +50,7 @@ function useSource<T>(loader:()=>Promise<T>,scope:string,retry:number):Result<T>
     setState(initial<T>())
     void loader().then(data=>{if(active)setState({status:'ready',data})},()=>{if(active)setState({status:'error'})})
     return()=>{active=false}
-    // The caller provides a stable scope for the learner and data source.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  },[scope,retry])
+  },[loader,scope,retry])
   return state
 }
 const tile:React.CSSProperties={border:'1px solid var(--vs-border)',borderRadius:12,padding:12,background:'var(--vs-card)',display:'grid',gap:7,minWidth:0}
@@ -70,9 +68,11 @@ export default function LearningEvidenceOverview(props:{studentId:string;profile
 function LearningEvidenceSession({studentId,profileId,className}:{studentId:string;profileId:string;className:string}){
   const [retry,setRetry]=useState(0)
   const scope=JSON.stringify([studentId,profileId,className])
-  const reading=useSource(()=>readingCounts(profileId),scope,retry)
+  const loadReading=useCallback(()=>readingCounts(profileId),[profileId])
+  const loadRecall=useCallback(()=>recallCounts(className),[className])
+  const reading=useSource(loadReading,scope,retry)
   const practice=useSource(practiceCounts,scope,retry)
-  const recall=useSource(()=>recallCounts(className),scope,retry)
+  const recall=useSource(loadRecall,scope,retry)
   const recovery=useSource(recoveryCounts,scope,retry)
   const failed=[reading,practice,recall,recovery].some(item=>item.status==='error')
   return <section aria-label="Learning evidence overview" style={{marginBottom:16,display:'grid',gap:10}}>
