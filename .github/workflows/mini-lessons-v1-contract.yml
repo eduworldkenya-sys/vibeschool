@@ -6,10 +6,14 @@ on:
     paths:
       - 'app/explore/**'
       - 'app/api/hq/minis/**'
+      - 'app/hq/minis/**'
+      - 'app/student/explore/page.tsx'
       - 'components/public/MiniLive*'
       - 'components/public/MiniHomeSection.tsx'
       - 'lib/minis/**'
       - 'supabase/migrations/*mini_lessons*.sql'
+      - 'supabase/migrations/*mini_lesson_requests*.sql'
+      - 'scripts/test-mini-requests-contract.mjs'
       - 'scripts/test-mini-lessons-contract.mjs'
       - '.github/workflows/mini-lessons-v1-contract.yml'
 
@@ -29,3 +33,4 @@ jobs:
           cache: npm
       - run: npm ci
       - run: node --import ./scripts/register-typescript.mjs scripts/test-mini-lessons-contract.mjs
+      - run: node scripts/test-mini-requests-contract.mjs
