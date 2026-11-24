@@ -2,7 +2,7 @@ export type SearchHit = {publicationId:string;chapterId:string;blockId:string;ch
 const record=(v:unknown):Record<string,unknown>=>v&&typeof v==='object'&&!Array.isArray(v)?v as Record<string,unknown>:{}
 const labels:Record<string,string>={paragraph:'Explanation',content:'Explanation',definition:'Definition',workedExample:'Worked example',example:'Example',summary:'Summary',keyPoints:'Key points',callout:'Key idea',heading3:'Concept',bulletList:'Explanation',numberedList:'Explanation'}
 function text(v:string){return v.replace(/<[^>]*>/g,' ').replace(/&nbsp;/g,' ').replace(/&amp;/g,'&').replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/\s+/g,' ').trim()}
-function normalize(v:string){return v.normalize('NFKC').toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu,' ').trim()}
+function normalize(v:string){return v.normalize('NFKC').toLocaleLowerCase().replace(new RegExp('[^\\p{L}\\p{N}]+','gu'),' ').trim()}
 export function searchReadableBook(payload:unknown,publicationId:string,query:string):SearchHit[]{
   const root=record(payload),pub=record(root.publication)
   const phrase=normalize(query.slice(0,100)),words=[...new Set(phrase.split(' ').filter(Boolean))]
