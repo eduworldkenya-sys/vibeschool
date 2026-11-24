@@ -186,3 +186,5 @@
 .studio-weekly-empty{font-size:13px;color:#64766b}
 @media(max-width:900px){.teacher-scheme-workspace .studio-context-selectors{grid-template-columns:1fr;gap:0}.studio-weekly-slots--compact{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:600px){.teacher-content > .teacher-scheme-workspace{width:calc(100% - 24px)!important;padding-top:12px}.studio-weekly-overview{padding:14px}.studio-weekly-slots,.studio-weekly-slots--compact{grid-template-columns:1fr}.studio-weekly-slots--compact .studio-weekly-slot{display:flex}.studio-weekly-heading h2{font-size:17px}}
+
+.teacher-shell .teacher-today.teacher-today-v09{padding:8px 10px 16px;min-width:0;max-width:100%;box-sizing:border-box}.teacher-today-v09>.teacher-today__details{margin:7px 0}.teacher-today-v09>.teacher-today__details>summary{padding:8px 10px;min-height:44px;font-size:12px;display:flex;align-items:center;cursor:pointer}.teacher-today-v09>.teacher-today__details>summary::before{content:'›';margin-right:7px}.teacher-today-v09>.teacher-today__details[open]>summary::before{content:'⌄'}
