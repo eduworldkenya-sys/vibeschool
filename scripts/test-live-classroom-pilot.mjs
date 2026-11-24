@@ -1,4 +1,4 @@
-import {exportDeck,importDeck,MAX_DECK_FILE_BYTES} from '../components/live-classroom/LiveDeckTransfer.ts'
+import {exportDeck,importDeck,MAX_DECK_FILE_BYTES} from '../components/live-classroom/LiveSlideProtocol.ts'
 // Install the pinned test-only engine outside the repo: npm install --prefix /tmp/live-test --no-audit --no-fund @electric-sql/pglite@0.3.14
 import {createLiveFixture} from './live-classroom-test-fixture.mjs'
 import {readFileSync} from 'node:fs'
