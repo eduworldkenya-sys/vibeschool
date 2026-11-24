@@ -64,3 +64,23 @@ test('compact responsive styling preserves theme and accessibility', () => {
   assert.match(css,/var\(--vs-accent\)/)
   assert.doesNotMatch(css,/#(?:4f46e5|5145e8|6366f1)\b/i)
 })
+
+
+test('practice catalogues share navigation without replacing chapter sessions', () => {
+  const nav=read('components/student/PracticeCatalogueNav.tsx')
+  const topics=read('app/student/vibelearn/topic-practice/page.tsx')
+  const canonical=read('components/student/CanonicalTopicPractice.tsx')
+  const practice=read('app/student/vibelearn/practice/page.tsx')
+  for(const route of ['/student/vibelearn/topic-practice','/student/vibelearn/practice','/student/study']) assert.ok(nav.includes(route))
+  assert.match(nav,/new URLSearchParams\(\)/)
+  assert.match(nav,/query\.set\('subject',subject\.trim\(\)\)/)
+  assert.match(nav,/query\.set\('topic',topic\.trim\(\)\)/)
+  assert.match(nav,/aria-current=/)
+  assert.match(topics,/!session && <PracticeCatalogueNav mode="topics"/)
+  assert.match(canonical,/!workspace && <section/)
+  assert.match(canonical,/<PracticeCatalogueNav mode="topics" subject=\{subjectFilter\}/)
+  assert.match(practice,/<PracticeCatalogueNav mode="sets" subject=\{selectedPracticeSubject\}/)
+  assert.match(practice,/const selectedPracticeSubject = practiceSubject\b/)
+  assert.match(practice,/Find topic practice/)
+  assert.match(practice,/getGroundedChapterPractice\(requestedPublicationId, requestedChapterId, 10\)/)
+})
