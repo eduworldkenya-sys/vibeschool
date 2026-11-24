@@ -10,6 +10,7 @@ import VibeLearnSubnav from '@/components/student/VibeLearnSubnav'
 import LearningNotebookPrompt from '@/components/learn/LearningNotebookPrompt'
 import { supabase } from '@/lib/supabase'
 import { recordGroundedPracticeAnswer } from '@/lib/student/vibelearn'
+import { useStudent } from '@/lib/student-context'
 
 type Source = { block_id: string; title: string; block_type: string; url: string }
 type Question = { content_block_id: string; outcome_id: string; prompt: string }
@@ -51,12 +52,20 @@ function parsePayload(value: unknown): Payload {
 }
 
 export default function ExactLearningRecoveryPage() {
+  const { identity, loading } = useStudent()
+  const search=useSearchParams()
+  if(loading || !identity)return <p role="status">Opening recovery…</p>
+  return <ExactLearningRecoverySession key={JSON.stringify([identity.studentId,identity.className,search.toString()])}/>
+}
+
+function ExactLearningRecoverySession() {
   const { play } = useLearningFeedback()
   const router = useRouter()
   const search = useSearchParams()
   const attemptId = search.get('attempt')
   const mistakeId = search.get('mistake')
   const assessmentItemId = search.get('item')
+  const outcomeId = search.get('outcome')
   const [cases, setCases] = useState<Recovery[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -87,14 +96,15 @@ export default function ExactLearningRecoveryPage() {
     return () => { active = false }
   }, [load])
 
-  const displayed = mistakeId
+  const matchingCases = mistakeId
     ? cases.filter(item => item.recovery_key === `notebook:${mistakeId}`)
     : assessmentItemId
       ? cases.filter(item => item.assessment_item_id === assessmentItemId)
       : cases
+  const displayed = outcomeId ? matchingCases.filter(item => item.identity_state === 'verified' && item.outcome_id === outcomeId) : matchingCases
 
   async function reassess(item: Recovery) {
-    if (!item.reassessment || !item.outcome_id || working) return
+    if (!item.reassessment || !item.outcome_id || item.identity_state !== 'verified' || item.reassessment.outcome_id !== item.outcome_id || working) return
     const key = item.recovery_key
     const answer = answers[key]?.trim()
     if (!answer) {
@@ -111,7 +121,7 @@ export default function ExactLearningRecoveryPage() {
         sessionId: null,
       })
       if (!isRecord(response) || response.ok !== true ||
-          response.outcome_id !== item.outcome_id) {
+          response.outcome_id !== item.outcome_id || typeof response.correct !== 'boolean') {
         throw new Error('The marked question did not confirm the required outcome. No recovery credit was claimed.')
       }
       const correct = response.correct === true
@@ -136,7 +146,7 @@ export default function ExactLearningRecoveryPage() {
 
   return <section style={shell} aria-labelledby="recovery-heading"><div style={{maxWidth:860,margin:'0 auto'}}>
     <VibeLearnSubnav />
-    <button style={link} onClick={() => router.push(attemptId ? `/student/results/${encodeURIComponent(attemptId)}` : '/student/vibelearn/mistakes')}>← Back</button>
+    <button style={link} onClick={() => router.push(attemptId ? `/student/results/${encodeURIComponent(attemptId)}` : outcomeId ? '/student/vibelearn/revision' : '/student/vibelearn/mistakes')}>← Back</button>
     <header style={hero}>
       <div style={kicker}>Exact learning recovery</div>
       <h1 id="recovery-heading" style={{margin:'6px 0'}}>Understand. Practise. Prove it.</h1>
@@ -145,7 +155,7 @@ export default function ExactLearningRecoveryPage() {
     {error && <section role="alert" style={card}><strong>Recovery could not be loaded.</strong><p style={muted}>Your recorded attempts are safe. Please retry to load your learning steps.</p><button style={secondary} onClick={() => { setLoading(true); setError(''); void load().catch(cause => setError(cause instanceof Error ? cause.message : 'Could not load recovery.')).finally(() => setLoading(false)) }}>Retry recovery</button></section>}
     {loading ? <section style={card}>Checking your recorded learning evidence…</section>
     : error ? null
-    : displayed.length === 0 ? <section style={card}>No missed or skipped questions with released results are available for this view.</section>
+    : displayed.length === 0 ? <section style={card}>No matching recorded mistakes or released assessment questions are available for this view.</section>
     : displayed.map(item => {
       const verified = item.identity_state === 'verified'
       const question = item.reassessment
