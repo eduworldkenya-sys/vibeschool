@@ -51,16 +51,16 @@ insert into vibetutor_private_groups values ('${id(50)}','${teacher}','Math grou
 insert into vibetutor_private_group_members values ('${id(50)}','${id(40)}'),('${id(50)}','${id(41)}');
 insert into student_classes values ('${id(30)}','${cls}','${school}',true),('${id(31)}','${cls}','${school}',true),('${id(32)}','${otherCls}','${otherSchool}',true);
 `)
-await db.exec(readFileSync(new URL('../supabase/migrations/20261118075221_live_classroom_pilot.sql',import.meta.url),'utf8'))
-await db.exec(readFileSync(new URL('../supabase/migrations/20261120104500_live_lesson_history_candidate.sql',import.meta.url),'utf8'))
-await db.exec(readFileSync(new URL('../supabase/migrations/20261120104501_live_learner_tools_candidate.sql',import.meta.url),'utf8'))
-await db.exec(readFileSync(new URL('../supabase/migrations/20261120104502_live_teacher_workspace.sql',import.meta.url),'utf8'))
-await db.exec(readFileSync(new URL('../supabase/migrations/20261121084500_live_past_classes.sql',import.meta.url),'utf8'))
-await db.exec(readFileSync(new URL('../supabase/migrations/20261121102000_live_private_conversations.sql',import.meta.url),'utf8'))
-await db.exec(readFileSync(new URL('../supabase/migrations/20261121121000_live_private_realtime_invalidation.sql',import.meta.url),'utf8'))
+await db.exec(readFileSync(new URL('../supabase/migrations/20261119052713_live_classroom_pilot.sql',import.meta.url),'utf8'))
+await db.exec(readFileSync(new URL('../supabase/migrations/20261120132754_live_lesson_history_candidate.sql',import.meta.url),'utf8'))
+await db.exec(readFileSync(new URL('../supabase/migrations/20261120132806_live_learner_tools_candidate.sql',import.meta.url),'utf8'))
+await db.exec(readFileSync(new URL('../supabase/migrations/20261120132817_live_teacher_workspace.sql',import.meta.url),'utf8'))
+await db.exec(readFileSync(new URL('../supabase/migrations/20261121051052_live_past_classes_20261121.sql',import.meta.url),'utf8'))
+await db.exec(readFileSync(new URL('../supabase/migrations/20261121060238_live_private_conversations_20261121.sql',import.meta.url),'utf8'))
+await db.exec(readFileSync(new URL('../supabase/migrations/20261121063856_live_private_realtime_20261121.sql',import.meta.url),'utf8'))
 await db.exec(readFileSync(new URL('../supabase/migrations/20261121141000_live_moderated_chat_waiting_typing.sql',import.meta.url),'utf8'))
-await db.exec(readFileSync(new URL('../supabase/migrations/20261121153000_live_presenter_scroll_follow.sql',import.meta.url),'utf8'))
-await db.exec(readFileSync(new URL('../supabase/migrations/20261123130000_live_public_student_admission.sql',import.meta.url),'utf8'))
+await db.exec(readFileSync(new URL('../supabase/migrations/20261123094939_live_public_student_admission.sql',import.meta.url),'utf8'))
+await db.exec(readFileSync(new URL('../supabase/migrations/20261124143438_live_presenter_scroll_follow.sql',import.meta.url),'utf8'))
 async function rpc(who,action,room=null,version=null,payload={},classId=cls,role='authenticated') {
  await db.exec(`set role ${role}; select set_config('request.jwt.claim.sub','${who||''}',false)`)
  try {return (await db.query('select public.vibe_live_command($1,$2,$3,$4,$5::jsonb) as out',[action,classId,room,version,JSON.stringify(payload)])).rows[0].out}

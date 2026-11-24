@@ -28,6 +28,8 @@ on:
       - 'lib/live/mesh-*'
       - 'scripts/test-live-mesh.mjs'
       - 'scripts/test-live-mesh-browser.mjs'
+      - 'supabase/candidates/live_slide_study.sql'
+      - 'scripts/test-live-slide-study.mjs'
       - 'scripts/test-live-classroom-pilot.mjs'
       - 'scripts/live-classroom-test-fixture.mjs'
       - 'scripts/test-live-classroom-browser.mjs'
@@ -68,6 +70,8 @@ jobs:
         run: node scripts/test-live-classroom-pilot.mjs
       - name: Verify private VibeMesh signaling and microphone lifecycle
         run: node --experimental-strip-types --test scripts/test-live-mesh.mjs lib/live/mesh-*.test.mjs
+      - name: Exercise independent study candidate and learner isolation
+        run: node scripts/test-live-slide-study.mjs
       - name: Install exact locked application dependencies for voice policy tests
         run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Verify Live Voice server authorization and media policy contracts

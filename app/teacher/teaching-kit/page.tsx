@@ -4,6 +4,7 @@ import Link from 'next/link'
 import {teachingKitBackHref} from '@/lib/teaching/teachingKitContext'
 import {useRouter, useSearchParams} from 'next/navigation'
 import {supabase} from '@/lib/supabase'
+import {LiveIndependentStudy} from '@/components/live-classroom/LiveIndependentStudy'
 import {TeachingLibrary} from '@/components/live-classroom/LiveTeachingLibrary'
 import {SlideCanvas} from '@/components/live-classroom/LiveSlideCanvas'
 import type {LiveSlide} from '@/components/live-classroom/LiveSlideProtocol'
@@ -71,6 +72,7 @@ function SlidesWorkspace(){
       <div><span style={{fontSize:11,color:'#547365',fontWeight:750}}>TEACHING KIT</span><h1 style={{margin:'4px 0',fontSize:24}}>Slides</h1><p style={{fontSize:13,margin:0,color:'#506b5e'}}>Create once. Use in class or load in Live Lesson.</p></div>
       <Link href={teachingKitBackHref(params)} style={button}>Lesson Plans</Link>
     </header>
+    {classId&&<LiveIndependentStudy classId={classId} teacher mode="school"/>}
     <TeachingLibrary command={command} currentDeck={null} onUse={material=>{setDeck(material);setPage(0)}}/>
   </main>
 }
