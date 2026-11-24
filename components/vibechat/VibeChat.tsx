@@ -24,6 +24,7 @@ type Chat = {
   handle?: string | null
   unread?: boolean
   unreadCount?: number
+  peerOnline?: boolean
   peerReadAt?: string | null
   peerDeliveredAt?: string | null
   detail: string
@@ -72,9 +73,12 @@ export default function VibeChat() {
   const [reportOpen, setReportOpen] = useState(false)
   const [reportReason, setReportReason] = useState('safety')
   const [refreshVersion,setRefreshVersion] = useState(0)
+  const [presence,setPresence] = useState<{eligible:boolean;enabled:boolean}|null>(null)
+  const [presenceBusy,setPresenceBusy] = useState(false)
+  const messageReadRef=useRef(0)
   const loadingRef = useRef(false)
   const selectedRef = useRef<string | null>(null)
-  selectedRef.current = active
+  selectedRef.current = tab==='chats' ? active : null
 
   const load = useCallback(async (background = false) => {
     if (loadingRef.current) return
@@ -89,7 +93,7 @@ export default function VibeChat() {
       setUid(user.id)
       setSignedIn(true)
 
-      const [profile, schoolMember, teacherProfile, participantResult, tutorResult, studentResult, noticeRecipients, schoolPeerResult, tuitionPeerResult, inboxResult] = await Promise.all([
+      const [profile, schoolMember, teacherProfile, participantResult, tutorResult, studentResult, noticeRecipients, schoolPeerResult, tuitionPeerResult, inboxResult, accessResult] = await Promise.all([
         db.from('profiles').select('role,school_id').eq('id', user.id).maybeSingle(),
         db.from('school_members').select('school_id').eq('profile_id', user.id).limit(1),
         db.from('teacher_profiles').select('school_id').eq('profile_id', user.id).maybeSingle(),
@@ -100,8 +104,10 @@ export default function VibeChat() {
         db.rpc('vibechat_my_chat_peers'),
         db.rpc('vibechat_my_tuition_peers'),
         db.rpc('vibechat_my_inbox_state'),
+        db.rpc('get_my_auth_access_state'),
       ])
-      setRole(profile.error || !profile.data?.role ? '' : profile.data.role)
+      const access=accessResult.data
+      setRole(!accessResult.error && access && typeof access==='object' && !Array.isArray(access) && typeof access.role==='string' && access.account_status==='active' && access.is_anonymized===false ? access.role : '')
       setSchoolMessagingAvailable(Boolean(profile.data?.school_id || schoolMember.data?.[0]?.school_id || teacherProfile.data?.school_id))
       if (participantResult.error) throw participantResult.error
 
@@ -151,10 +157,11 @@ export default function VibeChat() {
         detail: 'Approved private tuition', preview: '',
         updated: null, schoolId: null,
       }))
+      if(inboxResult.error && !background) setError('Inbox synchronization is unavailable. The server may need an update.')
       const inboxMap = new Map((inboxResult.data ?? []).map(item=>[item.kind+':'+item.room_id,item] as const))
       const next: Chat[] = [...schoolChats,...tuitionChats].map(chat=>{
         const state=inboxMap.get(chat.key)
-        return state ? {...chat,updated:state.updated??chat.updated,preview:state.preview??'',unread:state.unread>0,unreadCount:state.unread,peerReadAt:state.peer_read_at,peerDeliveredAt:state.peer_delivered_at} : chat
+        return state ? {...chat,updated:state.updated??chat.updated,preview:state.preview??'',unread:state.unread>0,unreadCount:state.unread,peerOnline:state.peer_online,peerReadAt:state.peer_read_at,peerDeliveredAt:state.peer_delivered_at} : chat
       })
       setChats(next.sort((a,b)=>(b.updated??'').localeCompare(a.updated??'')))
 
@@ -183,10 +190,36 @@ export default function VibeChat() {
   useEffect(() => { void load() }, [load])
   useVibeChatInboxUpdates(uid,()=>{void load(true);setRefreshVersion(v=>v+1)})
 
-  const selected = chats.find(chat => chat.key === active) ?? null
+  useEffect(()=>{
+    if(!uid) {setPresence(null);return}
+    let alive=true
+    void getSupabaseClient().rpc('vibechat_presence_settings',{}).then(({data,error})=>{if(alive&&!error) setPresence(data)})
+    return ()=>{alive=false}
+  },[uid])
+  useEffect(()=>{
+    if(!uid || !presence?.enabled) return
+    const tick=()=>{if(document.visibilityState==='visible' && document.hasFocus()) void getSupabaseClient().rpc('vibechat_presence_tick')}
+    tick()
+    const timer=window.setInterval(tick,25000)
+    window.addEventListener('focus',tick)
+    return ()=>{window.clearInterval(timer);window.removeEventListener('focus',tick)}
+  },[uid,presence?.enabled])
+  async function togglePresence(){
+    if(!presence?.eligible||presenceBusy) return
+    setPresenceBusy(true)
+    try{
+      const {data,error}=await getSupabaseClient().rpc('vibechat_presence_settings',{p_enabled:!presence.enabled})
+      if(error||!data) throw error
+      setPresence(data)
+      void load(true)
+    }catch{setError('Could not update online visibility. Retry.')}
+    finally{setPresenceBusy(false)}
+  }
+  const selected = tab==='chats' ? (chats.find(chat => chat.key === active) ?? null) : null
   const { otherTyping, sendTyping } = useVibeChatTyping(selected?.key ?? null)
   const loadMessages = useCallback(async (chat: Chat, ownerId: string) => {
     const db = getSupabaseClient()
+    const read=++messageReadRef.current
     try {
       let rows: Message[]
       if (chat.kind === 'tuition') {
@@ -203,7 +236,7 @@ export default function VibeChat() {
           id:m.id, body:m.body, mine:m.sender_id === ownerId, created_at:m.created_at as string,
         }))
       }
-      if (selectedRef.current !== chat.key) return
+      if (selectedRef.current !== chat.key || read!==messageReadRef.current) return
       setMessages(rows)
       setMessageError('')
       const incoming=[...rows].reverse().find(message=>!message.mine)
@@ -213,12 +246,12 @@ export default function VibeChat() {
         if(!receipt.error && receipt.data && visible && selectedRef.current===chat.key) setChats(previous=>previous.map(item=>item.key===chat.key?{...item,unread:false,unreadCount:0}:item))
       }
     } catch {
-      if (selectedRef.current === chat.key) setMessageError('Could not load messages for this conversation.')
+      if (selectedRef.current === chat.key && read===messageReadRef.current) setMessageError('Could not load messages for this conversation.')
     }
   }, [])
 
   useEffect(() => {
-    if (!selected || !uid) { setMessages([]); return }
+    if (!selected || !uid) { messageReadRef.current++;setMessages([]); return }
     let running = true
     setMessages([])
     setMessageError('')
@@ -251,6 +284,17 @@ export default function VibeChat() {
     })
     return () => { live = false }
   }, [selected?.key, uid])
+
+  useEffect(()=>{
+    if(!selected||!uid||refreshVersion===0) return
+    let alive=true
+    void getSupabaseClient().rpc('vibechat_thread_safety',{p_kind:selected.kind==='school'?'vc':'tuition',p_room:selected.id}).then(({data,error})=>{
+      if(!alive||selectedRef.current!==selected.key) return
+      if(error||!data){setSafety(null);setSafetyError('Could not verify messaging permissions.')}
+      else setSafety(data)
+    })
+    return ()=>{alive=false}
+  },[selected?.key,uid,refreshVersion])
 
   async function toggleBlock() {
     if (!selected || !safety || safetyBusy) return
@@ -307,8 +351,7 @@ export default function VibeChat() {
         if (insertError) throw insertError
         // Inbox metadata is derived from committed messages on the server.
       }
-      setBody('')
-      await loadMessages(selected, uid)
+      if(selectedRef.current===selected.key) {setBody('');await loadMessages(selected, uid)}
       void load(true)
     } catch {
       setMessageError('Message not sent. Please retry.')
@@ -348,6 +391,7 @@ export default function VibeChat() {
             {role==='teacher'&&<button type="button" onClick={()=>{setTab('school');setMoreOpen(false)}}><Users size={16} aria-hidden/> School</button>}
             <button type="button" onClick={()=>{setTab('enquiries');setMoreOpen(false)}}><Users size={16} aria-hidden/> Enquiries</button>
             <button type="button" onClick={()=>{setTab('notices');setMoreOpen(false)}}><Bell size={16} aria-hidden/> Notices</button>
+            {presence?.eligible && <button type="button" aria-pressed={presence.enabled} disabled={presenceBusy} onClick={()=>void togglePresence()}>Online visibility: {presence.enabled?'On':'Off'}</button>}
           </div>}
         </div>
       </nav>
@@ -394,7 +438,7 @@ export default function VibeChat() {
         <div className={styles.conversation} data-open={selected?'true':'false'}>
           {selected ? <>
             <div className={styles.conversationHeader}>
-              <div className={styles.peerHeader}><VibeChatAvatar name={selected.title} avatarUrl={selected.avatarUrl} size="large"/><div><strong>{selected.title}</strong><div className={styles.subtitle}>{otherTyping ? 'Typing…' : selected.detail}</div></div></div>
+              <div className={styles.peerHeader}><VibeChatAvatar name={selected.title} avatarUrl={selected.avatarUrl} size="large"/><div><strong>{selected.title}</strong><div className={styles.subtitle}>{otherTyping ? 'Typing…' : selected.peerOnline ? 'Online' : selected.detail}</div></div></div>
               <div className={styles.contactRow}>
                 <button type="button" className={styles.back} disabled={!safety || safetyBusy || (safety.blocked && !safety.blocked_by_me)}
                   onClick={()=>void toggleBlock()}><Ban size={15} aria-hidden/> {safety?.blocked_by_me?'Unblock':'Block'}</button>
