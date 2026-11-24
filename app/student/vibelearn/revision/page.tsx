@@ -15,6 +15,7 @@ import RevisionTopicStarter, { type RevisionStarterHandle } from '@/components/s
 import { getRevisionWorkspace, isCurrentGradeMistake, type MistakeNotebookItem, type RevisionWorkspace } from '@/lib/student/vibelearn'
 import { getMyRevisionMemory, recordRevisionRecall, type RevisionMemoryRecord } from '@/lib/student/revisionMemory'
 import type { RevisionTopic } from '@/lib/student/revisionTopic'
+import RevisionOutcomeQueue from '@/components/student/RevisionOutcomeQueue'
 
 type Screen = 'home' | 'recall' | 'feedback' | 'finished'
 type Mode = 'Recall' | 'Flashcards'
@@ -47,6 +48,13 @@ const dateDue=(date:string|null)=>!date||new Date(date).getTime()<=Date.now()
 const dateLabel=(date:string)=>new Intl.DateTimeFormat('en-KE',{month:'short',day:'numeric',timeZone:'Africa/Nairobi'}).format(new Date(date))
 
 export default function RevisionStudioPage(){
+ const {identity,loading}=useStudent()
+ const params=useSearchParams()
+ const learnerKey=JSON.stringify([loading,identity?.studentId??null,identity?.className??null,params.get('subject')??''])
+ return <RevisionStudioSession key={learnerKey}/>
+}
+
+function RevisionStudioSession(){
  const router=useRouter()
  const searchParams=useSearchParams()
  const requestedSubject=searchParams.get('subject')?.trim()??''
@@ -84,11 +92,11 @@ export default function RevisionStudioPage(){
    }finally{setLoading(false)}
  },[])
  useEffect(()=>{if(!identityLoading&&identity)void load();else if(!identityLoading)setLoading(false)},[identity,identityLoading,load])
- useEffect(()=>{if(requestedSubject){const tile=subjectTiles.find(t=>t.name.toLowerCase()===requestedSubject.toLowerCase());if(tile)setSubject(tile.name)}},[requestedSubject])
+ useEffect(()=>{if(requestedSubject){const tile=subjectTiles.find(t=>t.name.toLowerCase()===requestedSubject.toLowerCase());setSubject(tile?.name??requestedSubject)}},[requestedSubject])
  const verified=useMemo(()=> (workspace?.mistakes??[]).filter(m=>isCurrentGradeMistake(m,identity?.className)),[workspace,identity?.className])
  const memoryById=useMemo(()=>new Map(memory.map(m=>[m.mistakeId,m])),[memory])
  const available=useMemo(()=>topics.filter(t=>t.subject.toLowerCase()===subject.toLowerCase()),[topics,subject])
- const selectedTopic=available.find(t=>dateDue(t.nextReviewAt))??available[0]??null
+ const dueTopic=available.find(t=>dateDue(t.nextReviewAt))??null
  const dueTopics=topics.filter(t=>dateDue(t.nextReviewAt))
  const reviewedTopics=topics.filter(t=>t.recallCount>0)
  const recalledTopics=topics.filter(t=>t.recallCount>0&&t.lastRemembered===true)
@@ -101,7 +109,9 @@ export default function RevisionStudioPage(){
  }
  const todayNairobi=new Intl.DateTimeFormat('en-CA',{year:'numeric',month:'2-digit',day:'2-digit',timeZone:'Africa/Nairobi'}).format(new Date())
  const dailyGoal=Math.min(3,reviewedTopics.filter(t=>t.lastRecalledAt&&new Intl.DateTimeFormat('en-CA',{year:'numeric',month:'2-digit',day:'2-digit',timeZone:'Africa/Nairobi'}).format(new Date(t.lastRecalledAt))===todayNairobi).length)
- const selectedItem=dueMistakes.find(m=>m.subject.toLowerCase()===subject.toLowerCase())??dueMistakes[0]??null
+ const selectedItem=dueMistakes.find(m=>m.subject.toLowerCase()===subject.toLowerCase())??null
+ // Prefer due work over optional early review; never silently switch subjects.
+ const selectedTopic=dueTopic??(selectedItem?null:available[0]??null)
  const weekTopics=topics.filter(t=>t.nextReviewAt&&!dateDue(t.nextReviewAt)&&new Date(t.nextReviewAt).getTime()<=Date.now()+7*86400000)
  function begin(m:MistakeNotebookItem, selectedMode:Mode='Recall'){
    setItem(m);setMode(selectedMode);setRevealed(false);setRemembered(null);setNextReview(null);setError('');setScreen('recall')
@@ -174,6 +184,7 @@ export default function RevisionStudioPage(){
                <button type="button" onClick={startRevision} disabled={launching} style={{...primary,width:'100%',borderRadius:999}}>{launching?'Opening…':'Start revision'} <ArrowRight size={15} style={{verticalAlign:'middle',marginLeft:5}}/></button>
              </div>
            </section>
+           <RevisionOutcomeQueue learnerId={identity.studentId} className={identity.className??''}/>
            <section aria-label="Choose a revision subject">
              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,marginBottom:10}}><h2 style={{fontSize:18,margin:0}}>Subjects</h2><span style={muted}>Select to revise</span></div>
              <div style={{display:'grid',gridTemplateColumns:'repeat(4,minmax(0,1fr))',gap:8}}>

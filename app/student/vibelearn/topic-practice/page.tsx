@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useStudent } from '@/lib/student-context'
 import CanonicalTopicPractice from '@/components/student/CanonicalTopicPractice'
+import PracticeCatalogueNav from '@/components/student/PracticeCatalogueNav'
 import LearningNotebookPrompt from '@/components/learn/LearningNotebookPrompt'
 import LearningFeedback, { playLearningSound } from '@/components/student/LearningFeedback'
 import { supabase } from '@/lib/supabase'
@@ -38,6 +39,13 @@ function readSession(key:string):Session|null {
   } catch { return null }
 }
 export default function TopicPracticePage() {
+  const { identity, loading } = useStudent()
+  // A persisted session belongs to one learner and grade, never a previous account.
+  const learnerKey = JSON.stringify([loading, identity?.studentId ?? null, identity?.className ?? null])
+  return <TopicPracticeSession key={learnerKey} />
+}
+
+function TopicPracticeSession() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const requestedSubject = searchParams.get('subject')?.trim().toLowerCase() ?? ''
@@ -211,6 +219,7 @@ export default function TopicPracticePage() {
   return <main style={shell}>
     <button style={plain} onClick={() => router.push('/student/study')}>← Learn</button>
     <h1 style={{margin:'12px 0 6px',fontSize:26}}>Topic Practice</h1>
+    {!session && <PracticeCatalogueNav mode="topics" subject={requestedSubject} topic={requestedTopic}/>}
     <StudentIntro feature="topic-practice-overview"><p>Answer five questions, check feedback, and practise again at your own pace.</p></StudentIntro>
 
     {!grade && <section style={card}><h2 style={heading}>Choose your grade once</h2><div style={grid}>{[4,5,6,7,8,9].map(n => <button key={n} style={button} onClick={() => void selectGrade('Grade '+n)}>Grade {n}</button>)}</div></section>}
