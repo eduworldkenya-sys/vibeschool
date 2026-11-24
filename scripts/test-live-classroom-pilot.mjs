@@ -716,3 +716,5 @@ await db.close()
 
 await import('./test-live-workbook-contract.mjs')
 await import('./test-live-classroom-phase.mjs')
+
+await import('./test-live-stage-ink.mjs')
