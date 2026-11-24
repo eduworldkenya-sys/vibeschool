@@ -20,6 +20,7 @@ import styles from './SchoolLearnLibrary.module.css'
 import UnifiedLearnCollections from '@/components/learn/UnifiedLearnCollections'
 import SubjectTextbookOutline from '@/components/learn/SubjectTextbookOutline'
 import CertifiedResourceLinks from '@/components/learn/CertifiedResourceLinks'
+import { searchReadableBook, rankSearchHits, type SearchHit } from '@/lib/learn/textbookSearch'
 
 type PublishedBook = {
   id: string
@@ -118,6 +119,14 @@ function SchoolLearnLibraryContent({ mode = 'public', learnerGrade }: Props) {
   const initialQuery = params.get('q') ?? ''
   const [query, setQuery] = useState(initialQuery)
   const [chapterMatches, setChapterMatches] = useState<ChapterSearchHit[]>([])
+  const [contentMatches, setContentMatches] = useState<SearchHit[]>([])
+  const [contentStatus, setContentStatus] = useState<'idle'|'loading'|'ready'|'partial'|'error'>('idle')
+  const [visibleMatches, setVisibleMatches] = useState(15)
+  const [viewer, setViewer] = useState<string|null|undefined>(undefined)
+  useEffect(() => {
+    const {data:{subscription}}=supabase.auth.onAuthStateChange((_event,session)=>setViewer(session?.user.id??null))
+    return ()=>subscription.unsubscribe()
+  },[])
   const [chapterSearchStatus, setChapterSearchStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle')
   const [tab, setTab] = useState<'lessons' | 'resources'>('lessons')
   const [books, setBooks] = useState<PublishedBook[]>([])
@@ -242,6 +251,44 @@ function SchoolLearnLibraryContent({ mode = 'public', learnerGrade }: Props) {
     return () => { active = false; clearTimeout(timer) }
   }, [gradeBooks, query, booksLoading])
 
+  // Search the same entitlement-filtered, redacted payload that powers the reader.
+  // No direct access to raw content blocks or answer keys. Bounded parallelism
+  // keeps requests manageable and stale searches cannot replace newer results.
+  useEffect(()=>{
+    let active=true
+    const controller=new AbortController()
+    const needle=query.trim().slice(0,100)
+    setContentMatches([]);setVisibleMatches(15)
+    if(needle.length<2||booksLoading||viewer===undefined){setContentStatus('idle');return ()=>{active=false;controller.abort()}}
+    const ids=[...new Set(gradeBooks.filter(book=>!selectedSubject||sameLearnSubject(grade,book.cbc_subject,selectedSubject)).map(book=>book.id))]
+    if(!ids.length){setContentStatus(booksError?'error':'ready');return ()=>{active=false;controller.abort()}}
+    setContentStatus('loading')
+    const timer=setTimeout(()=>{
+      void (async()=>{
+        let next=0,errors=0
+        const hits:SearchHit[]=[]
+        async function worker(){
+          while(active&&next<ids.length){
+            const id=ids[next++]
+            try{
+              const response=viewer
+                ? await supabase.rpc('get_vibetextbook_reader',{publication_id_input:id}).abortSignal(controller.signal)
+                : await supabase.rpc('get_public_vibetextbook_reader' as never,{publication_id_input:id} as never).abortSignal(controller.signal)
+              if(!active)return
+              if(response.error){errors++;continue}
+              hits.push(...searchReadableBook(response.data,id,needle))
+            }catch{if(active)errors++}
+          }
+        }
+        await Promise.all(Array.from({length:Math.min(4,ids.length)},()=>worker()))
+        if(!active)return
+        setContentMatches(rankSearchHits(hits))
+        setContentStatus(errors===ids.length?'error':errors||catalogueTruncated?'partial':'ready')
+      })()
+    },450)
+    return ()=>{active=false;clearTimeout(timer);controller.abort()}
+  },[query,gradeBooks,grade,selectedSubject,booksLoading,booksError,catalogueTruncated,viewer])
+
   const subjectGroups: SubjectGroup[] = useMemo(() => {
     const bookSubjects = uniqueNames(gradeBooks.map(book => book.cbc_subject?.trim() || '').filter(Boolean))
     const seenSubjects = new Set<string>()
@@ -295,6 +342,17 @@ function SchoolLearnLibraryContent({ mode = 'public', learnerGrade }: Props) {
     if (nextGrade) changeGrade(nextGrade)
   }
 
+  const contentSearch = <section aria-label="Matching textbook content" className={styles.chapterSearchResults}>
+    <h2>Explanations and examples</h2>
+    {contentStatus==='loading'&&<p role="status">Searching readable textbook content…</p>}
+    {(contentStatus==='partial'||contentStatus==='error')&&<p role="alert">Some textbook content could not be searched. Available results are shown; try again or browse the books.</p>}
+    {contentStatus==='ready'&&contentMatches.length===0&&<p>No matching readable explanations or examples.</p>}
+    {contentMatches.slice(0,visibleMatches).map(hit=><Link key={hit.publicationId+':'+hit.chapterId+':'+hit.blockId} className={styles.chapterSearchLink}
+      href={'/read/textbook/'+encodeURIComponent(hit.publicationId)+'/'+encodeURIComponent(hit.chapterId)+'?'+new URLSearchParams({block:hit.blockId}).toString()}>
+      <span><strong>{hit.label} · {hit.chapterTitle}</strong><small>{hit.bookTitle}</small><span className={styles.contentSearchSnippet}>{hit.snippet}</span></span><ChevronRight size={17} aria-hidden="true"/>
+    </Link>)}
+    {visibleMatches<contentMatches.length&&<button type="button" className={styles.buttonSecondary} onClick={()=>setVisibleMatches(n=>n+15)}>Show more results</button>}
+  </section>
   return (
     <div className={styles.shell}>
       <div className={collectionView || activeName ? styles.collectionsFrame : styles.frame}>
@@ -323,6 +381,8 @@ function SchoolLearnLibraryContent({ mode = 'public', learnerGrade }: Props) {
                 <ChevronRight size={15} aria-hidden="true" />
                 <span aria-current="page">{activeName}</span>
               </nav>
+              <label className={styles.searchbox}><Search size={19} aria-hidden="true"/><input type="search" value={query} maxLength={100} onChange={event=>setQuery(event.target.value)} placeholder="Find a concept, definition or example…" aria-label="Search this subject's textbook content"/></label>
+              {query.trim().length>=2&&contentSearch}
               <div className={styles.gradeTabs} role="tablist" aria-label="Subject learning activities">
                 {([['lessons','Book',BookOpen],['resources','Resources',LibraryBig]] as const).map(([id,label,Icon]) =>
                   <button key={id} type="button" role="tab" aria-selected={tab === id}
@@ -392,8 +452,9 @@ function SchoolLearnLibraryContent({ mode = 'public', learnerGrade }: Props) {
             <div className={styles.sectionHead}><h2>Subjects for {grade}</h2></div>
             <label className={styles.searchbox}><Search size={19} aria-hidden="true" />
               <input type="search" value={query} onChange={event => setQuery(event.target.value)}
-                placeholder="Search subjects, books or chapters…" aria-label="Search subjects, published books and chapters" />
+                maxLength={100} placeholder="Search concepts, examples, books or chapters…" aria-label="Search subjects, published books, chapters and textbook content" />
             </label>
+            {query.trim().length>=2&&contentSearch}
             {query.trim().length >= 2 && <section aria-label="Matching textbook chapters" className={styles.chapterSearchResults}>
               <h2>Chapters and topics</h2>
               {chapterSearchStatus === 'loading' && <p role="status">Finding published chapters…</p>}
@@ -422,7 +483,7 @@ function SchoolLearnLibraryContent({ mode = 'public', learnerGrade }: Props) {
                     <span className={styles.subjectAvailability}>{count > 0 || readers > 0 ? 'Read textbook' : 'View textbook'} <ChevronRight size={13} style={{ verticalAlign: 'middle' }} /></span>
                   </Link>
                 })}</div>
-              </section>) : chapterMatches.length > 0 || chapterSearchStatus === 'loading' ? null : <div className={styles.empty}>
+              </section>) : chapterMatches.length > 0 || chapterSearchStatus === 'loading' || contentMatches.length > 0 || contentStatus === 'loading' ? null : <div className={styles.empty}>
               {query ? 'No matching subjects or published chapters. Try a different word.' :
                 grade === 'Playgroup'
                   ? 'No nationally registered Playgroup subjects are available in this catalogue. Age-appropriate published resources will be listed when available.'
