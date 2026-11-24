@@ -7,6 +7,7 @@ type ReaderChapterEventDetail = {
   publicationId?: unknown;
   chapterId?: unknown;
   progressPercent?: unknown;
+  canRead?: unknown;
 };
 
 type ActiveReader = {
@@ -186,6 +187,8 @@ export function ReaderContinuityCoordinator() {
   }, [supabase]);
 
   useEffect(() => {
+    // A delayed restore cannot scroll or save a different active chapter.
+    let chapterGeneration = 0;
     async function writeSnapshot(snapshot: ActiveReader) {
       const { data, error } = await supabase.rpc("record_reading_progress", {
         publication_id_input: snapshot.publicationId,
@@ -267,12 +270,12 @@ export function ReaderContinuityCoordinator() {
       };
     }
 
-    async function restore(snapshot: ActiveReader) {
+    async function restore(snapshot: ActiveReader, generation: number) {
       setResumed(false);
       if (!authenticatedRef.current || !navigator.onLine) return;
 
       const { data: authData } = await supabase.auth.getUser();
-      if (!authData.user) return;
+      if (!authData.user || generation !== chapterGeneration) return;
 
       const { data, error } = await supabase
         .from("vibe_reading_progress")
@@ -282,7 +285,7 @@ export function ReaderContinuityCoordinator() {
         .eq("chapter_id", snapshot.chapterId)
         .maybeSingle();
 
-      if (error || !data) return;
+      if (error || !data || generation !== chapterGeneration || activeRef.current?.chapterId !== snapshot.chapterId) return;
       const position = data.reading_position as Record<string, unknown> | null;
       const blockId =
         typeof position?.block_id === "string" && position.block_id.trim()
@@ -291,6 +294,7 @@ export function ReaderContinuityCoordinator() {
       if (!blockId) return;
 
       await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
+      if (generation !== chapterGeneration || activeRef.current?.chapterId !== snapshot.chapterId) return;
       const target = findBlockById(blockId);
       if (!target) return;
 
@@ -353,10 +357,16 @@ export function ReaderContinuityCoordinator() {
     function onChapter(rawEvent: Event) {
       const event = rawEvent as CustomEvent<ReaderChapterEventDetail>;
       const detail = event.detail;
+      const generation = ++chapterGeneration;
       if (
         typeof detail?.publicationId !== "string" ||
-        typeof detail?.chapterId !== "string"
+        typeof detail?.chapterId !== "string" ||
+        detail.canRead !== true
       ) {
+        // Never record progress for locked, draft or lesson-preview content.
+        if (writeTimerRef.current) clearTimeout(writeTimerRef.current);
+        activeRef.current = null;
+        setActive(false);
         return;
       }
 
@@ -381,8 +391,12 @@ export function ReaderContinuityCoordinator() {
         )?.textContent?.trim();
         setChapterTitle(heading || "Current unit");
         setMinutesLeft(estimateMinutesLeft(supplied));
-        void restore(next).finally(() => {
-          window.requestAnimationFrame(() => measure(true));
+        void restore(next, generation).finally(() => {
+          if (generation === chapterGeneration && activeRef.current?.chapterId === next.chapterId) {
+            window.requestAnimationFrame(() => {
+              if (generation === chapterGeneration && activeRef.current?.chapterId === next.chapterId) measure(true);
+            });
+          }
         });
       });
     }
