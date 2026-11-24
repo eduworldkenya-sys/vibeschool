@@ -2,6 +2,7 @@
 import {useEffect,useState,useRef,useCallback} from 'react'
 import {SlideCanvas,validSlide,diagramLabel,SLIDE_DIAGRAMS,SLIDE_THEMES,type LiveSlide,type SlideDiagram,type SlideTheme} from './LiveSlideCanvas'
 import styles from './LiveClassroom.module.css'
+import {SlidePrintPreview} from './LiveSlidePrintPreview'
 import {SlideBodyEditor} from './LiveSlideBodyEditor'
 import {exportDeck,importDeck,MAX_DECK_FILE_BYTES,buildTextRevealSlides,isPhotoBody} from './LiveSlideProtocol'
 type Summary={id:string;title:string;revision:number;slideCount:number;updatedAt:string}
@@ -18,6 +19,9 @@ export function TeachingLibrary({command,currentDeck,onUse}:{command:Command;cur
  const alive=useRef(false),lock=useRef(false),fileInput=useRef<HTMLInputElement>(null)
  const [saveProblem,setSaveProblem]=useState('')
  const [autoSave,setAutoSave]=useState(true)
+ const [printDeck,setPrintDeck]=useState<Material|null>(null)
+ const onUseRef=useRef(onUse)
+ useEffect(()=>{onUseRef.current=onUse},[onUse])
  async function refresh(){
   const result=await command('materials_list') as {materials?:Summary[]}
   if(!Array.isArray(result.materials))throw Error('Invalid library response')
@@ -46,12 +50,13 @@ export function TeachingLibrary({command,currentDeck,onUse}:{command:Command;cur
   })
  }
  function patch(p:Partial<LiveSlide>){
+  if(lock.current)return
   setEdit(m=>m?{...m,slides:m.slides.map((s,i)=>i===index?{...s,...p}:s)}:m);setDirty(true)
  }
  const save=useCallback(async(use=false)=>{
   if(!edit||!edit.title.trim()||lock.current)return
   if(edit.slides.some(s=>isPhotoBody(s.body))){setSaveProblem('Remove room-specific photos before saving a reusable presentation.');return}
-  if(!dirty&&edit.revision>0){if(use)onUse(edit);return}
+  if(!dirty&&edit.revision>0){if(use)onUseRef.current(edit);return}
   lock.current=true;setBusy(true);setSaveProblem('')
   try{
    const result=await command('materials_save',null,null,{id:edit.id,revision:edit.revision,title:edit.title,slides:edit.slides})
@@ -59,11 +64,11 @@ export function TeachingLibrary({command,currentDeck,onUse}:{command:Command;cur
    if(!alive.current)return
    setEdit(result);setDirty(false)
    setItems(items=>[{id:result.id,title:result.title,revision:result.revision,slideCount:result.slides.length,updatedAt:new Date().toISOString()},...items.filter(item=>item.id!==result.id)])
-   if(use)onUse(result)
+   if(use)onUseRef.current(result)
   }catch(e){
    if(alive.current)setSaveProblem(e instanceof Error?e.message:'Could not save. Retry.')
   }finally{lock.current=false;if(alive.current)setBusy(false)}
- },[edit,dirty,command,onUse])
+ },[edit,dirty,command])
  useEffect(()=>{
   if(!autoSave||!dirty||busy||saveProblem||!edit?.title.trim()||edit.slides.some(s=>isPhotoBody(s.body)))return
   const timer=window.setTimeout(()=>void save(),1500)
@@ -88,19 +93,20 @@ export function TeachingLibrary({command,currentDeck,onUse}:{command:Command;cur
  }
  function loadFile(file:File){
   if(busy||lock.current||!mayReplace())return
-  void run(async()=>{if(file.size>MAX_DECK_FILE_BYTES)throw Error('Presentation file is too large.');const deck=importDeck(await file.text());if(!alive.current)return;setEdit({id:crypto.randomUUID(),title:deck.title,slides:deck.slides,revision:0});setIndex(0);setDirty(true);setSaveProblem('')})
+  void run(async()=>{const isPdf=/\.pdf$/i.test(file.name)||file.type==='application/pdf';let deck:{title:string;slides:LiveSlide[]};if(isPdf){const {importPdfSlides}=await import('./LiveSlidePdfImport');deck=await importPdfSlides(file)}else{if(file.size>MAX_DECK_FILE_BYTES)throw Error('Presentation file is too large.');deck=importDeck(await file.text())}if(!alive.current)return;setEdit({id:crypto.randomUUID(),title:deck.title,slides:deck.slides,revision:0});setIndex(0);setDirty(true);setSaveProblem('')})
  }
- function changeDeck(slides:LiveSlide[],nextIndex:number){setEdit(m=>m?{...m,slides}:m);setIndex(nextIndex);setDirty(true)}
+ function changeDeck(slides:LiveSlide[],nextIndex:number){if(lock.current)return;setEdit(m=>m?{...m,slides}:m);setIndex(nextIndex);setDirty(true)}
  function move(delta:number){if(!edit)return;const target=index+delta;if(target<0||target>=edit.slides.length)return;const next=[...edit.slides];[next[index],next[target]]=[next[target],next[index]];changeDeck(next,target)}
  const slide=edit?.slides[index]
  return <div className={styles.teachingLibrary}>
-  <div className={styles.controls}><button type="button" disabled={busy} onClick={()=>create()}>New presentation</button>{currentDeck&&<button type="button" disabled={busy} onClick={()=>create(true)}>Save current deck</button>}<button type="button" disabled={busy} onClick={()=>fileInput.current?.click()}>Import slides</button><input ref={fileInput} type="file" accept=".json,application/json" hidden onChange={e=>{const file=e.target.files?.[0];e.target.value='';if(file)loadFile(file)}}/><button type="button" disabled={busy} onClick={()=>void run(refresh)}>Refresh</button></div>
+ {printDeck&&<SlidePrintPreview title={printDeck.title} slides={printDeck.slides} onClose={()=>setPrintDeck(null)}/>}
+  <div className={styles.controls}><button type="button" disabled={busy} onClick={()=>create()}>New presentation</button>{currentDeck&&<button type="button" disabled={busy} onClick={()=>create(true)}>Save current deck</button>}<button type="button" disabled={busy} onClick={()=>fileInput.current?.click()}>Import JSON / PDF text</button><input ref={fileInput} type="file" accept=".json,application/json,.pdf,application/pdf" hidden onChange={e=>{const file=e.target.files?.[0];e.target.value='';if(file)loadFile(file)}}/><button type="button" disabled={busy} onClick={()=>void run(refresh)}>Refresh</button></div>
   {error&&<p role="alert">{error}</p>}
   <div className={styles.materialList}>{items.length===0?<p>No saved presentations</p>:items.map(item=><div key={item.id}><div><strong>{item.title}</strong><small>{item.slideCount} slides</small></div><button disabled={busy} onClick={()=>open(item)}>Edit</button><button disabled={busy} onClick={()=>open(item,true)}>Use</button><button disabled={busy} onClick={()=>{if(!window.confirm('Delete this saved presentation? Shared lesson history remains.'))return;void run(async()=>{await command('materials_delete',null,null,{id:item.id,revision:item.revision});if(alive.current&&edit?.id===item.id){setEdit(null);setDirty(false)}await refresh()})}}>Delete</button></div>)}</div>
   {edit&&slide&&<section className={styles.slideFields} aria-label="Prepare presentation">
    <label><input type="checkbox" checked={autoSave} disabled={busy} onChange={e=>setAutoSave(e.target.checked)}/> Auto-save</label>
    {saveProblem&&<div role="alert"><p>{saveProblem.includes('live_material_conflict')?'A newer version exists. Your draft is intact. Save a separate recovered copy or reopen the latest saved version.':saveProblem}</p><button type="button" disabled={busy} onClick={()=>void save()}>Retry save</button>{saveProblem.includes('live_material_conflict')&&<button type="button" disabled={busy} onClick={preserveCopy}>Recover as new copy</button>}</div>}
-   <label>Presentation name<input value={edit.title} maxLength={120} disabled={busy} onChange={e=>{setEdit({...edit,title:e.target.value});setDirty(true)}}/></label>
+   <label>Presentation name<input value={edit.title} maxLength={120} disabled={busy} onChange={e=>{if(lock.current)return;setEdit({...edit,title:e.target.value});setDirty(true)}}/></label>
    <SlideCanvas slide={slide} number={index+1} total={edit.slides.length}/>
    <nav aria-label="Presentation thumbnails" style={{display:'flex',gap:8,overflowX:'auto',padding:4}}>{edit.slides.map((item,i)=><button type="button" key={i} disabled={busy} aria-pressed={i===index} aria-label={'Slide '+(i+1)+': '+item.title} style={{flex:'0 0 110px',border:i===index?'2px solid #087e72':'1px solid #92b5a8',padding:3,background:'#fff'}} onClick={()=>setIndex(i)}><SlideCanvas slide={item} number={i+1} total={edit.slides.length} mini/></button>)}</nav>
    <div className={styles.slideToolbar}><button type="button" disabled={busy||index===0} onClick={()=>move(-1)}>Move left</button><button type="button" disabled={busy||index===edit.slides.length-1} onClick={()=>move(1)}>Move right</button><button type="button" disabled={busy||edit.slides.length>=30} onClick={()=>changeDeck([...edit.slides.slice(0,index+1),{...slide},...edit.slides.slice(index+1)],index+1)}>Duplicate slide</button><button type="button" disabled={busy||buildTextRevealSlides(slide,31-edit.slides.length).length===0} onClick={()=>{const steps=buildTextRevealSlides(slide,31-edit.slides.length);if(steps.length&&window.confirm('Replace this slide with '+steps.length+' progressive teaching steps?'))changeDeck([...edit.slides.slice(0,index),...steps,...edit.slides.slice(index+1)],index)}}>Build reveal steps</button></div>
@@ -115,7 +121,7 @@ export function TeachingLibrary({command,currentDeck,onUse}:{command:Command;cur
     <label>Text size<select aria-label="Text size" disabled={busy} value={slide.font??'normal'} onChange={e=>patch({font:e.target.value==='large'?'large':'normal'})}><option value="normal">Normal</option><option value="large">Large</option></select></label>
    </div>
    <label>Presenter notes (private)<textarea maxLength={2000} disabled={busy} value={slide.notes??''} onChange={e=>patch({notes:e.target.value})}/></label>
-   <div className={styles.controls}><button className={styles.primary} disabled={busy||!edit.title.trim()} onClick={()=>void save()}>Save presentation</button><button disabled={busy||!edit.title.trim()} onClick={()=>void save(true)}>Save & use</button><button disabled={busy} onClick={()=>{if(mayReplace()){setEdit(null);setDirty(false);setSaveProblem('')}}}>Close editor</button><button type="button" disabled={busy||!edit.title.trim()} onClick={download}>Export slides (without private notes)</button><small>{busy?'Saving…':dirty?'Changes not yet saved':edit.revision>0?'Saved privately · recover from My Presentations':'New presentation'}</small></div>
+   <div className={styles.controls}><button className={styles.primary} disabled={busy||!edit.title.trim()} onClick={()=>void save()}>Save presentation</button><button disabled={busy||!edit.title.trim()} onClick={()=>void save(true)}>Save & use</button><button disabled={busy} onClick={()=>{if(mayReplace()){setEdit(null);setDirty(false);setSaveProblem('')}}}>Close editor</button><button type="button" disabled={busy||!edit.title.trim()} onClick={download} >Export slides (without private notes)</button><button type="button" disabled={busy||!edit.title.trim()||edit.slides.some(s=>isPhotoBody(s.body))} onClick={()=>setPrintDeck(edit)}>Print / Save PDF</button><small>{busy?'Saving…':dirty?'Changes not yet saved':edit.revision>0?'Saved privately · recover from My Presentations':'New presentation'}</small></div>
   </section>}
  </div>
 }

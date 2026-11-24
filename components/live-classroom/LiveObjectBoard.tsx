@@ -29,9 +29,9 @@ function DrawObjects({doc,selected}:{doc:BoardDocument;selected?:string|null}){
   {selected===o.id&&<rect x="-3" y="-3" width={o.w+6} height={o.h+6} stroke="#077e72" strokeDasharray="4 3" strokeWidth="1.5" fill="none" pointerEvents="none"/>}
  </g>)}</>
 }
-export function SharedObjectBoard({value}:{value:string}){
+export function SharedObjectBoard({value,animate=false}:{value:string;animate?:boolean}){
  const doc=decodeBoard(value);if(!doc)return null
- return <svg className={styles.board} viewBox="0 0 320 220" role="img" aria-label={`Shared board page ${doc.page} of ${doc.total}`}><DrawObjects doc={doc}/></svg>
+ return <svg className={styles.board} data-reveal-motion={animate?'true':undefined} viewBox="0 0 320 220" role="img" aria-label={`Shared board page ${doc.page} of ${doc.total}`}><DrawObjects doc={doc}/></svg>
 }
 type Tool=BoardKind|'select'|'erase'|'pan'
 type Point={x:number;y:number}
