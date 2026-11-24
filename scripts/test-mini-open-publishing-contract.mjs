@@ -110,3 +110,23 @@ test('scanner commissioning grants only the server moderation columns and protec
  assert.ok(api.indexOf("if(!process.env.MINI_GOOGLE_SAFETY_API_KEY?.trim())")<api.indexOf("await db.rpc('mini_safety_claim'"))
  assert.match(api,/\.\.\.\(item\.tags\?\?\[\]\)/)
 })
+
+test('photo OCR text is included in moderation and partial classifier responses fail closed',()=>{
+ assert.ok(api.indexOf("text+='\\n'+detectedText")<api.indexOf('const language=await fetch'))
+ assert.match(api,/Object\.keys\(thresholds\)\.some\(category=>!seen\.has\(category\)\)/)
+ assert.match(api,/item\.confidence<0\|\|item\.confidence>1/)
+})
+test('failed scans recover from the saved submission and requests retry without new inserts',()=>{
+ assert.match(actions,/class MiniSubmissionSavedError extends Error/)
+ assert.match(requests,/new MiniSubmissionSavedError/)
+ assert.match(requestUi,/if\(savedRequestId\)await publishMiniSafely\('request',savedRequestId\)/)
+ const retry=requestUi.slice(requestUi.indexOf('async function retryRequest'),requestUi.indexOf('async function openMine'))
+ assert.match(retry,/publishMiniSafely\('request',id\)/)
+ assert.doesNotMatch(retry,/submitMiniRequest\(/)
+ assert.match(creator,/e instanceof MiniSubmissionSavedError/)
+})
+test('creator profiles load approved posts beyond the current feed and show actual post statistics',()=>{
+ assert.match(creator,/fetchMiniPage\(\{creators:\[creatorId\],cursor:creatorCursor\}\)/)
+ assert.match(creator,/creatorPosts\.map\(card\)/)
+ assert.match(creator,/p\.like_count\} likes · \{p\.save_count\} saves · \{p\.learned_count\} understood/)
+})
