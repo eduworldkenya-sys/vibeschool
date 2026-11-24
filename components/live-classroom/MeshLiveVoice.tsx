@@ -14,7 +14,7 @@ type Props = {
   enabled: boolean
   status: 'active' | 'paused' | 'ended'
   learners: Array<{ studentId: string; name: string; needsHelp: boolean }>
-  onFallback: () => void
+  onFallback?: () => void
 }
 
 type MicState = 'muted' | 'requesting' | 'on' | 'error'
@@ -33,6 +33,7 @@ type Peer = {
 
 const POLL_MS = 2000
 const SIGNAL_TIMEOUT_MS = 10000
+const ROOM_FULL = 'Classroom audio is full. Retry when a seat is free.'
 
 // The host broadcasts one mix to all listeners and a host-only track back to
 // the current speaker. No learner connects to or receives ICE data from peers.
@@ -136,6 +137,7 @@ export function MeshLiveVoice({ roomId, classId, teacher, enabled, status, learn
         // During a rolling deploy the app can reach PostgREST before the
         // migration is visible in its schema cache.
         if (action === 'join' && ['P0002', 'PGRST202'].includes(error.code)) return null
+        if (action === 'join' && error.code === '53000' && error.message === 'mesh_full') throw Error(ROOM_FULL)
         throw Error('Voice access or connection unavailable')
       }
       return validateMeshState(data, teacher)
@@ -178,6 +180,7 @@ export function MeshLiveVoice({ roomId, classId, teacher, enabled, status, learn
     }
 
     const handoff = () => {
+      if (!fallback.current) return stop('VibeMesh audio unavailable.', true, false)
       stop('Switching audio', false, false)
       fallback.current()
     }
@@ -382,8 +385,8 @@ export function MeshLiveVoice({ roomId, classId, teacher, enabled, status, learn
         admitted = true
         setAdmitted(true)
         if (version === moderationVersion || state.fallback) apply(state)
-      } catch {
-        stop('Direct audio unavailable.', true)
+      } catch (error) {
+        stop(error instanceof Error && error.message === ROOM_FULL ? ROOM_FULL : 'Direct audio unavailable.', true)
       }
       if (!lifetime.signal.aborted) timer = setTimeout(() => void tick(), POLL_MS)
     }
@@ -449,7 +452,7 @@ export function MeshLiveVoice({ roomId, classId, teacher, enabled, status, learn
       </button>
       {status === 'active' && failure &&
         <button type="button" disabled={busy} onClick={() => setRetry(value => value + 1)}>Retry audio</button>}
-      {status === 'active' && teacher && (admitted || failure) &&
+      {status === 'active' && teacher && onFallback && (admitted || failure) &&
         <button type="button" disabled={busy} onClick={() => void controls.current?.('fallback')}>Use Daily audio</button>}
     </div>
     <audio ref={playerRef} autoPlay hidden />

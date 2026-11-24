@@ -96,4 +96,6 @@ jobs:
         run: node scripts/test-live-voice-browser.mjs
       - name: Verify two browsers exchange direct audio through private SQL
         timeout-minutes: 4
-        run: node scripts/test-live-mesh-browser.mjs
+        run: |
+          node scripts/test-live-mesh-browser.mjs
+          MESH_OPEN_CLASSROOMS=1 node scripts/test-live-mesh-browser.mjs
