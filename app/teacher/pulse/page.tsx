@@ -12,11 +12,9 @@ import { runRules } from "@/lib/pulse/rules";
 import { readSnapCache, writeSnapCache } from "@/lib/pulse/cache";
 import AssessmentPulseCard from "@/components/teacher/AssessmentPulseCard";
 import LessonFlowCard from "@/components/teacher/LessonFlowCard";
-import NextTeachingAction from "@/components/teacher/NextTeachingAction";
 import PulseHeader from "@/components/teacher/PulseHeader";
-import QuickActions from "@/components/teacher/QuickActions";
+import TeacherTodayV09 from "@/components/teacher/TeacherTodayV09";
 import RecentActivity from "@/components/teacher/RecentActivity";
-import TodayGlance from "@/components/teacher/TodayGlance";
 
 import TwinShortcut from "@/components/teacher/TwinShortcut";
 import { VIBETWIN_ENABLED } from "@/lib/vibetwin-availability";
@@ -303,7 +301,6 @@ export default function PulsePage() {
   const [name, setName] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
   const [selectedKey, setSelectedKey] = useState("");
-  const [liveAudience, setLiveAudience] = useState("");
   const [snap, setSnap] = useState<PulseSnapshot | null>(null);
   const [usingCachedSnap, setUsingCachedSnap] = useState(false);
   const [schools, setSchools] = useState<{ id: string; name: string }[]>([]);
@@ -395,6 +392,9 @@ export default function PulsePage() {
         return;
       }
       setSelectedKey("");
+      setSnap(null);
+      setUsingCachedSnap(false);
+      setLoading(true);
       await boot(true);
     },
     [boot, showToast]
@@ -466,7 +466,7 @@ export default function PulsePage() {
   // across the loading -> loaded transition while still updating synchronously.
   const contextSnap = scopeSnapshot(snap, focusClassId, focusSubjectId);
   const dayResult = runRules(snap);
-  const focusSlot = contextSnap.todaySlots[0];
+  const focusSlot = [...contextSnap.todaySlots].sort((a,b)=>a.start_time.localeCompare(b.start_time)).find(s=>s.teaching_workspace?.lifecycle==="in_progress") ?? [...contextSnap.todaySlots].sort((a,b)=>a.start_time.localeCompare(b.start_time)).find(s=>!["completed","cancelled","rescheduled"].includes(s.teaching_workspace?.lifecycle??"")) ?? contextSnap.todaySlots[0];
 
   const recentItems: ActivityItem[] = (snap.recentActivity ?? []).map((activity) => ({
     id: activity.id,
@@ -481,7 +481,7 @@ export default function PulsePage() {
       ref={scrollRef}
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
-      className="teacher-today"
+      className="teacher-today teacher-today-v09"
     >
       {refreshing && (
         <div
@@ -498,6 +498,8 @@ export default function PulsePage() {
         </div>
       )}
 
+      <TeacherTodayV09 key={snap.userId+":"+snap.schoolId} snap={snap} slot={focusSlot} focusClassId={focusClassId} focusSubjectId={focusSubjectId} name={name} offline={usingCachedSnap} refreshing={refreshing} tasks={dayResult.tasks} onNavigate={href=>router.push(href)} />
+      <details className="teacher-today__details"><summary>Change teaching context</summary>
       <PulseHeader
         snap={snap}
         name={name}
@@ -512,66 +514,13 @@ export default function PulsePage() {
         onOpenNotifications={() => router.push("/teacher/notifications")}
       />
 
-      {process.env.NEXT_PUBLIC_VIBE_LIVE_ENABLED === "true" && (
-        <section aria-label="VibeSchool Live" style={{ ...surface, padding: 14, marginBottom: 12 }}>
-          <strong style={{ color: "var(--teacher-ink, #1c2923)", fontSize: 15 }}>VibeSchool Live</strong>
-          <form onSubmit={event => {
-            event.preventDefault();
-            const selectedAudience = liveAudience === "tuition" || liveAudience === "open" || safeMyClasses.some(item => item.class_id === liveAudience) ? liveAudience : "";
-            const audience = selectedAudience || (focusClassId && safeMyClasses.some(item => item.class_id === focusClassId) ? focusClassId : "tuition");
-            if (audience === "tuition" || audience === "open") router.push("/teacher/tutoring/live?mode=" + audience);
-            else if (safeMyClasses.some(item => item.class_id === audience)) router.push(`/teacher/classhub/${encodeURIComponent(audience)}/live`);
-          }} style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10 }}>
-            <select aria-label="Choose live audience" value={liveAudience && (liveAudience === "tuition" || liveAudience === "open" || safeMyClasses.some(item => item.class_id === liveAudience)) ? liveAudience : ""} onChange={event => setLiveAudience(event.target.value)} style={{ flex: 1, minWidth: 0, minHeight: 44, border: "1px solid var(--teacher-border, #cbd8d1)", borderRadius: 10, padding: "8px", font: "inherit", color: "var(--teacher-ink, #1c2923)", background: "var(--teacher-surface, transparent)" }}>
-              <option value="">Current class · {safeMyClasses.find(item => item.class_id === focusClassId)?.class_name ?? "Private tuition"}</option>
-              {Array.from(new Map(safeMyClasses.map(item => [item.class_id, item])).values()).map(item => (
-                <option key={item.class_id} value={item.class_id}>School · {item.class_name}</option>
-              ))}
-              <option value="tuition">Invited</option>
-              <option value="open">Public</option>
-            </select>
-            <button type="submit" style={{ flexShrink: 0, minHeight: 44, border: 0, borderRadius: 10, padding: "10px 14px", background: "#b91c1c", color: "#fff", fontWeight: 750, cursor: "pointer" }}>Go Live</button>
-          </form>
-        </section>
-      )}
 
-      <p className="teacher-today__scope">My day across all classes · selected class shortcuts are shown in Quick tools.</p>
-      <div className="studio-pulse-focus">
-      <NextTeachingAction
-        task={dayResult.tasks[0] ?? null}
-        hasLessons={snap.todaySlots.length > 0}
-        headline={dayResult.upcomingWarning}
-        snap={snap}
-        onNavigate={(href) => router.push(href)}
-      />
-
-      <TodayGlance snap={snap} onNavigate={(href) => router.push(href)} />
-      </div>
-      <QuickActions slot={focusSlot} context={{ classId: focusClassId, subjectId: focusSubjectId }} onNavigate={(href) => router.push(href)} />
-      <div className="teacher-today__grid"><section className="teacher-today__primary" aria-label="Your teaching day">
-      <LessonFlowCard
-        slots={snap.todaySlots}
-        snap={snap}
-        teacherId={snap.userId}
-        onNavigate={(href) => router.push(href)}
-        onSaved={() => void boot(true)}
-      />
-
-      </section><aside className="teacher-today__support" aria-label="Tasks and quick tools">
-      <AttentionCard
-        tasks={dayResult.tasks}
-        guideHeadline={dayResult.upcomingWarning}
-        guideMessage={dayResult.message}
-        guidePriority={dayResult.priority}
-        onNavigate={(href) => router.push(href)}
-      />
-
-      <AssessmentPulseCard
-        key={`assessment-${effectiveKey}`}
-        schoolId={activeSchoolId ?? snap.schoolId}
-      />
-
-      </aside></div>
+      </details>
+      <details className="teacher-today__details"><summary>Full lesson workflow & assessment</summary>
+      <LessonFlowCard slots={snap.todaySlots} snap={snap} teacherId={snap.userId} onNavigate={href=>router.push(href)} onSaved={()=>void boot(true)} />
+      <AttentionCard tasks={dayResult.tasks} guideHeadline={dayResult.upcomingWarning} guideMessage={dayResult.message} guidePriority={dayResult.priority} onNavigate={href=>router.push(href)} />
+      <AssessmentPulseCard key={`assessment-${effectiveKey}`} schoolId={activeSchoolId??snap.schoolId}/>
+      </details>
       <details className="teacher-today__details"><summary>This week & recent activity</summary>
       <WeekOverview overview={snap.weekOverview} />
 
