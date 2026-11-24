@@ -384,18 +384,25 @@ export default function PulsePage() {
 
   const handleSchoolChange = useCallback(
     async (id: string) => {
-      const { error: switchError } = await supabase.rpc("set_my_active_teacher_school", {
-        p_school_id: id,
-      });
-      if (switchError) {
-        showToast("Could not switch school. Your current school is unchanged.");
-        return;
+      if (fetchingRef.current) { showToast("Finish refreshing before changing school."); return; }
+      fetchingRef.current = true;
+      setRefreshing(true);
+      let switched = false;
+      try {
+        const { error } = await supabase.rpc("set_my_active_teacher_school", {p_school_id:id});
+        if (error) throw error;
+        setSelectedKey("");
+        setSnap(null);
+        setUsingCachedSnap(false);
+        setLoading(true);
+        switched = true;
+      } catch {
+        showToast("Could not switch school. Refresh to verify your active school.");
+      } finally {
+        fetchingRef.current = false;
+        setRefreshing(false);
       }
-      setSelectedKey("");
-      setSnap(null);
-      setUsingCachedSnap(false);
-      setLoading(true);
-      await boot(true);
+      if(switched) await boot(true);
     },
     [boot, showToast]
   );
