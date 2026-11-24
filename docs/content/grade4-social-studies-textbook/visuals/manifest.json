@@ -1,0 +1,62 @@
+[
+  {
+    "sourceSection": "1.1",
+    "unitId": "e1e01829-0177-46a7-ad89-168683ea59c4",
+    "path": "visuals/compass-school-map.svg",
+    "title": "Find your way around the school",
+    "alt": "A school map with the garden north of the classroom, the library west, the water tank east and the main gate south.",
+    "rights": "VibeSchool-original schematic",
+    "state": "repository draft; not uploaded, certified or learner-visible",
+    "fallback": "existing accessible table and description in reader-draft.json"
+  },
+  {
+    "sourceSection": "1.3",
+    "unitId": "77ee883c-c107-442a-90f2-335b36907029",
+    "path": "visuals/landforms.svg",
+    "title": "Different shapes of land",
+    "alt": "A mountain, a valley, a small hill, a raised flat plateau and a low flat plain shown in a simple cross-section.",
+    "rights": "VibeSchool-original schematic",
+    "state": "repository draft; not uploaded, certified or learner-visible",
+    "fallback": "existing accessible table and description in reader-draft.json"
+  },
+  {
+    "sourceSection": "2.1",
+    "unitId": "9d7e569a-4786-466e-96c4-5ec80f369187",
+    "path": "visuals/farm-to-family.svg",
+    "title": "From farm to family",
+    "alt": "Four connected boxes show a farmer growing beans, a transport worker carrying them, a trader selling them and a family buying and cooking them.",
+    "rights": "VibeSchool-original schematic",
+    "state": "repository draft; not uploaded, certified or learner-visible",
+    "fallback": "existing accessible table and description in reader-draft.json"
+  },
+  {
+    "sourceSection": "2.2",
+    "unitId": "a11c3af2-d144-4489-8a5e-3442b7e63529",
+    "path": "visuals/population-patterns.svg",
+    "title": "How people are spread out",
+    "alt": "Three equal rectangles show a cluster of dots, dots aligned beside a road and scattered dots. Each dot represents the same number of people.",
+    "rights": "VibeSchool-original schematic",
+    "state": "repository draft; not uploaded, certified or learner-visible",
+    "fallback": "existing accessible table and description in reader-draft.json"
+  },
+  {
+    "sourceSection": "5.5",
+    "unitId": "d6442483-58ca-42c2-a9bb-ecaad9da4b87",
+    "path": "visuals/learners-council.svg",
+    "title": "Example of a learner council",
+    "alt": "A chairperson coordinates meetings; the secretary, class representatives and welfare representatives support the council. School adults retain responsibility for safety.",
+    "rights": "VibeSchool-original schematic",
+    "state": "repository draft; not uploaded, certified or learner-visible",
+    "fallback": "existing accessible table and description in reader-draft.json"
+  },
+  {
+    "sourceSection": "5.7",
+    "unitId": "c686a631-390f-4ce0-b4e4-97e827aae692",
+    "path": "visuals/county-government.svg",
+    "title": "Two parts of a county government",
+    "alt": "County government branches into the county executive led by the governor and the county assembly with MCAs and other members. The executive delivers functions; the assembly makes county laws and oversees executive work.",
+    "rights": "VibeSchool-original schematic",
+    "state": "repository draft; not uploaded, certified or learner-visible",
+    "fallback": "existing accessible table and description in reader-draft.json"
+  }
+]
