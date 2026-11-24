@@ -385,12 +385,11 @@ function DailyLiveVoice({roomId,classId,teacher,enabled,status,learners,onAcknow
   </section>
 }
 
-// Default Daily; select Mesh only for the expressly commissioned adult trial room.
+// Try VibeMesh first. The authenticated database admits only provisioned pilot seats.
 export function LiveVoice(props:Props) {
   const [usingDaily, setUsingDaily] = useState(false)
   const useMesh = props.enabled && !usingDaily
-    && process.env.NEXT_PUBLIC_VIBE_LIVE_MESH_PILOT_ENABLED === 'true'
-    && process.env.NEXT_PUBLIC_VIBE_LIVE_MESH_PILOT_ROOM_ID === props.roomId
+    && process.env.NEXT_PUBLIC_VIBE_LIVE_MESH_PILOT_ENABLED !== 'false'
 
   return useMesh
     ? <MeshLiveVoice {...props} onFallback={() => setUsingDaily(true)} />

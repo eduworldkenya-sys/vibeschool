@@ -55,8 +55,7 @@ const bundled = await build({
   nodePaths: [modules],
   define: {
     'process.env.NODE_ENV': '"production"',
-    'process.env.NEXT_PUBLIC_VIBE_LIVE_MESH_PILOT_ENABLED': '"true"',
-    'process.env.NEXT_PUBLIC_VIBE_LIVE_MESH_PILOT_ROOM_ID': JSON.stringify(room.id),
+    'process.env.NEXT_PUBLIC_VIBE_LIVE_MESH_PILOT_ENABLED': 'undefined',
   },
   plugins: [{
     name: 'isolated-supabase-rpc',
@@ -97,6 +96,15 @@ const server = createServer(async (req, res) => {
   if (fixtureUsers.has(req.url)) {
     res.writeHead(200, { 'Content-Type': 'text/html' })
     res.end('<!doctype html><html><div id="root"></div><script src="/app.js"></script></html>')
+    return
+  }
+  if (req.url === '/unavailable') {
+    res.writeHead(200, { 'Content-Type': 'text/html' })
+    res.end('<!doctype html><html><div id="root"></div><script src="/app.js"></script></html>')
+    return
+  }
+  if (req.url === '/unavailable/signal') {
+    res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ error: { code: 'PGRST202' } }))
     return
   }
   const endpoint = req.url.endsWith('/signal') && fixtureUsers.get(req.url.slice(0, -'/signal'.length))
@@ -157,6 +165,11 @@ try {
     await page.goto(`http://127.0.0.1:${server.address().port}/${role}`)
     return page
   }
+  const unavailable = await open('unavailable')
+  await unavailable.getByRole('button', { name: 'Join audio' }).waitFor()
+  assert.equal(await unavailable.evaluate(() => window.peerConnections.length), 0)
+  await unavailable.context().close()
+
   const host = await open('teacher')
   await host.getByRole('status').getByText('Waiting for learners').waitFor()
   assert.equal(await host.evaluate(() => window.micTracks.length), 0)
