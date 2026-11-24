@@ -121,3 +121,12 @@ self.addEventListener('notificationclick', event => {
     await self.clients.openWindow('/vibechat')
   })())
 })
+
+self.addEventListener('push', event => {
+  // Do not read payloads or display sender names/message bodies on the lock screen.
+  event.waitUntil(self.registration.showNotification('VibeChat', {
+    body:'You have a new message.',
+    tag:'vibechat-new-message',
+    data:{path:'/vibechat'}
+  }))
+})
