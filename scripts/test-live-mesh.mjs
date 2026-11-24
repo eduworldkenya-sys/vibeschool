@@ -4,7 +4,7 @@ import { test } from 'node:test'
 import { createLiveFixture } from './live-classroom-test-fixture.mjs'
 
 const migration = readFileSync(new URL(
-  '../supabase/migrations/20261125000000_live_classroom_mesh_pilot.sql', import.meta.url,
+  '../supabase/migrations/20261124192341_live_classroom_mesh_pilot.sql', import.meta.url,
 ), 'utf8')
 const audio = 'v=0\r\nm=audio 9 UDP/TLS/RTP/SAVPF 111\r\na=fingerprint:sha-256 A1:B2\r\na=rtpmap:111 opus/48000/2\r\n'
 const secondAudio = audio.replace('A1:B2', 'B3:C4')
