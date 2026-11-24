@@ -8,12 +8,13 @@ import { changeRequestSupport, fetchMiniRequests, fetchMiniRequestSupports,
 import styles from './MiniExplore.module.css'
 
 type Props = {
+  enabled?: boolean
   mode?: 'feed' | 'compose'
   query?: string
   onBack?: () => void
   onExplain: (request: MiniPublicRequest) => void
 }
-export function MiniLiveRequests({ mode='feed', query='', onBack, onExplain }: Props) {
+export function MiniLiveRequests({ enabled=true, mode='feed', query='', onBack, onExplain }: Props) {
   const [requests,setRequests] = useState<MiniPublicRequest[]>([])
   const [supports,setSupports] = useState<Set<string>>(new Set())
   const [selected,setSelected] = useState<MiniPublicRequest|null>(null)
@@ -28,16 +29,18 @@ export function MiniLiveRequests({ mode='feed', query='', onBack, onExplain }: P
   const [reportReason,setReportReason] = useState<'unsafe'|'spam'|'harassment'|'personal_information'|'other'>('unsafe')
   const [error,setError] = useState('')
   const [notice,setNotice] = useState('')
-  const [loading,setLoading] = useState(true)
+  const [loading,setLoading] = useState(enabled)
 
   const refresh = useCallback(async () => {
+    if(!enabled)return
     const id = await currentMiniUser()
     const [list,own] = await Promise.all([
       fetchMiniRequests(), id ? fetchMiniRequestSupports(id) : Promise.resolve(new Set<string>()),
     ])
     setRequests(list);setViewer(id);setSupports(own)
-  }, [])
+  }, [enabled])
   useEffect(() => {
+    if(!enabled)return
     let active=true
     void refresh().catch(() => {if(active) setError('Unable to load student requests.')})
       .finally(()=>{if(active)setLoading(false)})
@@ -46,6 +49,7 @@ export function MiniLiveRequests({ mode='feed', query='', onBack, onExplain }: P
   useEffect(()=>{if(query) setQuestion(query)},[query])
 
   async function support(request: MiniPublicRequest) {
+    if(!enabled)return
     if(busy)return
     if(!viewer) {window.location.assign('/login?redirect=%2Fexplore');return}
     const adding=!supports.has(request.id)
@@ -58,6 +62,7 @@ export function MiniLiveRequests({ mode='feed', query='', onBack, onExplain }: P
     finally{setBusy(false)}
   }
   async function open(request: MiniPublicRequest) {
+    if(!enabled)return
     setSelected(request);setMine(null);setAnswers([]);setCovers({});setError('')
     try {
       const list=await fetchMiniRequestAnswers(request.id)
@@ -66,6 +71,7 @@ export function MiniLiveRequests({ mode='feed', query='', onBack, onExplain }: P
     }catch{setError('Explanations are temporarily unavailable.')}
   }
   async function report(request:MiniPublicRequest){
+    if(!enabled)return
     if(!viewer){window.location.assign('/login?redirect=%2Fexplore');return}
     if(busy)return
     setBusy(true);setError('')
@@ -79,7 +85,7 @@ export function MiniLiveRequests({ mode='feed', query='', onBack, onExplain }: P
   }
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if(busy)return
+    if(!enabled||busy)return
     if(!viewer){window.location.assign('/login?redirect=%2Fexplore');return}
     setBusy(true);setError('');setNotice('')
     try {
@@ -92,6 +98,7 @@ export function MiniLiveRequests({ mode='feed', query='', onBack, onExplain }: P
     finally{setBusy(false)}
   }
   async function retryRequest(id:string){
+    if(!enabled)return
     if(!viewer||busy)return
     setBusy(true);setError('');setNotice('')
     try{await publishMiniSafely('request',id);setNotice('Your request is public.')}
@@ -99,6 +106,7 @@ export function MiniLiveRequests({ mode='feed', query='', onBack, onExplain }: P
     finally{try{setMine(await fetchMyMiniRequests())}catch{setError(old=>old||'Unable to refresh request status.')}setBusy(false)}
   }
   async function openMine() {
+    if(!enabled)return
     if(!viewer){window.location.assign('/login?redirect=%2Fexplore');return}
     setError('');setBusy(true)
     try{setMine(await fetchMyMiniRequests());setSelected(null)}
@@ -111,6 +119,7 @@ export function MiniLiveRequests({ mode='feed', query='', onBack, onExplain }: P
     <span className={styles.eyebrow}>REQUEST A MINI LESSON</span>
     <h1>What would you like explained?</h1>
     <p className={styles.subline}>One clear question and relevant hashtags. No photo needed.</p>
+    {!enabled && <p role="status" className={styles.formNote}>Publishing is not yet available. Your question will not be saved or posted.</p>}
     <form className={styles.requestForm} onSubmit={event=>void submit(event)}>
       <label htmlFor="mini-request-question" className={styles.label}>Question</label>
       <textarea id="mini-request-question" className={styles.editor} required minLength={12} maxLength={240}
@@ -119,7 +128,7 @@ export function MiniLiveRequests({ mode='feed', query='', onBack, onExplain }: P
       <label htmlFor="mini-request-tags" className={styles.label}>Hashtags</label>
       <input id="mini-request-tags" className={styles.field} required maxLength={160} disabled={!!savedRequestId} value={tags}
         onChange={event=>setTags(event.target.value)} placeholder="#Mathematics #Grade9"/>
-      <button type="submit" className={styles.primary} disabled={busy||question.trim().length<12||!tags.trim()}>
+      <button type="submit" className={styles.primary} disabled={!enabled||busy||question.trim().length<12||!tags.trim()}>
         {busy?'Checking safety…':savedRequestId?'Retry safety check':'Post request'}</button>
     </form>
     {savedRequestId&&<button type="button" className={styles.secondary} onClick={onBack}>Return to Explore · My requests</button>}
@@ -179,7 +188,7 @@ export function MiniLiveRequests({ mode='feed', query='', onBack, onExplain }: P
     {error&&<p role="alert" className={styles.formNote}>{error}</p>}
     {notice&&<p role="status" className={styles.formNote}>{notice}</p>}
     {loading?<p className={styles.subline}>Loading requests…</p>:!visible.length
-      ? <p className={styles.subline}>No matching requests yet. Start one with + Create.</p>
+      ? <p className={styles.subline}>{enabled?'No matching requests yet. Start one with + Create.':'No published requests yet.'}</p>
       : <div className={styles.grid}>
         {visible.map(r=><article key={r.id} className={styles.requestCard}>
           <span className={styles.requestEyebrow}>Student request · {r.explanations?'Answered':'Open'}</span>
