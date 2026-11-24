@@ -32,7 +32,7 @@ test('main reading actions remain available without decorative chrome',()=>{
 test('read, progress, public access and no offline downloading remain invariant',()=>{
   assert.match(server,/get_public_vibetextbook_reader/)
   assert.match(reader,/active\.can_read/)
-  assert.match(reader,/record_reading_progress/)
+  assert.doesNotMatch(reader,/record_reading_progress/, 'Reader progress is written by the canonical continuity coordinator')
   assert.match(reader,/ReaderLearningSheet/)
   assert.doesNotMatch(reader,/OfflineBookSaveButton|saveOfflineBook|offline\/books\//)
 })
