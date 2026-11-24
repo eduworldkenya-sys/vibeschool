@@ -623,8 +623,23 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
         if(latest.status!=='active'||!latest.teacher)throw new Error('The lesson is no longer active.')
         next=await call('publish',room.id,latest.version,requestPayload) as Room
       }
+      // Bind a selected saved plan before presenting the newly created
+      // room as ready. Recovery/re-entry remains idempotent via the same RPC.
+      // A failed bind must never be reported as a successfully linked lesson.
+      let startLinkFailure=''
+      if(action==='start'&&next.mode==='school'&&selectedPlanId&&linkedPlan?.id===selectedPlanId){
+        const suppliedOccurrence=new URLSearchParams(window.location.search).get('occurrenceId')
+        const {error:bindError}=await supabase.rpc('vibe_live_lesson_bridge',{
+          p_action:'bind',
+          p_session_id:next.id,
+          p_lesson_plan_id:linkedPlan.id,
+          p_occurrence_id:validLessonId(suppliedOccurrence)?suppliedOccurrence:null,
+        })
+        if(bindError)startLinkFailure='Live started, but the Lesson Plan link could not be saved. '+(bindError.message||'Retry from lesson review.')
+      }
       if(!mounted.current||generation.current!==stamp)return
       accept(next)
+      if(startLinkFailure)setLinkedPlanError(startLinkFailure)
       if(action==='publish'){
         pendingPublish.current=null;setReviewId(null)
         if(panel==='compose'){delete composerDrafts.current[mode];setBody('');setKey('')}
