@@ -29,7 +29,7 @@ Students can request explanations; more than one eligible explainer may publish 
 
 1. `NEXT_PUBLIC_MINI_LESSONS_BACKEND_ENABLED=true` selects the live data feed. It defaults off.
 2. `MINI_LESSONS_OPEN_PUBLISHING_ENABLED=true` permits server-side safety checks and publications. It defaults off. The only eligible private service may assign approved status after screening.
-3. `GEMINI_API_KEY` must be available on the server; `MINI_SAFETY_MODEL` can configure a reviewed classifier version. Missing/failed screening keeps items private.
+3. `MINI_GOOGLE_SAFETY_API_KEY` is required on the server with Google Cloud Natural Language v2 moderation and Cloud Vision SafeSearch, face and OCR APIs enabled. Missing/failed screening or unsupported text language keeps items private. This is non-generative safety classification, not a direct LLM call.
 4. Apply the additive `20261124230000_mini_open_creator_safety_scans.sql` migration **only after** separate production RLS, abuse, privacy and operational verification.
 5. Do not activate until owner-bound commissioning, age-eligibility self-service, real-image safety trials, privacy notices, negative-case testing and a public content takedown/appeal path are verified.
 
