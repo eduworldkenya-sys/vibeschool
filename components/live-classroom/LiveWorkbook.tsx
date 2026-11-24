@@ -16,6 +16,7 @@ export function LiveWorkbook(props:Props){
  const questions=props.questions.filter(q=>q.kind==='exercise'||q.kind==='quiz')
  const [selected,setSelected]=useState('')
  const question=questions.find(q=>q.id===selected)??questions.find(q=>q.id===props.currentId)??questions[questions.length-1]
+ useEffect(()=>{if(!selected&&question)setSelected(question.id)},[selected,question?.id])
  if(!question)return <section><h3>Exercise book</h3><p>{props.teacher?'Share an exercise or quiz to collect written work.':'Your exercise book opens when the teacher shares a question.'}</p></section>
  return <section aria-label="Exercise book"><h3>Exercise book</h3><label>Exercise<select value={question.id} onChange={e=>setSelected(e.target.value)}>{questions.map((q,i)=><option key={q.id} value={q.id}>{i+1}. {q.body.slice(0,80)}</option>)}</select></label><WorkbookPage key={props.roomId+':'+question.id+':'+props.teacher} {...props} question={question}/></section>
 }
@@ -29,7 +30,7 @@ function WorkbookPage({roomId,teacher,status,online,question,command,joined,curr
    const result=await command('workbook_list',roomId,null,{promptId:question.id}) as {entries?:unknown}
    if(!Array.isArray(result?.entries)||!result.entries.every(isEntry))throw Error('Invalid workbook response')
    if(!alive.current||seq!==readSeq.current||pending.current)return
-   setEntries(result.entries);setLoaded(true);setError('')
+   setEntries(result.entries);setLoaded(true);if(!dirty.current&&feedbackRevision.current===null)setError('')
    if(!teacher&&!dirty.current){const e=result.entries[0];setBody(e?.body??'');setDrawing(e?.drawing??'')}
   }catch(e){if(alive.current&&seq===readSeq.current){setError(e instanceof Error?e.message:'Could not load exercise book');setEntries([]);setLoaded(false)}}
  },[command,roomId,question.id,teacher])
