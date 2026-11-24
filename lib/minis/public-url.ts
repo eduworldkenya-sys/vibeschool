@@ -7,5 +7,5 @@ export function miniExplorePath(id?: string | null) {
 }
 export function miniSearchText(value: string) {
   // Restrict PostgREST filter grammar; retain Unicode letters and numbers.
-  return value.normalize('NFKC').replace(/[^\p{L}\p{N}\s-]/gu, ' ').trim().replace(/\s+/g, ' ').slice(0,100)
+  return value.normalize('NFKC').replace(new RegExp('[^\\p{L}\\p{N}\\s-]', 'gu'), ' ').trim().replace(/\s+/g, ' ').slice(0,100)
 }
