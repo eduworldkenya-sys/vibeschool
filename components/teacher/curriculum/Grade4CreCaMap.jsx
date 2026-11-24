@@ -6,6 +6,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { resolveGlobalSubjectId } from '@/lib/curriculum/globalSubjects'
+import socialScheme from '@/docs/content/grade4-social-studies-scheme-draft.json'
 
 const SOURCES = {
   social: {
@@ -60,6 +61,7 @@ export default function Grade4CreCaMap({
   const [outcomes, setOutcomes] = useState([])
   const [selectedId, setSelectedId] = useState(selectedUnitId || '')
   const [selectedOutcomes, setSelectedOutcomes] = useState([])
+  const [socialLessonSequence, setSocialLessonSequence] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -119,7 +121,12 @@ export default function Grade4CreCaMap({
     [...new Set(units.map(unit => unit.name))], [units])
   const selected = units.find(unit => unit.id === selectedId) || units[0] || null
   const unitOutcomes = outcomes.filter(outcome => outcome.sub_strand_id === selected?.id)
-  const activeSelection = selectedOutcomes.filter(id => unitOutcomes.some(outcome => outcome.id === id))
+  const socialLessons = kind === 'social' ? (socialScheme.units.find(unit => unit.code === selected?.sub_strand?.split(' ')[0])?.lessons || []) : []
+  const socialLesson = socialLessons.find(lesson => lesson.sequence === socialLessonSequence) || socialLessons[0] || null
+  const activeSelection = kind === 'social'
+    ? unitOutcomes.filter(outcome => socialLesson?.sourceOutcomeCodes.includes(outcome.outcome_code)).map(outcome => outcome.id)
+    : selectedOutcomes.filter(id => unitOutcomes.some(outcome => outcome.id === id))
+  const socialLessonReady = kind !== 'social' || Boolean(socialLesson && activeSelection.length === socialLesson.sourceOutcomeCodes.length)
   const canPlanWithoutOutcomes = kind === 'grade5cre'
   const isArtsAlternative = kind === 'arts' && /^(2\.6|2\.5)\s+(Swimming|Indigenous Kenyan Games)$/i.test(selected?.sub_strand || '')
 
@@ -160,7 +167,16 @@ export default function Grade4CreCaMap({
           {isArtsAlternative && <p style={{ fontSize: 12, color: '#835d15' }}>Optional alternative activity</p>}
           <strong style={{ fontSize: 13 }}>Specific learning outcomes ({unitOutcomes.length})</strong>
           {unitOutcomes.length
-            ? mode === 'scheme'
+            ? mode === 'scheme' && kind === 'social'
+              ? <div style={{ margin: '10px 0' }}>
+                <label htmlFor="social-scheme-lesson" style={{display:'block',fontSize:12,fontWeight:700}}>VibeSchool scheme lesson</label>
+                <select id="social-scheme-lesson" value={socialLesson?.sequence || ''} onChange={event => setSocialLessonSequence(Number(event.target.value))} style={{width:'100%',minHeight:44,margin:'6px 0'}}>
+                  {socialLessons.map(lesson => <option key={lesson.sequence} value={lesson.sequence}>{lesson.sequence}. {lesson.title}</option>)}
+                </select>
+                {socialLesson && <><p><strong>Lesson objective:</strong> {socialLesson.objective}</p><p><strong>Activity:</strong> {socialLesson.activity}</p><p><strong>Assessment:</strong> {socialLesson.assessment}</p><ol>{unitOutcomes.filter(outcome=>activeSelection.includes(outcome.id)).map(outcome=><li key={outcome.id}>{outcome.outcome_text}</li>)}</ol></>}
+                {!socialLessonReady && <p role="status">The required source outcomes are not all available.</p>}
+              </div>
+              : mode === 'scheme'
               ? <fieldset style={{ border: 0, padding: 0, margin: '8px 0' }}>
                 <legend style={{ fontSize: 12, color: '#547060' }}>Choose outcomes for one planned lesson</legend>
                 {unitOutcomes.map(outcome => (
@@ -185,8 +201,8 @@ export default function Grade4CreCaMap({
               </button>
             )}
             {mode === 'scheme' && onSaveLesson && (
-              <button type="button" disabled={saving || !canSave || (!canPlanWithoutOutcomes && activeSelection.length === 0) || activeSelection.length > 12}
-                onClick={() => onSaveLesson(selected.id, activeSelection)}
+              <button type="button" disabled={saving || !canSave || !socialLessonReady || (!canPlanWithoutOutcomes && activeSelection.length === 0) || activeSelection.length > 12}
+                onClick={() => onSaveLesson(selected.id, activeSelection, socialLesson?.sequence)}
                 style={{ background: '#175b43', color: '#fff', border: 0, borderRadius: 9, minHeight: 44, padding: '10px 15px', fontWeight: 750, opacity: saving || !canSave || (!canPlanWithoutOutcomes && activeSelection.length === 0) ? 0.5 : 1 }}>
                 {saving ? 'Saving…' : canPlanWithoutOutcomes && activeSelection.length === 0 ? 'Plan Sub-strand' : 'Add to Scheme'}
               </button>
