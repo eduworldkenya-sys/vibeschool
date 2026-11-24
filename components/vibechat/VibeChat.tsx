@@ -14,6 +14,7 @@ import { useVibeChatTyping } from './useVibeChatTyping'
 import { useVibeChatInboxUpdates } from './useVibeChatInboxUpdates'
 import { useVibeChatOutbox } from './useVibeChatOutbox'
 import { useVibeChatPreferences,useVibeChatOpenAppNotifications } from './useVibeChatPreferences'
+import { useVibeChatWebPush } from './useVibeChatWebPush'
 import styles from './VibeChat.module.css'
 
 type Tab = 'chats' | 'contacts' | 'enquiries' | 'notices' | 'school'
@@ -235,12 +236,13 @@ export default function VibeChat() {
     finally{setPresenceBusy(false)}
   }
   const preferences=useVibeChatPreferences(uid,refreshVersion)
+  const webPush=useVibeChatWebPush(uid,()=>setRefreshVersion(v=>v+1))
   const decoratedChats=useMemo(()=>chats.map(chat=>{
     const p=preferences.preferences.find(item=>item.room_id===chat.id&&item.kind===(chat.kind==='school'?'vc':'tuition'))
     return {...chat,pinned:p?.pinned??false,archived:p?.archived??false,muted:p?.muted??false}
   }),[chats,preferences.preferences])
   const incoming=useMemo(()=>decoratedChats.map(chat=>({key:chat.key,unread:chat.unreadCount??0,latestIncomingId:chat.latestIncomingId,muted:chat.muted})),[decoratedChats])
-  useVibeChatOpenAppNotifications(uid,preferences.enabled,incoming,preferences.ready)
+  useVibeChatOpenAppNotifications(uid,preferences.enabled&&!webPush.registered,incoming,preferences.ready)
   const selected = tab==='chats' ? (decoratedChats.find(chat => chat.key === active) ?? null) : null
   useEffect(()=>{
     historyToken.current++
@@ -477,7 +479,8 @@ export default function VibeChat() {
             {role==='teacher'&&<button type="button" onClick={()=>{setTab('school');setMoreOpen(false)}}><Users size={16} aria-hidden/> School</button>}
             <button type="button" onClick={()=>{setTab('enquiries');setMoreOpen(false)}}><Users size={16} aria-hidden/> Enquiries</button>
             <button type="button" onClick={()=>{setTab('notices');setMoreOpen(false)}}><Bell size={16} aria-hidden/> Notices</button>
-            {preferences.ready&&<button type="button" aria-pressed={preferences.enabled} onClick={()=>void preferences.toggleNotifications()}>Device alerts (app open): {preferences.enabled?'On':'Off'}</button>}
+            {preferences.ready&&<button type="button" aria-pressed={preferences.enabled} onClick={()=>void preferences.toggleNotifications()}>Message alerts: {preferences.enabled?'On':'Off'}</button>}
+            {preferences.ready&&webPush.configured&&<button type="button" aria-pressed={webPush.registered} disabled={webPush.busy} onClick={()=>void webPush.toggle()}>Background alerts on this device: {webPush.registered?'On':'Off'}</button>}
             {presence?.eligible && <button type="button" aria-pressed={presence.enabled} disabled={presenceBusy} onClick={()=>void togglePresence()}>Online visibility: {presence.enabled?'On':'Off'}</button>}
           </div>}
         </div>
@@ -492,6 +495,7 @@ export default function VibeChat() {
         </div>
       </section> : null}
       {signedIn===null && <p role="status">Checking your account…</p>}
+      {webPush.error&&signedIn&&<p className={styles.error} role="status">{webPush.error}</p>}
       {preferences.error&&signedIn&&<p role="status" className={styles.error}>{preferences.error}</p>}
       {error && <div role="alert" className={styles.error}>{error} <button type="button" onClick={()=>void load()}><RefreshCw size={14} aria-hidden/> Retry</button></div>}
       {signedIn && tab==='chats' && <section className={styles.layout} aria-label="VibeChat conversations">
