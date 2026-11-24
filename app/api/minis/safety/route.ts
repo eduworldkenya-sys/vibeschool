@@ -109,8 +109,20 @@ async function moderate(input:{target:Target;title:string;body:string;photo?:{da
   return {safe:true,reason:'Automated screening passed'}
 }
 
+// Separate institutional author pilot; never a fallback when public screening fails.
+async function isOwner(bearer:string):Promise<boolean> {
+  const url=process.env.NEXT_PUBLIC_SUPABASE_URL
+  const anon=process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  if(!url||!anon)return false
+  const client=createClient(url,anon,{global:{headers:{Authorization:'Bearer '+bearer}},auth:{autoRefreshToken:false,persistSession:false}})
+  const {data,error}=await client.rpc('is_platform_owner')
+  return !error&&data===true
+}
+
 export async function POST(request:NextRequest) {
-  if(process.env.MINI_LESSONS_OPEN_PUBLISHING_ENABLED!=='true')
+  const ownerOnly=process.env.MINI_LESSONS_OPEN_PUBLISHING_ENABLED!=='true' &&
+    process.env.MINI_LESSONS_OWNER_PUBLISHING_ENABLED==='true'
+  if(process.env.MINI_LESSONS_OPEN_PUBLISHING_ENABLED!=='true' && !ownerOnly)
     return approved({error:'Publishing is not yet available.'},503)
   if(!sameOrigin(request)) return approved({error:'Forbidden origin'},403)
   if(!(request.headers.get('content-type')||'').startsWith('application/json'))
@@ -119,7 +131,7 @@ export async function POST(request:NextRequest) {
     return approved({error:'Request too large'},413)
   const bearer=request.headers.get('authorization')?.match(/^Bearer\s+(.+)$/i)?.[1]
   if(!bearer) return approved({error:'Sign in required'},401)
-  let target:Target, id:string
+  let target:Target, id:string, ownerReviewed=false
   try{
     const raw=await request.text()
     if(new TextEncoder().encode(raw).byteLength>1024)return approved({error:'Request too large'},413)
@@ -128,7 +140,7 @@ export async function POST(request:NextRequest) {
     const data=body as Record<string,unknown>
     if(!['mini','request','comment'].includes(String(data.target))||
        typeof data.id!=='string'||!UUID.test(data.id))return approved({error:'Invalid request'},400)
-    target=data.target as Target;id=data.id
+    target=data.target as Target;id=data.id;ownerReviewed=data.ownerReviewed===true
   }catch{return approved({error:'Invalid JSON'},400)}
 
   try {
@@ -136,6 +148,8 @@ export async function POST(request:NextRequest) {
     const {data:auth,error:authError}=await db.auth.getUser(bearer)
     const actor=authError?null:auth.user?.id
     if(!actor)return approved({error:'Sign in required'},401)
+    if(ownerOnly&&(target!=='mini'||!ownerReviewed||!(await isOwner(bearer))))
+      return approved({error:'Publishing is not yet available for this account.'},403)
     const {data,error}=await db.from(tables[target]).select('*').eq('id',id).maybeSingle()
     if(error||!data)return approved({error:'Item not found'},404)
     const item=data as PendingItem
@@ -154,7 +168,7 @@ export async function POST(request:NextRequest) {
       }
     }
     // Missing configuration is not a failed creator attempt.
-    if(!process.env.MINI_GOOGLE_SAFETY_API_KEY?.trim())return approved({error:'Safety checks are unavailable. Your submission remains private.'},503)
+    if(!ownerOnly && !process.env.MINI_GOOGLE_SAFETY_API_KEY?.trim())return approved({error:'Safety checks are unavailable. Your submission remains private.'},503)
     if(target==='mini'&&!item.updated_at)return approved({error:'Cannot verify the submission version.'},503)
     const {data:claimed,error:claimError}=await db.rpc('mini_safety_claim',{
       p_target:target,p_id:id,p_owner:actor,
@@ -175,12 +189,23 @@ export async function POST(request:NextRequest) {
       }
       const body=target==='request'?item.question??'':item.body??''
       const text=[body,...(item.tags??[]),item.quiz_question??'',...(item.quiz_options??[]),item.quiz_explanation??''].join('\n')
-      verdict=await moderate({target,title:item.title??'',body:text,photo})
+      if(ownerOnly){
+        // Explicit author review, not an automated verdict. The owner attests
+        // to age-appropriate original content and a non-identifying teaching image.
+        const contact=/https?:\/\/|www\.|[\w.+-]+@[\w.-]+\.[a-z]{2,}|(?:\+?254|0)[17]\d{8}/i
+        if(!photo || contact.test((item.title??'')+'\n'+text))
+          verdict={safe:false,reason:'Owner submission contains contact information or lacks a teaching image'}
+        else verdict={safe:true,reason:'Verified owner reviewed own lesson; automated screening not performed'}
+      }else verdict=await moderate({target,title:item.title??'',body:text,photo})
     }catch {
       await db.from('mini_safety_scans').update({
         verdict:'unavailable',reason:'Safety service unavailable',lease_until:new Date().toISOString(),
       }).eq('target',target).eq('target_id',id).eq('owner_id',actor)
       return approved({error:'Safety check unavailable. Your submission remains private; please retry.'},503)
+    }
+    if(ownerOnly&&!(await isOwner(bearer))) {
+      await db.from('mini_safety_scans').update({verdict:'unavailable',reason:'Owner access revoked',lease_until:new Date().toISOString()}).eq('target',target).eq('target_id',id).eq('owner_id',actor)
+      return approved({error:'Publishing access is no longer available.'},403)
     }
     const timestamp=new Date().toISOString()
     const changes:Record<string,unknown>={
@@ -189,7 +214,7 @@ export async function POST(request:NextRequest) {
     }
     if(target==='mini'){
       changes.published_at=verdict.safe?timestamp:null
-      changes.moderation_note=verdict.safe?null:'Automated safety filter declined publication'
+      changes.moderation_note=verdict.safe?null:ownerOnly?'Owner pilot validation declined publication':'Automated safety filter declined publication'
     }else if(target==='request'){
       changes.moderation_note=verdict.safe?null:'Automated safety filter declined publication'
       changes.updated_at=timestamp
@@ -205,7 +230,7 @@ export async function POST(request:NextRequest) {
     await db.from('mini_safety_scans').update({
       verdict:verdict.safe?'approved':'rejected',
       reason:verdict.reason,
-      model:'cloud-natural-language-plus-vision',
+      model:ownerOnly?'verified-owner-self-review':'cloud-natural-language-plus-vision',
       checked_at:timestamp,lease_until:timestamp,
     }).eq('target',target).eq('target_id',id).eq('owner_id',actor)
     return approved({ok:true,published:verdict.safe,
