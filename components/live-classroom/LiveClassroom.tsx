@@ -936,7 +936,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
     const visual=visualSlidePayload(item.body)
     const partial=revealCount!==undefined&&visual!==null?revealBoard(visual,revealCount):null
     if(revealCount!==undefined&&!partial)return
-    const slideText=encodeSlide(partial?{...item,body:visualSlideBody(partial)}:item,index+1,slides.length)
+    const slideText=partial?encodeSlide({...item,body:visualSlideBody(partial)},index+1,slides.length):encodeSlide(item,index+1,slides.length)
     if(slideText)void act('publish',null,{kind:'teach',body:slideText,answerKey:null})
   }
   function moveSlide(delta:number){
