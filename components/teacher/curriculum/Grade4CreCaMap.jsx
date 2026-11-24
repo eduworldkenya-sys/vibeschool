@@ -202,7 +202,7 @@ export default function Grade4CreCaMap({
             )}
             {mode === 'scheme' && onSaveLesson && (
               <button type="button" disabled={saving || !canSave || !socialLessonReady || (!canPlanWithoutOutcomes && activeSelection.length === 0) || activeSelection.length > 12}
-                onClick={() => onSaveLesson(selected.id, activeSelection, socialLesson?.sequence)}
+                onClick={() => kind === 'social' ? onSaveLesson(selected.id, activeSelection, socialLesson?.sequence) : onSaveLesson(selected.id, activeSelection)}
                 style={{ background: '#175b43', color: '#fff', border: 0, borderRadius: 9, minHeight: 44, padding: '10px 15px', fontWeight: 750, opacity: saving || !canSave || (!canPlanWithoutOutcomes && activeSelection.length === 0) ? 0.5 : 1 }}>
                 {saving ? 'Saving…' : canPlanWithoutOutcomes && activeSelection.length === 0 ? 'Plan Sub-strand' : 'Add to Scheme'}
               </button>
