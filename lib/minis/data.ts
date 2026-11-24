@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase'
 import type { RankedMini } from './recommendation'
+import { miniSearchText, MINI_ID } from './public-url'
 
 export type MiniPost = RankedMini & {
   creator_label: string
@@ -92,4 +93,31 @@ export async function fetchMiniRequestAnswers(requestId: string): Promise<MiniPo
     .order('published_at',{ascending:false}).limit(60)
   if (error) throw Error('Unable to load explanations.')
   return (Array.isArray(data) ? data : []).filter(isMiniPost)
+}
+
+export type MiniCursor = {publishedAt:string;id:string}
+export type MiniFeedFilter = {query?:string;tag?:string;creators?:string[]}
+export async function fetchMiniPage(filter:MiniFeedFilter={},cursor?:MiniCursor) {
+  const size = 24
+  if (filter.creators && filter.creators.length===0) return {posts:[] as MiniPost[],next:undefined}
+  let request = supabase.from('mini_lessons')
+    .select('id,creator_id,creator_label,title,body,subject,tags,quiz_question,quiz_options,quiz_correct,quiz_explanation,cover_path,status,request_id,quality_score,like_count,save_count,learned_count,published_at,created_at')
+    .eq('status','approved')
+  if (filter.tag && /^[a-z0-9_-]{2,32}$/.test(filter.tag)) request=request.contains('tags',[filter.tag])
+  if (filter.creators) request=request.in('creator_id',filter.creators.filter(id=>MINI_ID.test(id)))
+  const q=miniSearchText(filter.query??'')
+  if(q) request=request.or('title.ilike.%'+q+'%,body.ilike.%'+q+'%,creator_label.ilike.%'+q+'%,subject.ilike.%'+q+'%'+(/^[a-z0-9_-]{2,32}$/i.test(q)?',tags.cs.{'+q.toLowerCase()+'}':''))
+  if(cursor && MINI_ID.test(cursor.id) && Number.isFinite(Date.parse(cursor.publishedAt))) {
+    const date=new Date(cursor.publishedAt).toISOString()
+    // Preserve timestamp precision supplied by the database, after validating syntax.
+    const stamp=/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/.test(cursor.publishedAt)?cursor.publishedAt:date
+    request=request.or('published_at.lt.'+stamp+',and(published_at.eq.'+stamp+',id.lt.'+cursor.id+')')
+  }
+  const {data,error}=await request.order('published_at',{ascending:false}).order('id',{ascending:false}).limit(size+1)
+  if(error) throw Error('Unable to load Mini Lessons. Please retry.')
+  const rows=(Array.isArray(data)?data:[]).filter(isMiniPost)
+  const posts=rows.slice(0,size)
+  const last=posts[posts.length-1]
+  const next:MiniCursor|undefined=rows.length>size && last?.published_at ? {publishedAt:last.published_at,id:last.id}:undefined
+  return {posts,next}
 }
