@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { liveToLessonHref } from '@/lib/teaching/liveLessonLinks'
 
 type BridgeReview = {
   lessonPlanId: string | null
@@ -20,11 +21,14 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 /** Review-only bridge: never interprets Live joins as official attendance or
  * learner responses as scored mastery. Formal completion stays in Lesson Notes. */
 export default function LiveLessonReview({
-  roomId, roomStatus, preparedPlanId,
+  roomId, roomStatus, preparedPlanId, classId, savedPlans, onSelectPlan,
 }: {
   roomId: string
   roomStatus: 'active' | 'paused' | 'ended'
   preparedPlanId: string | null
+  classId: string
+  savedPlans: Array<{id:string;title:string}>
+  onSelectPlan: (id:string)=>void
 }) {
   const [review, setReview] = useState<BridgeReview | null>(null)
   const [error, setError] = useState('')
@@ -93,9 +97,7 @@ export default function LiveLessonReview({
   if (roomStatus !== 'ended') return null
 
   const lessonHref = review?.lessonPlanId
-    ? '/teacher/lesson-notes?lessonPlanId=' + encodeURIComponent(review.lessonPlanId) +
-      (review.occurrenceId ? '&occurrenceId=' + encodeURIComponent(review.occurrenceId) : '') +
-      '&teach=1'
+    ? liveToLessonHref({lessonPlanId:review.lessonPlanId,classId,occurrenceId:review.occurrenceId})
     : null
 
   return <section aria-label="Live lesson review" style={{
@@ -110,6 +112,14 @@ export default function LiveLessonReview({
       <small>Live joins are not official attendance. Responses have no automatic score or mastery.</small>
       {error && <span role="alert" style={{color:'#b91c1c',fontSize:12}}>{error}</span>}
     </div>
+    {!review?.lessonPlanId&&<label style={{fontSize:13,display:'flex',alignItems:'center',gap:8}}>
+      Link saved plan
+      <select aria-label="Link saved Lesson Plan to ended Live session"
+        value={preparedPlanId??''} onChange={e=>onSelectPlan(e.target.value)}>
+        <option value="">Choose Lesson Plan</option>
+        {savedPlans.map(p=><option key={p.id} value={p.id}>{p.title}</option>)}
+      </select>
+    </label>}
     <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
       {error && <button type="button" onClick={() => setRetry(n => n + 1)}>Retry</button>}
       {review?.lessonPlanId && review.responses > 0 && review.captureAllowed && <button
