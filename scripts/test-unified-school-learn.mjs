@@ -107,3 +107,42 @@ assert.ok(ui.indexOf('<SubjectTextbookOutline') < ui.indexOf('More lesson links'
 assert.match(css, /\.chapterSearchResults/, 'Chapter search has dedicated accessible presentation')
 assert.doesNotMatch(studentDesk, /get_school_textbook_shell_metadata|service_role/,
   'Personal Learn must not introduce competing publication or privileged authorities')
+
+
+// Exercise the actual matcher, not just source strings.
+const searchSource=read('lib/learn/textbookSearch.ts')
+const searchCode=ts.transpileModule(searchSource,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.ES2022}}).outputText
+const {searchReadableBook,rankSearchHits}=await import('data:text/javascript;base64,'+Buffer.from(searchCode).toString('base64'))
+const payload={ok:true,publication:{id:'p1',status:'published',title:'Maths'},chapters:[
+ {id:'c1',title:'Numbers',status:'published',can_read:true,blocks:[
+  {id:'a',type:'paragraph',content:'<p>The place value of a digit depends on its position.</p>'},
+  {id:'b',type:'definition',content:'Place value is the value of a digit in a number.'},
+  {id:'c',type:'workedExample',content:'Place value of 3 in 345 is 300.'},
+  {id:'d',type:'question',content:'Place value? Answer: 300'},
+  {id:'e',type:'paragraph',content:'Place value teacher notes',meta:{teacherOnly:true}},
+  {id:'f',type:'paragraph',content:'Place value Answer: hidden key'},
+  {id:'g',type:'heading2',content:'Place value'},
+ ]},
+ {id:'c2',status:'published',can_read:false,blocks:[{id:'hidden',type:'definition',content:'Place value'}]},
+ {id:'c3',status:'draft',can_read:true,blocks:[{id:'draft',type:'definition',content:'Place value'}]},
+]}
+const hits=rankSearchHits(searchReadableBook(payload,'p1','place value'))
+assert.deepEqual(hits.map(h=>h.blockId),['b','c','a'])
+assert.ok(hits.every(h=>!h.snippet.includes('<p>')))
+assert.equal(searchReadableBook(payload,'wrong','place value').length,0)
+assert.equal(searchReadableBook({...payload,publication:{...payload.publication,status:'draft'}},'p1','place value').length,0)
+assert.equal(searchReadableBook(payload,'p1','value position').length,1)
+assert.equal(searchReadableBook(payload,'p1','nonexistent concept').length,0)
+assert.equal(rankSearchHits([...hits,...hits]).length,3)
+assert.match(ui,/get_public_vibetextbook_reader/)
+assert.match(ui,/get_vibetextbook_reader/)
+assert.match(ui,/Math.min\(4,ids.length\)/)
+assert.match(ui,/controller.abort\(\)/)
+assert.match(ui,/new URLSearchParams\(\{block:hit.blockId\}\)/)
+assert.match(ui,/sameLearnSubject\(grade,book.cbc_subject,selectedSubject\)/)
+const continuity=read('components/read/ReaderContinuityCoordinator.tsx')
+assert.match(continuity,/findBlockById\(explicitBlock\)\?\.scrollIntoView/)
+assert.match(continuity,/if \(searchJump\) return;/)
+assert.match(continuity,/if \(searchJump \|\| !authenticatedRef.current\) return;/)
+assert.match(read('app/read/textbook/[publicationId]/[chapterId]/page.tsx'),/initialBlockId=\{initialBlockId\}/)
+console.log('PASS: readable textbook content search, ranked results and explicit navigation boundary')
