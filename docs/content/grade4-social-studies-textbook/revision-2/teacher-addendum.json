@@ -1,0 +1,845 @@
+{
+  "status": "private editorial material, not learner payload",
+  "sections": [
+    {
+      "section": "1.1",
+      "questions": [
+        {
+          "question": "The sun rises approximately in which direction?",
+          "answer": "East; the rising point varies through the year."
+        },
+        {
+          "question": "A learner faces south. What direction is behind them?",
+          "answer": "North."
+        },
+        {
+          "question": "A map arrow points right. Where is north on that map?",
+          "answer": "Towards the right."
+        },
+        {
+          "question": "On a north-up map, the clinic is left of the market. Give the direction from market to clinic.",
+          "answer": "West."
+        },
+        {
+          "question": "A path shown on a map crosses a dangerous flooded area. What should you do?",
+          "answer": "Avoid it and ask a trusted adult for a safe alternative."
+        }
+      ],
+      "teacherPrompt": "Draw the same map twice, rotating the second drawing. Add north arrows to both. Trace the gate-to-library route and explain why its compass directions stay the same.",
+      "assessment": "Check the learner's explanation, accurate vocabulary and safe practical application; accept other correct responses. Offer a model and a fresh example when needed.",
+      "sourceOutcomeIds": [
+        "9a2919ee-c76c-41fc-8bc9-c7de0e855d83",
+        "35a52b78-f3c1-4b05-ba61-89e16df780d7",
+        "968d5991-019f-4ef5-9737-43cd19166052"
+      ],
+      "sourceOutcomeCodes": [
+        "1.1.a",
+        "1.1.b",
+        "1.1.c"
+      ]
+    },
+    {
+      "section": "1.2",
+      "questions": [
+        {
+          "question": "Name one sub-county mentioned in Nakuru's plan.",
+          "answer": "Gilgil, Naivasha or Molo."
+        },
+        {
+          "question": "Which has greater 2019 land area, Nakuru or Nyandarua?",
+          "answer": "Nakuru."
+        },
+        {
+          "question": "Why should a map include its date?",
+          "answer": "Names, boundaries and information may change."
+        },
+        {
+          "question": "Three full squares and two half-squares cover about how many squares?",
+          "answer": "Four."
+        },
+        {
+          "question": "Explain why counting squares on maps of different scales is unfair.",
+          "answer": "The squares represent different real land areas."
+        }
+      ],
+      "teacherPrompt": "Use the KNBS reference-map source with an adult if available. Without internet, compare the two stated census areas and draw two equal-scale imaginary outlines of 12 and 20 squares. Explain why the outlines are examples, not real boundaries.",
+      "assessment": "Check the learner's explanation, accurate vocabulary and safe practical application; accept other correct responses. Offer a model and a fresh example when needed.",
+      "sourceOutcomeIds": [
+        "d57b142c-bac5-4d0a-ae78-ec456b392c03",
+        "1e900654-4e97-4507-9042-5669fe68ae28",
+        "d425cbef-cc58-4ebc-851b-1ee10cc07931",
+        "410ef708-355b-463e-8fc2-60b38698be74"
+      ],
+      "sourceOutcomeCodes": [
+        "1.2.a",
+        "1.2.b",
+        "1.2.c",
+        "1.2.d"
+      ]
+    },
+    {
+      "section": "1.3",
+      "questions": [
+        {
+          "question": "What shape has a raised flat top?",
+          "answer": "A plateau."
+        },
+        {
+          "question": "Can all valleys be assumed to contain rivers?",
+          "answer": "No."
+        },
+        {
+          "question": "Name a Kenyan lake mentioned in the lesson.",
+          "answer": "Lake Nakuru."
+        },
+        {
+          "question": "Why can a steep slope be difficult for farming?",
+          "answer": "Soil can wash away and access is difficult."
+        },
+        {
+          "question": "Why is clear river water not necessarily safe for drinking?",
+          "answer": "It may contain germs or pollutants."
+        }
+      ],
+      "teacherPrompt": "Sketch a profile with a high point, two slopes and a low valley. Add a stream in the valley. Label where water might collect and explain one way to prevent soil being washed away.",
+      "assessment": "Check the learner's explanation, accurate vocabulary and safe practical application; accept other correct responses. Offer a model and a fresh example when needed.",
+      "sourceOutcomeIds": [
+        "ef5c4d5e-bc97-448a-8e56-598a09dc8e4b",
+        "8a2dd3f7-b48d-4426-8f7b-3d37e0fb2f79",
+        "a7c6fc62-007f-4710-9ed5-8319dc6b4d80",
+        "b2ada3db-1a76-4c17-961b-4a9593f56bde"
+      ],
+      "sourceOutcomeCodes": [
+        "1.3.a",
+        "1.3.b",
+        "1.3.c",
+        "1.3.d"
+      ]
+    },
+    {
+      "section": "1.4",
+      "questions": [
+        {
+          "question": "How many rainy days appear in the example?",
+          "answer": "Three."
+        },
+        {
+          "question": "Is a single hot afternoon proof that the hot season has begun?",
+          "answer": "No."
+        },
+        {
+          "question": "Why do pedestrians need extra care during rain?",
+          "answer": "Slippery surfaces, reduced visibility or flooding."
+        },
+        {
+          "question": "What is the purpose of a weather-chart key?",
+          "answer": "It explains symbols or colours."
+        },
+        {
+          "question": "Name two ways to prepare for a dry period.",
+          "answer": "Conserve water and plan farming appropriately."
+        }
+      ],
+      "teacherPrompt": "Draw five columns for weekdays and record the example observations using R for rain and S for sunny. Add a key. Compare the number of each type, then explain a safe activity for a rainy day.",
+      "assessment": "Check the learner's explanation, accurate vocabulary and safe practical application; accept other correct responses. Offer a model and a fresh example when needed.",
+      "sourceOutcomeIds": [
+        "9cd4f671-4f73-42d6-96e6-ec3f1d3ee07d",
+        "2d560e9e-eb52-4870-90f1-e7d20e038f42",
+        "fb00475c-9381-423d-9abf-15c941e7d1a6",
+        "747468fd-53da-4097-b3d3-33dc24a2105f",
+        "bd8e606d-0030-456a-97fe-40a18aee0902"
+      ],
+      "sourceOutcomeCodes": [
+        "1.4.a",
+        "1.4.b",
+        "1.4.c",
+        "1.4.d",
+        "1.4.e"
+      ]
+    },
+    {
+      "section": "1.5",
+      "questions": [
+        {
+          "question": "Name the museum near Nakuru discussed here.",
+          "answer": "Hyrax Hill Museum."
+        },
+        {
+          "question": "What can a stone tool suggest?",
+          "answer": "An example of past work or technology."
+        },
+        {
+          "question": "Why might a photograph be incomplete evidence?",
+          "answer": "It may not show the date or the reason for a change."
+        },
+        {
+          "question": "How can a visitor protect a monument?",
+          "answer": "Follow rules, do not damage it or remove objects."
+        },
+        {
+          "question": "What is the difference between a model and an original object?",
+          "answer": "A model represents it; the original is the actual historical object."
+        }
+      ],
+      "teacherPrompt": "Create a museum label for an imaginary old woven basket: object, possible use, what you know and what you still need to check. Keep real artefacts where they belong.",
+      "assessment": "Check the learner's explanation, accurate vocabulary and safe practical application; accept other correct responses. Offer a model and a fresh example when needed.",
+      "sourceOutcomeIds": [
+        "3854af09-89d1-420f-a91f-23454ec655d6",
+        "038742fd-e42f-47a0-ba48-38370b8b4447",
+        "92b75fc0-7d69-411c-9451-3e8180c5d220",
+        "a8cb9fa6-89f7-45d4-96ec-bf0bccc94c74"
+      ],
+      "sourceOutcomeCodes": [
+        "1.5.a",
+        "1.5.b",
+        "1.5.c",
+        "1.5.d"
+      ]
+    },
+    {
+      "section": "2.1",
+      "questions": [
+        {
+          "question": "What does a miller do?",
+          "answer": "Processes grain into flour."
+        },
+        {
+          "question": "Give one unpaid example of interdependence.",
+          "answer": "Helping a neighbour or caring for someone."
+        },
+        {
+          "question": "What could happen to a shop if the mill closes?",
+          "answer": "It may receive less flour."
+        },
+        {
+          "question": "Why do producers need consumers?",
+          "answer": "Consumers use or buy their products."
+        },
+        {
+          "question": "How can a group cooperate fairly when one member needs assistance?",
+          "answer": "Adapt tasks, include them and respect their contribution."
+        }
+      ],
+      "teacherPrompt": "Draw a household at the centre and link it to a farmer, shop, health centre and transport service. Add an arrow showing what the household gives or receives from each.",
+      "assessment": "Check the learner's explanation, accurate vocabulary and safe practical application; accept other correct responses. Offer a model and a fresh example when needed.",
+      "sourceOutcomeIds": [
+        "40ecaa6c-8de6-4934-937a-a552d06668eb",
+        "4ac12f3c-92f1-4cf0-88e5-26a1412abb14",
+        "bb4d7b73-8174-4e42-a5e0-af2388351785",
+        "ae6d48e5-a869-406b-975b-71bcc52f4047"
+      ],
+      "sourceOutcomeCodes": [
+        "2.1.a",
+        "2.1.b",
+        "2.1.c",
+        "2.1.d"
+      ]
+    },
+    {
+      "section": "2.2",
+      "questions": [
+        {
+          "question": "Which had higher 2019 average density, Mombasa or Turkana?",
+          "answer": "Mombasa."
+        },
+        {
+          "question": "Why can a large county have low density?",
+          "answer": "Its population may be spread over a very large area."
+        },
+        {
+          "question": "What does a census count?",
+          "answer": "People, along with other information."
+        },
+        {
+          "question": "Twenty people in one square kilometre give what density?",
+          "answer": "20 people per square kilometre."
+        },
+        {
+          "question": "Can a county average show the exact location of each home?",
+          "answer": "No."
+        }
+      ],
+      "teacherPrompt": "Compare the two 2019 county densities in the table. Make two equal boxes containing 20 and 5 dots, respectively. Explain the difference between the imaginary dot example and a real county average.",
+      "assessment": "Check the learner's explanation, accurate vocabulary and safe practical application; accept other correct responses. Offer a model and a fresh example when needed.",
+      "sourceOutcomeIds": [
+        "463c3da6-5516-4324-9e1b-75698c0f540a",
+        "dd305d26-190f-4d11-abfc-d8dad508ff95",
+        "8d290a31-9d02-45ea-bae4-3cd98adb482c"
+      ],
+      "sourceOutcomeCodes": [
+        "2.2.a",
+        "2.2.b",
+        "2.2.c"
+      ]
+    },
+    {
+      "section": "3.1",
+      "questions": [
+        {
+          "question": "Name two ways people express culture besides clothing.",
+          "answer": "Food, housing, artefacts, games or ceremonies."
+        },
+        {
+          "question": "What is an artefact?",
+          "answer": "A human-made object."
+        },
+        {
+          "question": "Why might a basket have a tightly woven base?",
+          "answer": "To hold small items more securely."
+        },
+        {
+          "question": "Can every family in one community be expected to follow the same traditions?",
+          "answer": "No."
+        },
+        {
+          "question": "How should you respond to a classmate's unfamiliar tradition?",
+          "answer": "Listen respectfully, avoid stereotypes, ask only appropriate questions."
+        }
+      ],
+      "teacherPrompt": "Study a household object with permission or use a drawing. Make a three-part label: material, use, knowledge. Explain how it might be made differently today.",
+      "assessment": "Check the learner's explanation, accurate vocabulary and safe practical application; accept other correct responses. Offer a model and a fresh example when needed.",
+      "sourceOutcomeIds": [
+        "679ec543-08ec-432f-9cfe-8c7dae3e36be",
+        "393ec0e7-84af-4680-98d6-1776be85a6e1",
+        "ac3e9914-734d-4555-882e-8bfccf19043b"
+      ],
+      "sourceOutcomeCodes": [
+        "3.1.a",
+        "3.1.b",
+        "3.1.c"
+      ]
+    },
+    {
+      "section": "3.2",
+      "questions": [
+        {
+          "question": "Which event occurred earliest?",
+          "answer": "School opening in 2008."
+        },
+        {
+          "question": "Which occurred last?",
+          "answer": "Library opening in 2021."
+        },
+        {
+          "question": "What should a historian do if two records disagree?",
+          "answer": "Seek more evidence and note uncertainty."
+        },
+        {
+          "question": "Give one example of a school value.",
+          "answer": "Honesty, respect, responsibility or similar."
+        },
+        {
+          "question": "How could a rule reflect respect?",
+          "answer": "Listen when others speak, include peers or care for shared items."
+        }
+      ],
+      "teacherPrompt": "Make three event cards from the imaginary school evidence. Order them, then propose a motto and one fair rule that reflects respect.",
+      "assessment": "Check the learner's explanation, accurate vocabulary and safe practical application; accept other correct responses. Offer a model and a fresh example when needed.",
+      "sourceOutcomeIds": [
+        "e8e06e4d-3925-43cd-a728-833fb5186077",
+        "11b16004-d91c-462f-b908-0bcd6cd7fe99",
+        "97a8f874-c16e-485c-a6b3-4a7b78c0d14a",
+        "64264a2a-7fe0-4036-8e6a-3853ca2049c5"
+      ],
+      "sourceOutcomeCodes": [
+        "3.2.a",
+        "3.2.b",
+        "3.2.c",
+        "3.2.d"
+      ]
+    },
+    {
+      "section": "4.1",
+      "questions": [
+        {
+          "question": "Name two natural resources.",
+          "answer": "Land, water, soil, forests or minerals."
+        },
+        {
+          "question": "Is repairing a bicycle a good or a service?",
+          "answer": "A service."
+        },
+        {
+          "question": "What output does the carpenter example describe?",
+          "answer": "A stool."
+        },
+        {
+          "question": "Why should water users avoid waste?",
+          "answer": "Others and future needs depend on the resource."
+        },
+        {
+          "question": "How could a trader reduce waste safely?",
+          "answer": "Reuse clean suitable packaging or reduce unnecessary packaging."
+        }
+      ],
+      "teacherPrompt": "Choose a familiar product or service. Draw four boxes: resource, work, output, benefit. Add a conservation idea. If working alone, use the stool example.",
+      "assessment": "Check the learner's explanation, accurate vocabulary and safe practical application; accept other correct responses. Offer a model and a fresh example when needed.",
+      "sourceOutcomeIds": [
+        "399e9d8d-c7eb-4989-859a-4f329bf00b58",
+        "3ab034e8-5b78-49e2-91be-e3f55d318aa8",
+        "08156cce-1778-4582-ae7c-3282ebc2bffa",
+        "2ff58662-baa1-4ddf-abb3-7c266a47a2ce",
+        "ad40f67b-b271-42a1-9f8f-6f9a47f74a04"
+      ],
+      "sourceOutcomeCodes": [
+        "4.1.a",
+        "4.1.b",
+        "4.1.c",
+        "4.1.d",
+        "4.1.e"
+      ]
+    },
+    {
+      "section": "4.2",
+      "questions": [
+        {
+          "question": "Which industry produces flour from grain?",
+          "answer": "Milling."
+        },
+        {
+          "question": "Give an example of a small-scale industry.",
+          "answer": "Tailoring or furniture workshop."
+        },
+        {
+          "question": "Why might a dairy plant need reliable transport?",
+          "answer": "To receive milk and move products safely."
+        },
+        {
+          "question": "What should workers do if packaging is damaged?",
+          "answer": "Check it and follow safe quality procedures."
+        },
+        {
+          "question": "Name two possible benefits of industry.",
+          "answer": "Jobs, useful goods, income or value addition."
+        }
+      ],
+      "teacherPrompt": "Draw a grain-to-flour sequence with four stages. At each stage write one safe responsibility. Use a fictional location map with a road, farms and market to discuss possible industry locations.",
+      "assessment": "Check the learner's explanation, accurate vocabulary and safe practical application; accept other correct responses. Offer a model and a fresh example when needed.",
+      "sourceOutcomeIds": [
+        "8b51c4d0-dbbf-454d-8dd2-2fd92a38cbe9",
+        "5ae26587-1e20-43d2-b311-02e995fc0c99",
+        "6d2cb0e8-2493-422b-9d15-761f27512d2b",
+        "a8c09352-7590-4e46-b3d7-3492fff6709e"
+      ],
+      "sourceOutcomeCodes": [
+        "4.2.a",
+        "4.2.b",
+        "4.2.c",
+        "4.2.d"
+      ]
+    },
+    {
+      "section": "4.3",
+      "questions": [
+        {
+          "question": "What is the total cost in the seedling example?",
+          "answer": "KSh 100."
+        },
+        {
+          "question": "What is the surplus if receipts are KSh 130?",
+          "answer": "KSh 30."
+        },
+        {
+          "question": "What is the loss if receipts are KSh 80?",
+          "answer": "KSh 20."
+        },
+        {
+          "question": "Why should the group record both costs and receipts?",
+          "answer": "To understand the result honestly."
+        },
+        {
+          "question": "Give two fair project rules.",
+          "answer": "Share tasks fairly; do not force contributions; adult supervision; accurate records."
+        }
+      ],
+      "teacherPrompt": "Make a paper plan for a bookmark or seedling project. Write a purpose, roles, safe materials, estimated costs and an imaginary sales total. Calculate the result. No real sale is required.",
+      "assessment": "Check the learner's explanation, accurate vocabulary and safe practical application; accept other correct responses. Offer a model and a fresh example when needed.",
+      "sourceOutcomeIds": [
+        "15c030ae-1a01-4376-95e2-937a2c150706",
+        "8870d27b-924c-460b-bfc3-57fcc6d37bfa",
+        "d23986e8-9bb2-44fd-8822-8d5cb4ace549"
+      ],
+      "sourceOutcomeCodes": [
+        "4.3.a",
+        "4.3.b",
+        "4.3.c"
+      ]
+    },
+    {
+      "section": "5.1",
+      "questions": [
+        {
+          "question": "Why is sharing pencils fairly good citizenship?",
+          "answer": "It includes everyone and respects shared needs."
+        },
+        {
+          "question": "What is integrity?",
+          "answer": "Acting honestly even when no one is watching."
+        },
+        {
+          "question": "Should a learner obey an unsafe request?",
+          "answer": "No; seek help from a trusted adult."
+        },
+        {
+          "question": "What should you do before sharing another person's photo?",
+          "answer": "Ask appropriate permission."
+        },
+        {
+          "question": "Give one way to include a learner who needs support.",
+          "answer": "Adapt the task, share materials or ask what support is helpful."
+        }
+      ],
+      "teacherPrompt": "Read the pencil-sharing example. Write two possible responses and explain which is fairer. Choose one realistic positive action and reflect on its effect without ranking classmates.",
+      "assessment": "Check the learner's explanation, accurate vocabulary and safe practical application; accept other correct responses. Offer a model and a fresh example when needed.",
+      "sourceOutcomeIds": [
+        "3686ce7b-7ed6-4c52-9ae9-c605c56a4ce1",
+        "726cc14b-0b2b-40ba-90e4-08e6d03af485",
+        "66595b62-c47c-48d7-a3c2-9b436affe6da"
+      ],
+      "sourceOutcomeCodes": [
+        "5.1.a",
+        "5.1.b",
+        "5.1.c"
+      ]
+    },
+    {
+      "section": "5.2",
+      "questions": [
+        {
+          "question": "Name two factors that promote peace.",
+          "answer": "Respect, fair rules, patience, listening or cooperation."
+        },
+        {
+          "question": "Is silence always evidence of peace?",
+          "answer": "No; people may be afraid to speak."
+        },
+        {
+          "question": "How could the reading-corner problem be solved?",
+          "answer": "Agree on fair turns."
+        },
+        {
+          "question": "Should a child negotiate alone with someone threatening them?",
+          "answer": "No; seek adult help."
+        },
+        {
+          "question": "How can a class check whether a peaceful plan works?",
+          "answer": "Review fair access and safe participation."
+        }
+      ],
+      "teacherPrompt": "Draw a two-column timetable for the fictional reading corner. Explain how both groups can have equal access. Write a safe response if someone threatens a learner.",
+      "assessment": "Check the learner's explanation, accurate vocabulary and safe practical application; accept other correct responses. Offer a model and a fresh example when needed.",
+      "sourceOutcomeIds": [
+        "be903ec2-7a1e-420c-8126-21e74eec614d",
+        "1e9cfd8d-a3a2-4bca-ac85-1078557bdfd8",
+        "5cb35cc4-9905-4490-8851-07b2a100547e"
+      ],
+      "sourceOutcomeCodes": [
+        "5.2.a",
+        "5.2.b",
+        "5.2.c"
+      ]
+    },
+    {
+      "section": "5.3",
+      "questions": [
+        {
+          "question": "Do rights depend on good behaviour?",
+          "answer": "No."
+        },
+        {
+          "question": "Name two children's rights.",
+          "answer": "Education, care, dignity, safety or protection."
+        },
+        {
+          "question": "Why is unsafe transport a child-protection concern?",
+          "answer": "It can place children at risk of harm."
+        },
+        {
+          "question": "What should a child do if the first adult does not help?",
+          "answer": "Tell another safe adult and seek help."
+        },
+        {
+          "question": "What is Kenya's national child helpline number?",
+          "answer": "116."
+        }
+      ],
+      "teacherPrompt": "Create a fictional rights-awareness poster showing education, safety, care and inclusion. Add ways to get help. Do not include real names or personal stories.",
+      "assessment": "Check the learner's explanation, accurate vocabulary and safe practical application; accept other correct responses. Offer a model and a fresh example when needed.",
+      "sourceOutcomeIds": [
+        "6f5f137d-0299-441a-9ade-fbae9afc1138",
+        "da8725d4-5ed4-4f08-b1ca-5fb1572d12c8",
+        "e63fff7f-6b70-4eb9-ae49-c168adc5648c",
+        "fc766154-00a6-43f2-8dfb-03060f492c3b"
+      ],
+      "sourceOutcomeCodes": [
+        "5.3.a",
+        "5.3.b",
+        "5.3.c",
+        "5.3.d"
+      ]
+    },
+    {
+      "section": "5.4",
+      "questions": [
+        {
+          "question": "Which activity received more votes?",
+          "answer": "Story circle."
+        },
+        {
+          "question": "How many learners voted in the example?",
+          "answer": "Twenty."
+        },
+        {
+          "question": "Why is a secret ballot useful?",
+          "answer": "Protects the privacy of choice."
+        },
+        {
+          "question": "Can a majority vote remove a child's rights?",
+          "answer": "No."
+        },
+        {
+          "question": "How could the class respect the eight learners?",
+          "answer": "Listen to them and consider an accessible future activity."
+        }
+      ],
+      "teacherPrompt": "Make a tally table for the imaginary 12 and 8 votes. Explain how the decision can respect everyone. Design a private ballot for two harmless fictional activities.",
+      "assessment": "Check the learner's explanation, accurate vocabulary and safe practical application; accept other correct responses. Offer a model and a fresh example when needed.",
+      "sourceOutcomeIds": [
+        "d48aca64-b039-40a6-affe-658f039ad931",
+        "b991ff98-07e2-454b-ad7b-e2440574419f",
+        "bde485ad-eaa1-426d-ac50-f8fb4b724843",
+        "80b03050-4491-4f35-abb4-81e1016c72ec"
+      ],
+      "sourceOutcomeCodes": [
+        "5.4.a",
+        "5.4.b",
+        "5.4.c",
+        "5.4.d"
+      ]
+    },
+    {
+      "section": "5.5",
+      "questions": [
+        {
+          "question": "Who records meeting decisions?",
+          "answer": "Secretary."
+        },
+        {
+          "question": "What does a chairperson do?",
+          "answer": "Helps organise and guide discussion."
+        },
+        {
+          "question": "How may a learner without a role participate?",
+          "answer": "Share suggestions or join safe approved activities."
+        },
+        {
+          "question": "Who retains responsibility for school safety and discipline?",
+          "answer": "Responsible adults."
+        },
+        {
+          "question": "What should minutes include?",
+          "answer": "Accurate agreed actions or decisions and relevant responsibilities."
+        }
+      ],
+      "teacherPrompt": "Write imaginary minutes for a council meeting about a reading corner. Include the topic, two suggestions, one agreed proposal and the adult who should review it.",
+      "assessment": "Check the learner's explanation, accurate vocabulary and safe practical application; accept other correct responses. Offer a model and a fresh example when needed.",
+      "sourceOutcomeIds": [
+        "dfe75c02-dd2a-4f7d-9e45-508869a7e886",
+        "59e3a7c7-6d56-4800-9f53-83589280c689",
+        "9fc857c1-65a3-44d6-b37c-779dc1d57dab",
+        "b52d0195-c928-415d-b01c-e47bfbaff7af"
+      ],
+      "sourceOutcomeCodes": [
+        "5.5.a",
+        "5.5.b",
+        "5.5.c",
+        "5.5.d"
+      ]
+    },
+    {
+      "section": "5.6",
+      "questions": [
+        {
+          "question": "Name three kinds of leaders in the lesson.",
+          "answer": "Religious, clan and village leaders."
+        },
+        {
+          "question": "Give a possible duty of a religious leader.",
+          "answer": "Spiritual guidance or community support."
+        },
+        {
+          "question": "Why should a leader listen to different views?",
+          "answer": "To understand needs and make fair decisions."
+        },
+        {
+          "question": "Who should handle hazardous waste in a clean-up?",
+          "answer": "Trained responsible adults."
+        },
+        {
+          "question": "How can a leader demonstrate accountability?",
+          "answer": "Explain decisions, accept responsibility and review results."
+        }
+      ],
+      "teacherPrompt": "Plan a fictional community reading event. Assign safe roles, include learners with different needs and explain how the leader will check whether the event worked.",
+      "assessment": "Check the learner's explanation, accurate vocabulary and safe practical application; accept other correct responses. Offer a model and a fresh example when needed.",
+      "sourceOutcomeIds": [
+        "4adf4847-630b-4751-bb11-b6c24d4ae23b",
+        "29cdf7c7-ed30-4f48-add3-5e231c4c3c16",
+        "7360a86d-bfbf-4937-9e5f-195130c446aa",
+        "3c105ebb-85aa-4819-89e2-3eb8d9832143"
+      ],
+      "sourceOutcomeCodes": [
+        "5.6.a",
+        "5.6.b",
+        "5.6.c",
+        "5.6.d"
+      ]
+    },
+    {
+      "section": "5.7",
+      "questions": [
+        {
+          "question": "How many county governments does Kenya have?",
+          "answer": "47."
+        },
+        {
+          "question": "Who leads the county executive?",
+          "answer": "Governor."
+        },
+        {
+          "question": "Which body considers county laws and oversees executive work?",
+          "answer": "County assembly."
+        },
+        {
+          "question": "Does an MCA personally carry out every service?",
+          "answer": "No."
+        },
+        {
+          "question": "Give a safe way residents can raise a county service concern.",
+          "answer": "Use appropriate county feedback or representation channels."
+        }
+      ],
+      "teacherPrompt": "Draw two branches of county government. Put governor and executive committee under the executive; put ward representatives under the assembly. Explain the market example without inventing names of current officials.",
+      "assessment": "Check the learner's explanation, accurate vocabulary and safe practical application; accept other correct responses. Offer a model and a fresh example when needed.",
+      "sourceOutcomeIds": [
+        "19f03982-2394-4fb1-a38f-9b850d8514ec",
+        "ebad4738-b854-4f31-aa8b-d9f4cd4858e6",
+        "d941c180-1ee8-42a1-acc8-2b62fa4cf3c2",
+        "dc62bfaf-f520-4e86-b88c-84e46b187ee8"
+      ],
+      "sourceOutcomeCodes": [
+        "5.7.a",
+        "5.7.b",
+        "5.7.c",
+        "5.7.d"
+      ]
+    }
+  ],
+  "chapterRevisionTests": [
+    {
+      "strand": 1,
+      "questions": [
+        {
+          "question": "On a north-up map, a school is east of a market. Which direction is the market from the school?",
+          "answer": "West; reverse the direction."
+        },
+        {
+          "question": "Explain why two county maps must have the same scale when comparing area.",
+          "answer": "Equal map distances must represent equal ground distances."
+        },
+        {
+          "question": "Compare a plateau and a valley.",
+          "answer": "A plateau is raised fairly flat land; a valley lies between raised areas."
+        },
+        {
+          "question": "A road is flooded and a friend wants to cross. What should you do?",
+          "answer": "Avoid crossing, seek a safe adult-approved alternative."
+        }
+      ]
+    },
+    {
+      "strand": 2,
+      "questions": [
+        {
+          "question": "Draw a chain from grain farmer to household and explain one connection.",
+          "answer": "Farmer → miller → trader → household; accept a correct relationship."
+        },
+        {
+          "question": "Two equal squares contain 16 and 8 people. Compare their densities.",
+          "answer": "First has twice the density of the second."
+        },
+        {
+          "question": "Explain a difference between population density and distribution.",
+          "answer": "Density is people per unit area; distribution is the pattern of where people live."
+        },
+        {
+          "question": "Why may a scattered settlement need a different transport plan?",
+          "answer": "Homes are farther apart and may need accessible transport solutions."
+        }
+      ]
+    },
+    {
+      "strand": 3,
+      "questions": [
+        {
+          "question": "Choose an artefact and explain what it might tell us about a cultural practice.",
+          "answer": "Accept a specific accurate object, its materials, use or associated knowledge."
+        },
+        {
+          "question": "Why should we avoid assuming everyone from one community dresses alike?",
+          "answer": "Families and individuals have diverse and changing traditions."
+        },
+        {
+          "question": "Order these fictional dates: 2018, 2004, 2011.",
+          "answer": "2004, 2011, 2018."
+        },
+        {
+          "question": "Give one school value and a rule that reflects it.",
+          "answer": "E.g. respect: listen without interrupting."
+        }
+      ]
+    },
+    {
+      "strand": 4,
+      "questions": [
+        {
+          "question": "Identify a resource, economic activity and product in one example.",
+          "answer": "E.g. soil, farming, vegetables."
+        },
+        {
+          "question": "Explain how an industry adds value to grain.",
+          "answer": "Milling changes grain into useful flour."
+        },
+        {
+          "question": "A project spends KSh 150 and receives KSh 180. Calculate the surplus.",
+          "answer": "KSh 30."
+        },
+        {
+          "question": "Name two ethical and safe practices for a school enterprise.",
+          "answer": "Accurate records, fair tasks, voluntary participation or adult supervision."
+        }
+      ]
+    },
+    {
+      "strand": 5,
+      "questions": [
+        {
+          "question": "What would a good citizen do with a lost item?",
+          "answer": "Return it through an appropriate trusted adult or safe process."
+        },
+        {
+          "question": "Explain why a learner should not have to negotiate alone with someone threatening them.",
+          "answer": "Safety comes first; trusted adults must help protect the learner."
+        },
+        {
+          "question": "What can a learner council do, and who remains responsible for safety?",
+          "answer": "Represent learners' views and propose activities; responsible adults retain safety duties."
+        },
+        {
+          "question": "Distinguish the county executive from the county assembly.",
+          "answer": "Executive carries out county functions; assembly makes laws and oversees the executive."
+        }
+      ]
+    }
+  ]
+}

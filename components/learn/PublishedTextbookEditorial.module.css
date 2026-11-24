@@ -90,3 +90,14 @@
   .media img { max-height:420px; }
 }
 @media(prefers-reduced-motion:reduce) { .premiumShell *, .premiumShell *::before, .premiumShell *::after { scroll-behavior:auto!important; } }
+
+/* Ungraded textbook practice uses the same square editorial surface. */
+.selfCheck{margin:1.1rem 0;padding:1rem;border:1px solid #dce7df;background:#fff;color:#182e22;min-width:0;overflow-wrap:anywhere}
+.selfCheck fieldset{margin:0;padding:0;border:0;min-width:0}
+.selfCheck legend{font-size:.9rem;font-weight:700;color:#245f3b}
+.selfCheckChoice{display:flex;gap:.7rem;align-items:center;border:1px solid #dce7df;padding:.75rem;margin:.5rem 0;min-height:44px;cursor:pointer}
+.selfCheckChoice input{accent-color:#245f3b;flex-shrink:0}
+.selfCheckButton{min-height:44px;padding:.55rem 1rem;color:#fff;background:#245f3b;border:1px solid #245f3b;font-weight:650;cursor:pointer}
+.selfCheckButton:disabled{opacity:.5;cursor:not-allowed}
+.selfCheckButton:focus-visible,.selfCheckChoice:focus-within{outline:2px solid #245f3b;outline-offset:3px}
+.selfCheckFeedback{font-weight:500;line-height:1.6}
