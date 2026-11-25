@@ -6,7 +6,8 @@ import {Bell,BookOpen,CheckCircle2,CheckCheck,ChevronRight,ClipboardCheck,Clipbo
 import {teacherTabs,teacherTools,type TeacherTab} from "@/components/teacher/navigation";
 import s from "./redesign.module.css";
 import DesignLab from "./design-lab";
-import {ActionButton,SearchField,SelectField,TextField,CheckField,FilterChips,StatusPill,StateView,Progress,DataTable} from "./ui";
+import {SmartSearch} from "./controls";
+import {ActionButton,SearchField,SelectField,TextField,CheckField,StatusPill,StateView,Progress,DataTable} from "./ui";
 import {parseDestination,destinationSearch,openingFor,toolPanel,type Panel,type Destination} from "./destination";
 
 const stages=[{label:"Scheme",icon:Layers},{label:"Plan",icon:ClipboardList},{label:"Notes",icon:NotebookPen},{label:"Resources",icon:Library},{label:"Slides",icon:Presentation}];
@@ -22,6 +23,7 @@ export default function TeacherRedesignPage(){
  const [accent,setAccent]=useState("blue");
  const [toolCategory,setToolCategory]=useState("all");
  const [toolQuery,setToolQuery]=useState("");
+ const [recentTools,setRecentTools]=useState<string[]>([]);
  const swipeStart=useRef<number|null>(null);
  const swiped=useRef(false);
  const mainRef=useRef<HTMLElement>(null);
@@ -82,10 +84,10 @@ export default function TeacherRedesignPage(){
   if(panel&&opening!=="sheet")mainRef.current?.focus({preventScroll:true});
   if(!panel||opening!=="sheet"){const target=positions.current[routeKey({tab,panel})]??0;mainRef.current?.scrollTo({top:target,behavior:"auto"})}
  },[tab,panel,opening]);
- function reset(){setAccent("blue");setToolCategory("all");setToolQuery("");setQuery("");setTheme("system");setDensity("compact");setSize("default");setMode("normal");setPins(initialPins);setDone([true,true,true,false,false]);setMark(5);setAttendance(2);setLive(null);setPast([]);setAudience("Grade 4 Kilimanjaro");setNotes("Identify homophones in short sentences.");setNotesDraft(null);setPendingChecks({});setMessage("Preview reset")}
+ function reset(){setAccent("blue");setToolCategory("all");setToolQuery("");setRecentTools([]);setQuery("");setTheme("system");setDensity("compact");setSize("default");setMode("normal");setPins(initialPins);setDone([true,true,true,false,false]);setMark(5);setAttendance(2);setLive(null);setPast([]);setAudience("Grade 4 Kilimanjaro");setNotes("Identify homophones in short sentences.");setNotesDraft(null);setPendingChecks({});setMessage("Preview reset")}
  function togglePin(href:string){setPins(old=>old.includes(href)?old.filter(x=>x!==href):old.length<11?[...old,href]:old)}
  const visible=registry.filter(t=>t.label.toLowerCase().includes(query.trim().toLowerCase()));
- const toolResults=registry.filter(t=>t.label.toLowerCase().includes(toolQuery.trim().toLowerCase())&&(toolCategory==="all"||teacherTools[toolCategory as TeacherTab]?.some(x=>x.href===t.href)));
+ const toolSearchItems=teacherTabs.flatMap(tab=>teacherTools[tab.id].filter(t=>registry.some(r=>r.href===t.href)).map(t=>({id:t.href,label:t.label,category:tab.label})));
  const selectedTab=teacherTabs.find(t=>t.id===tab)!;
  const panelTitle=panel?.kind==="stage"?stages[panel.index].label:panel?.kind==="pending"?panel.label:panel?({live:"Live Classroom",studio:"Live Studio",past:"Past classes",mark:"Mark submissions",attendance:"Record attendance",settings:"Appearance & workspace",notifications:"Notifications",teach:"Teach lesson",tools:"All tools",timetable:"Timetable",lab:"Design Lab"}[panel.kind]):"";
  const panelContent=panel&&<div className={s.dialogBody}><div className={s.row}><h2 id="redesign-panel-title">{panelTitle}</h2><button aria-label={isWorkspace?"Back":"Close"} onClick={close}>{isWorkspace?<ArrowLeft size={20}/>:<X size={20}/>}</button></div>
@@ -96,7 +98,7 @@ export default function TeacherRedesignPage(){
     panel.kind==="past"?<>{past.length?past.map((a,i)=><p key={i}>English · {a} · Ended (sample)</p>):<p className={s.empty}>No ended sample classes</p>}</>:
     panel.kind==="mark"||panel.kind==="attendance"?<><p>{panel.kind==="mark"?mark+" sample submissions to mark":attendance+" sample lessons awaiting attendance"}</p><ActionButton variant="primary" disabled={panel.kind==="mark"?mark===0:attendance===0} onClick={()=>{if(panel.kind==="mark")setMark(n=>Math.max(0,n-1));else setAttendance(n=>Math.max(0,n-1));setMessage("Sample record updated")}}>{panel.kind==="mark"?"Complete sample marking":"Save sample attendance"}</ActionButton></>:
     panel.kind==="settings"?<div className={s.settings}><SelectField label="Accent" value={accent} onChange={setAccent} options={[{value:"blue",label:"Intelligent Blue"},{value:"indigo",label:"Indigo"},{value:"teal",label:"Teal"},{value:"emerald",label:"Emerald"},{value:"neutral",label:"Neutral"}]}/><label>Theme<select value={theme} onChange={e=>setTheme(e.target.value as Theme)}><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select></label><label>Density<select value={density} onChange={e=>setDensity(e.target.value)}><option value="compact">Compact</option><option value="comfortable">Comfortable</option></select></label><label>Text size<select value={size} onChange={e=>setSize(e.target.value)}><option value="default">Default</option><option value="large">Large</option></select></label><label>Preview lesson state<select value={mode} onChange={e=>setMode(e.target.value as DemoState)}><option value="normal">Normal</option><option value="empty">Empty</option><option value="loading">Loading</option><option value="error">Error</option></select></label><small>Settings apply to this preview session only.</small><ActionButton variant="outline" onClick={()=>open({kind:"lab"})}>Open Design Lab</ActionButton><ActionButton variant="outline" onClick={reset}>Reset preview</ActionButton></div>:
-    panel.kind==="tools"?<><SearchField label="Search all tools" placeholder="Search tools" value={toolQuery} onChange={setToolQuery}/><FilterChips label="Tool category" value={toolCategory} onChange={setToolCategory} options={[{value:"all",label:"All"},...teacherTabs.map(t=>({value:t.id,label:t.label}))]}/><div className={s.directory}>{toolResults.map(t=><button key={t.href} onClick={()=>open(toolPanel(t.href,t.label))}><t.icon size={18}/><span>{t.label}</span><ChevronRight size={16}/></button>)}</div>{!toolResults.length&&<p className={s.empty}>No matching tools</p>}</>:
+    panel.kind==="tools"?<SmartSearch mode="filtered" label="Search all tools" items={toolSearchItems} value={toolQuery} onChange={setToolQuery} categoryValue={toolCategory} onCategoryChange={setToolCategory} recentValue={recentTools} onRecentChange={setRecentTools} renderIcon={item=>{const tool=registry.find(t=>t.href===item.id);return tool?<tool.icon size={18}/>:null}} onSelect={item=>open(toolPanel(item.id,item.label))}/>:
     panel.kind==="timetable"?<><small>Sample day · Grade 4</small>{mode==="empty"?<p>No lessons scheduled</p>:<DataTable caption="Sample timetable" columns={["Time","Subject"]} rows={[["8:00","Mathematics"],["9:00","Science"],["11:00","Social Studies"],["14:00","English"]].map(([time,subject])=>({key:time,cells:[time,subject]}))}/>}</>:
     panel.kind==="teach"?<><strong>English · Homophones</strong><p>Sample teaching context. The full lesson workspace will be built separately.</p><ActionButton variant="outline" onClick={()=>open({kind:"stage",index:1})}>View preparation</ActionButton><ActionButton variant="primary" onClick={()=>open({kind:"studio"})}>Open Live Studio</ActionButton></>:
     panel.kind==="notifications"?<StateView kind="empty" title="No sample notifications"/>:<p>This tool remains in the existing Teacher App. Its redesigned workspace is not built yet.</p>}
