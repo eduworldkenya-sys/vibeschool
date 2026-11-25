@@ -1,5 +1,7 @@
 // Deterministic, synthetic preview data only. No external services or persistence.
 import {initialScheme,curriculumUnits,validPair,validTermWeek,type SchemeItem,type SchemeStatus} from "./teach-data";
+import {initialPlans,initialPlanSections,planReview,type SamplePlan} from "./lesson-data";
+import {parseGeneratedLessonPlan,type LessonPlanSections,type LessonPlanSectionKey} from "@/lib/teaching/lessonPlanCodec";
 export const previewDate="2026-11-25";
 export const previewTime="13:50";
 export type Readiness="done"|"pending"|"unknown";
@@ -8,7 +10,7 @@ export type Scope={classId:string;subjectId:string};
 export type Occurrence=Scope & {id:string;slotId:string;date:string;start:string;end:string;topic:string;planId:string|null;schemeId:string|null;preparation:Readiness[];notes:string;resourceIds:string[];slideIds:string[];delivery:"scheduled"|"teaching"|"taught";attendance:"pending"|"completed"};
 export type Submission=Scope & {id:string;homeworkId:string;learnerId:string;title:string;status:"pending"|"marked"};
 export type Session={id:string;audience:string;occurrenceId:string|null;title:string;status:"active"|"paused"|"ended"};
-export type PreviewState={assignments:Scope[];scheme:SchemeItem[];schemeSequence:number;occurrences:Occurrence[];submissions:Submission[];sessions:Session[];drafts:Record<string,{checks:Partial<Record<number,boolean>>;notes?:string}>;readNotifications:string[];sequence:number};
+export type PreviewState={plans:Record<string,SamplePlan>;planEdits:Record<string,LessonPlanSections>;assignments:Scope[];scheme:SchemeItem[];schemeSequence:number;occurrences:Occurrence[];submissions:Submission[];sessions:Session[];drafts:Record<string,{checks:Partial<Record<number,boolean>>;notes?:string}>;readNotifications:string[];sequence:number};
 export const sampleClasses=[{id:"class-4",label:"Grade 4 · Kilimanjaro"},{id:"class-5",label:"Grade 5 · Aberdare"}];
 export const sampleSubjects=[{id:"english",label:"English"},{id:"math",label:"Mathematics"},{id:"science",label:"Science"},{id:"social",label:"Social Studies"}];
 export const sampleAssignments=[{classId:"class-4",subjectId:"english"},{classId:"class-4",subjectId:"math"},{classId:"class-4",subjectId:"science"},{classId:"class-5",subjectId:"social"},{classId:"class-5",subjectId:"english"}];
@@ -29,7 +31,8 @@ export function createPreviewState():PreviewState{
  occurrence("social-today","class-5","social",previewDate,"11:00","11:35","Compass directions",["done","done","done","pending","unknown"],"completed","taught"),
  occurrence("english-today","class-4","english",previewDate,"14:00","14:35","Homophones",["done","done","done","pending","pending"],"pending","scheduled"),
  occurrence("english-tomorrow","class-5","english","2026-11-26","08:00","08:35","Writing sentences",["done","pending","pending","pending","unknown"],"pending","scheduled")];
- return {occurrences,assignments:sampleAssignments.map(x=>({...x})),scheme:initialScheme(occurrences),schemeSequence:0,
+ const scheme=initialScheme(occurrences);
+ return {occurrences,plans:initialPlans(occurrences,scheme),planEdits:{},assignments:sampleAssignments.map(x=>({...x})),scheme,schemeSequence:0,
  submissions:sampleLearners.map((l,i)=>({id:"submission-"+(i+1),homeworkId:l.classId==="class-4"?"homework-place-value":"homework-directions",learnerId:l.id,classId:l.classId,subjectId:l.classId==="class-4"?"math":"social",title:l.classId==="class-4"?"Place value":"Compass directions",status:"pending"})),
  sessions:[],drafts:{},readNotifications:[],sequence:0};
 }
@@ -51,6 +54,9 @@ export type PreviewAction=
  | {type:"startSession";audience:string;occurrenceId:string|null}
  | {type:"pauseSession"|"resumeSession"|"endSession";id:string}
  | {type:"readNotification";id:string}
+ | {type:"editPlan";id:string;key:LessonPlanSectionKey;text:string}
+ | {type:"savePlan";id:string}
+ | {type:"discardPlanEdits";id:string}
  | {type:"addAssignment"|"removeAssignment";scope:Scope}
  | {type:"saveSchemeUnit";scope:Scope;unitId:string;outcomeIds:string[];term:number;week:number}
  | {type:"addSchemeItem";scope:Scope;topic:string;strand:string;term:number;week:number}
@@ -58,6 +64,17 @@ export type PreviewAction=
  | {type:"schemeReflection"|"schemePlanDraft";id:string;text:string};
 export function previewReducer(state:PreviewState,action:PreviewAction):PreviewState{
  if(action.type==="reset")return createPreviewState();
+ if(action.type==="editPlan"||action.type==="savePlan"||action.type==="discardPlanEdits"){
+  const row=state.occurrences.find(x=>x.id===action.id);if(!row)return state;
+  const saved=state.plans[row.id],sections=state.planEdits[row.id]??saved?.sections??initialPlanSections(row,state.scheme.find(x=>x.id===row.schemeId));
+  if(action.type==="editPlan")return {...state,planEdits:{...state.planEdits,[row.id]:{...sections,[action.key]:action.text}}};
+  const planEdits={...state.planEdits};delete planEdits[row.id];
+  if(action.type==="discardPlanEdits")return {...state,planEdits};
+  const valid=parseGeneratedLessonPlan(sections);if(!valid)return state;
+  const plan:SamplePlan={id:saved?.id??"plan-"+row.id,occurrenceId:row.id,schemeId:row.schemeId,sections:valid};
+  const readiness=planReview(valid).ready?"done":"pending";
+  return {...state,plans:{...state.plans,[row.id]:plan},planEdits,occurrences:state.occurrences.map(x=>x.id===row.id?{...x,planId:plan.id,preparation:x.preparation.map((v,i)=>i===1?readiness:v)}:x)};
+ }
  if(action.type==="addAssignment"){
   if(validPair(action.scope,state.assignments)||!sampleClasses.some(x=>x.id===action.scope.classId)||!sampleSubjects.some(x=>x.id===action.scope.subjectId))return state;
   return {...state,assignments:[...state.assignments,{...action.scope}]};
@@ -93,7 +110,7 @@ export function previewReducer(state:PreviewState,action:PreviewAction):PreviewS
   if(action.index===2&&checked===true&&!notes.trim())return state;
   const next:Occurrence={...row,notes,preparation:row.preparation.map((v,i)=>i===action.index&&checked!==undefined?(checked?"done":"pending"):v)};
   if(action.index===0&&checked!==undefined)next.schemeId=checked?"scheme-"+row.id:null;
-  if(action.index===1&&checked!==undefined)next.planId=checked?"plan-"+row.id:null;
+  if(action.index===1){const saved=state.plans[row.id];next.planId=saved?.id??null;next.preparation[1]=saved&&planReview(saved.sections).ready?"done":"pending";}
   if(action.index===3&&checked!==undefined)next.resourceIds=checked?sampleResources.filter(x=>x.subjectId===row.subjectId).map(x=>x.id):[];
   if(action.index===4&&checked!==undefined)next.slideIds=checked?sampleSlides.filter(x=>x.occurrenceId===row.id).map(x=>x.id):[];
   const checks={...draft?.checks};delete checks[action.index];
