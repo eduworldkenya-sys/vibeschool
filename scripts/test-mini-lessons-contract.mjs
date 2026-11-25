@@ -119,3 +119,31 @@ assert.ok(safetyDb.includes('enable row level security') &&
   safetyDb.includes("to service_role") &&
   safetyDb.includes('mini_report_safety_hold'), 'automated safety audit and community-report hold required')
 console.log('PASS: Mini Lesson hashtags, photo editing, learning, ranking fairness, authorization, automated safety and rollout guards')
+
+import {buildMiniDeck,parseMiniDeck,miniDeckText} from '../lib/minis/slides.ts'
+import {encodeAssessment,prepareAssessment,encodeSlide,visualSlideBody} from '../components/live-classroom/LiveSlideProtocol.ts'
+const firstSlide={title:'Fractions',body:'Two equal parts',theme:'paper',notes:'Private teacher notes'}
+const quizSlide={title:'Question',body:encodeAssessment({kind:'quiz',question:'Which is one half?',options:['1/2','1/3']})}
+const withAnswer={...quizSlide,notes:prepareAssessment(quizSlide,0,'Two equal parts make a whole.')}
+const deck=buildMiniDeck([firstSlide,withAnswer])
+assert.ok(parseMiniDeck(deck))
+assert.ok(!JSON.stringify(deck).includes('Private teacher notes'))
+assert.match(miniDeckText(parseMiniDeck(deck)),/Two equal parts make a whole/)
+assert.throws(()=>buildMiniDeck([firstSlide,quizSlide]))
+assert.equal(parseMiniDeck([deck[1],deck[0]]),null)
+assert.equal(parseMiniDeck([deck[0],{...deck[1],answer:{option:99,explanation:'Invalid'}}]),null)
+assert.equal(parseMiniDeck([deck[0],{encoded:encodeSlide({title:'Blocked',body:visualSlideBody('invalid')},2,2)}]),null)
+assert.equal(parseMiniDeck([deck[0],{...deck[1],unexpected:true}]),null)
+assert.ok(realExplore.includes("created_at'+miniSlideColumns()"))
+assert.ok(safetyApi.includes('miniDeckText(deck)'))
+console.log('PASS: Mini slide snapshot, private notes, quiz validation and screening projection')
+
+import {miniSlideColumns} from '../lib/minis/slide-release.ts'
+assert.equal(miniSlideColumns(false),'','legacy schema must not be queried for new columns')
+assert.equal(miniSlideColumns(true),',slide_deck')
+assert.ok(read('lib/minis/public-server.ts').includes('miniSlideColumns()'))
+assert.ok(read('lib/minis/data.ts').includes('miniSlideColumns()'))
+assert.ok(actions.includes('slides!==undefined&&!miniSlidesEnabled()'))
+assert.ok(safetyApi.includes("process.env.MINI_LESSON_SLIDES_PUBLISHING_ENABLED!=='true'"))
+assert.ok(realExplore.includes('{miniSlidesEnabled()&&<div'))
+console.log('PASS: compatible migration-first rollout and independent server publishing gate')

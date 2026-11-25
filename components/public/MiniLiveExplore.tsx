@@ -10,6 +10,9 @@ import { rankMiniLessons } from '@/lib/minis/recommendation'
 import { currentMiniUser, miniIsVerifiedAdult, changeMiniFollow, changeMiniInteraction, submitMini,
   addMiniComment, reportMini, recordMiniLearningSignal, publishMiniSafely, MiniSubmissionSavedError } from '@/lib/minis/actions'
 import { miniTagLabel, parseMiniHashtags } from '@/lib/minis/tags'
+import {MiniSlideEditor,MiniSlideReader,MiniSlideCover,blankMiniSlide} from './MiniSlideDeck'
+import {miniSlidesEnabled,miniSlideColumns} from '@/lib/minis/slide-release'
+import {buildMiniDeck} from '@/lib/minis/slides'
 import { prepareMiniPhoto } from '@/lib/minis/photo'
 import { MiniLiveRequests } from './MiniLiveRequests'
 import type { MiniPublicRequest } from '@/lib/minis/requests'
@@ -77,6 +80,8 @@ export function MiniLiveExplore({ enabled = true }: { enabled?: boolean } = {}) 
   const [createMenu, setCreateMenu] = useState(false)
   const [draftBody, setDraftBody] = useState('')
   const [draftTags, setDraftTags] = useState('')
+  const [format,setFormat]=useState<'photo'|'slides'>('photo')
+  const [slides,setSlides]=useState(()=>[blankMiniSlide(),blankMiniSlide()])
   const [photo, setPhoto] = useState<File | null>(null)
   const [photoPreview,setPhotoPreview] = useState('')
   const [draftPreview,setDraftPreview] = useState('')
@@ -100,15 +105,14 @@ export function MiniLiveExplore({ enabled = true }: { enabled?: boolean } = {}) 
     return () => URL.revokeObjectURL(url)
   }, [photo])
 
-  useEffect(() => () => { if (draftPreview) URL.revokeObjectURL(draftPreview) }, [draftPreview])
+  useEffect(() => () => { if (draftPreview.startsWith('blob:')) URL.revokeObjectURL(draftPreview) }, [draftPreview])
 
   async function previewDraft() {
-    if (!photo || previewBusy || !composerRef.current?.reportValidity()) return
+    if ((format==='photo'&&!photo) || previewBusy || !composerRef.current?.reportValidity()) return
     setError('');setPreviewBusy(true)
     try {
       parseMiniHashtags(draftTags)
-      const edited = await prepareMiniPhoto(photo,photoRotation,photoZoom)
-      setDraftPreview(URL.createObjectURL(edited))
+      if(format==='slides'){buildMiniDeck(slides);setDraftPreview('slides')}else if(photo){const edited=await prepareMiniPhoto(photo,photoRotation,photoZoom);setDraftPreview(URL.createObjectURL(edited))}
     } catch(e) {setError(e instanceof Error ? e.message : 'Could not preview photo.')}
     finally {setPreviewBusy(false)}
   }
@@ -165,7 +169,7 @@ export function MiniLiveExplore({ enabled = true }: { enabled?: boolean } = {}) 
         if (id) {
           {
             const { data } = await supabase.from('mini_lessons')
-              .select('id,creator_id,creator_label,title,body,subject,tags,quiz_question,quiz_options,quiz_correct,quiz_explanation,cover_path,status,request_id,quality_score,like_count,save_count,learned_count,published_at,created_at')
+              .select('id,creator_id,creator_label,title,body,subject,tags,quiz_question,quiz_options,quiz_correct,quiz_explanation,cover_path,status,request_id,quality_score,like_count,save_count,learned_count,published_at,created_at'+miniSlideColumns())
               .eq('id',id).eq('status','approved').maybeSingle()
             if (data && mounted) {
               const newPost = data as MiniPost
@@ -363,7 +367,7 @@ export function MiniLiveExplore({ enabled = true }: { enabled?: boolean } = {}) 
     setDraftTags(request.tags.map(name=>'#'+name).join(' '))
     setDraftTitle('')
     setDraftBody('')
-    setPhoto(null)
+    setPhoto(null);setFormat('photo');setSlides([blankMiniSlide(),blankMiniSlide()])
     setSection('compose')
   }
 
@@ -371,15 +375,15 @@ export function MiniLiveExplore({ enabled = true }: { enabled?: boolean } = {}) 
     event.preventDefault()
     if (!enabled) return
     if (!ensureSignIn(viewer) || !viewer || busy) return
-    if (!photo) {setError('Add a cover photo to publish a Mini Lesson.');return}
+    if (format==='photo'&&!photo) {setError('Add a cover photo to publish a Mini Lesson.');return}
     setBusy(true);setError('');setNotice('')
     try {
       parseMiniHashtags(draftTags)
-      const editedPhoto = await prepareMiniPhoto(photo,photoRotation,photoZoom)
-      await submitMini({ title:draftTitle,body:draftBody,hashtags:draftTags,photo:editedPhoto,userId:viewer,
+      const editedPhoto = format==='photo'&&photo?await prepareMiniPhoto(photo,photoRotation,photoZoom):undefined
+      await submitMini({ title:draftTitle,body:draftBody,hashtags:draftTags,photo:editedPhoto,slides:format==='slides'?buildMiniDeck(slides):undefined,userId:viewer,
         challenge:quizEnabled ? { question:quizQuestion, options:quizOptions, correct:quizCorrect, explanation:quizExplanation } : null,
         requestId: answerRequest?.id ?? null })
-      setDraftTitle('');setDraftBody('');setDraftTags('');setPhoto(null);setPhotoRotation(0);setPhotoZoom(1);setQuizEnabled(false);setQuizQuestion('');setQuizOptions(['','','']);setQuizCorrect(0);setQuizExplanation('')
+      setDraftPreview('');setDraftTitle('');setDraftBody('');setDraftTags('');setPhoto(null);setFormat('photo');setSlides([blankMiniSlide(),blankMiniSlide()]);setPhotoRotation(0);setPhotoZoom(1);setQuizEnabled(false);setQuizQuestion('');setQuizOptions(['','','']);setQuizCorrect(0);setQuizExplanation('')
       setNotice(answerRequest ? 'Your explanation is published on the request.' : 'Mini Lesson published.')
       back()
       setRefreshKey(key=>key+1)
@@ -387,7 +391,7 @@ export function MiniLiveExplore({ enabled = true }: { enabled?: boolean } = {}) 
       setError(e instanceof Error ? e.message : 'Unable to submit Mini.')
       if(e instanceof MiniSubmissionSavedError){
         setDraftPreview('')
-        setDraftTitle('');setDraftBody('');setDraftTags('');setPhoto(null);setPhotoRotation(0);setPhotoZoom(1);setQuizEnabled(false);setQuizQuestion('');setQuizOptions(['','','']);setQuizCorrect(0);setQuizExplanation('');setAnswerRequest(null)
+        setDraftPreview('');setDraftTitle('');setDraftBody('');setDraftTags('');setPhoto(null);setFormat('photo');setSlides([blankMiniSlide(),blankMiniSlide()]);setPhotoRotation(0);setPhotoZoom(1);setQuizEnabled(false);setQuizQuestion('');setQuizOptions(['','','']);setQuizCorrect(0);setQuizExplanation('');setAnswerRequest(null)
         setSection('mine')
         try{setMine(await fetchOwnMiniStatus(viewer))}catch{setError(old=>old+' Open My Minis to reload the saved submission.')}
       }
@@ -478,7 +482,7 @@ export function MiniLiveExplore({ enabled = true }: { enabled?: boolean } = {}) 
       </button>
     </div>
     <button type="button" className={styles.feedImage} onClick={()=>open(post)} aria-label={'Read '+post.title}>
-      <Cover url={covers[post.id]} subject={post.subject} title={post.title}/>
+      {post.slide_deck!=null?<MiniSlideCover value={post.slide_deck}/>:<Cover url={covers[post.id]} subject={post.subject} title={post.title}/>}
     </button>
     <div className={styles.feedCaption}>
       <button type="button" className={styles.linkButton} onClick={()=>open(post)}><strong>{post.title}</strong></button>
@@ -551,7 +555,7 @@ export function MiniLiveExplore({ enabled = true }: { enabled?: boolean } = {}) 
     {section === 'request' && <MiniLiveRequests enabled={enabled} mode="compose" query={query} onBack={back} onExplain={explainRequest}/>}
     {section === 'read' && current && <article className={styles.reader}>
       <div className={styles.readerHeader}><button className={styles.back} type="button" onClick={back}>← Explore</button></div>
-      <Cover url={covers[current.id]} subject={current.subject} title={current.title}/>
+      {current.slide_deck!=null?<MiniSlideReader key={current.id} value={current.slide_deck}/>:<Cover url={covers[current.id]} subject={current.subject} title={current.title}/>}
       <div className={styles.readerBody}>
         <span className={styles.subject}>MINI LESSON</span>
         <h1 className={styles.readerTitle}>{current.title}</h1>
@@ -626,7 +630,7 @@ export function MiniLiveExplore({ enabled = true }: { enabled?: boolean } = {}) 
         <header className={styles.composerHeader}>
           <button className={styles.back} type="button" disabled={previewBusy||busy} onClick={draftPreview?()=>setDraftPreview(''):back} aria-label={draftPreview?'Edit Mini Lesson':'Back to Explore'}>←</button>
           <h1>{draftPreview?'Preview':answerRequest?'Explain request':'Create Mini Lesson'}</h1>
-          <button type="submit" className={styles.primary} disabled={!enabled || !viewer || busy || previewBusy || !draftTitle.trim() || !draftBody.trim() || !photo}>
+          <button type="submit" className={styles.primary} disabled={!enabled || !viewer || busy || previewBusy || !draftTitle.trim() || !draftBody.trim() || (format==='photo'&&!photo)}>
             {busy?'Checking…':'Publish'}</button>
         </header>
         {!enabled && <p role="status" className={styles.compactNotice}>Publishing is not yet available. Drafts aren't saved.</p>}
@@ -634,6 +638,8 @@ export function MiniLiveExplore({ enabled = true }: { enabled?: boolean } = {}) 
         {enabled && viewer && !draftPreview && <button type="button" className={styles.linkButton+' '+styles.compactNotice} disabled={busy||previewBusy} onClick={()=>void editProfile()}>Creator profile</button>}
         {answerRequest&&<p className={styles.compactNotice}>{answerRequest.question}</p>}
         <fieldset className={styles.composerFields} disabled={previewBusy||busy} hidden={!!draftPreview}>
+          {miniSlidesEnabled()&&<div role="group" aria-label="Mini Lesson format"><button type="button" aria-pressed={format==='photo'} onClick={()=>setFormat('photo')}>Photo</button><button type="button" aria-pressed={format==='slides'} onClick={()=>setFormat('slides')}>Slides</button></div>}
+          {format==='slides'?<MiniSlideEditor slides={slides} onChange={setSlides} disabled={busy||previewBusy}/>:<>
           <label className={styles.photoPicker} htmlFor="mini-photo">
             <span aria-hidden="true" className={styles.photoPlus}>＋</span>
             <strong>{photo?'Change photo':'Add photo'}</strong>
@@ -653,7 +659,7 @@ export function MiniLiveExplore({ enabled = true }: { enabled?: boolean } = {}) 
               onChange={e=>setPhotoZoom(Number(e.target.value))}/>
             <button type="button" className={styles.secondary} onClick={()=>{setPhotoRotation(0);setPhotoZoom(1)}}>Reset</button>
           </div>
-        </div>}
+        </div>}</>}
 
           <label htmlFor="mini-title" className={styles.visuallyHidden}>Title</label>
           <input id="mini-title" required maxLength={100} minLength={5} className={styles.field}
@@ -686,10 +692,10 @@ export function MiniLiveExplore({ enabled = true }: { enabled?: boolean } = {}) 
             <textarea className={styles.field} id="mini-explanation" required minLength={10} maxLength={500}
               value={quizExplanation} onChange={e=>setQuizExplanation(e.target.value)} rows={3}/>
           </div>}
-          <button type="button" className={styles.secondary+' '+styles.previewButton} disabled={previewBusy||!photo||!draftTitle.trim()||!draftBody.trim()||!draftTags.trim()} onClick={()=>void previewDraft()}>{previewBusy?'Preparing…':'Preview'}</button>
+          <button type="button" className={styles.secondary+' '+styles.previewButton} disabled={previewBusy||(format==='photo'&&!photo)||!draftTitle.trim()||!draftBody.trim()||!draftTags.trim()} onClick={()=>void previewDraft()}>{previewBusy?'Preparing…':'Preview'}</button>
         </fieldset>
         {draftPreview && <article className={styles.draftPreview}>
-          <img src={draftPreview} alt="Mini Lesson photo preview"/>
+          {draftPreview==='slides'?<MiniSlideReader value={buildMiniDeck(slides)}/>:<img src={draftPreview} alt="Mini Lesson photo preview"/>}
           <div className={styles.previewBody}><h2>{draftTitle}</h2><p>{draftBody}</p><p className={styles.tagRow}>{draftTags}</p>
             {quizEnabled && <section className={styles.quiz}><h3>{quizQuestion}</h3>{quizOptions.map((option,i)=><p key={i}>{String.fromCharCode(65+i)}. {option}</p>)}</section>}
             <button type="button" className={styles.secondary} onClick={()=>setDraftPreview('')}>Edit</button>

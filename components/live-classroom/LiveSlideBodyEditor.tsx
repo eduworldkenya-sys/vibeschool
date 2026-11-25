@@ -9,7 +9,7 @@ import {MultiDiagramEditor} from './LiveMultiDiagram'
 import {DemoControls} from './LiveAdjustableDiagram'
 import styles from './LiveClassroom.module.css'
 
-type Props={slide:LiveSlide;disabled:boolean;onChange:(body:string)=>void;roomId?:string;roomStatus?:'active'|'paused'|'ended'}
+type Props={slide:LiveSlide;disabled:boolean;allowVisual?:boolean;onChange:(body:string)=>void;roomId?:string;roomStatus?:'active'|'paused'|'ended'}
 function VisualEditor({slide,disabled,onChange}:Props){
  const [undo,setUndo]=useState<string[]>([]),[redo,setRedo]=useState<string[]>([]),[error,setError]=useState('')
  const value=visualSlidePayload(slide.body)??''
@@ -40,7 +40,7 @@ function VisualEditor({slide,disabled,onChange}:Props){
   {error&&<p role="alert">{error}</p>}
  </section>
 }
-export function SlideBodyEditor({slide,disabled,onChange,roomId,roomStatus}:Props){
+export function SlideBodyEditor({slide,disabled,onChange,roomId,roomStatus,allowVisual=true}:Props){
  const [photoOpen,setPhotoOpen]=useState(false)
  const photos=decodePhotoSlide(slide.body)
  const [activityOpen,setActivityOpen]=useState(false)
@@ -63,5 +63,5 @@ export function SlideBodyEditor({slide,disabled,onChange,roomId,roomStatus}:Prop
   const body=visualSlideBody(encodeBoard(doc))
   if(encodeSlide({...slide,body},30,30))onChange(body)
  }
- return <><label>Content<textarea value={slide.body} maxLength={3878} disabled={disabled} onChange={e=>onChange(e.target.value)}/></label><button type="button" disabled={disabled} onClick={convert}>Use visual canvas</button><button type="button" disabled={disabled} onClick={()=>{if(!slide.body.trim()||window.confirm('Replace existing content with a quiz or poll?'))setActivityOpen(true)}}>Add quiz or poll</button>{roomId&&roomStatus==='active'&&<button type="button" disabled={disabled} onClick={()=>{if(!slide.body.trim()||window.confirm('Replace the content with photo objects?'))setPhotoOpen(true)}}>Add photo objects</button>}<label>Adjustable demonstration<select disabled={disabled} value="" onChange={e=>{const kind=e.target.value as DemoKind;if(!kind||!Object.prototype.hasOwnProperty.call(DEMO_RANGES,kind))return;if(slide.body.trim()&&!window.confirm('Replace existing content with the demonstration?'))return;onChange(encodeDemo(defaultDemo(kind)))}}><option value="">Choose demonstration</option>{Object.keys(DEMO_RANGES).map(k=><option key={k} value={k}>{diagramLabel(k as DemoKind)}</option>)}</select></label></>
+ return <><label>Content<textarea value={slide.body} maxLength={3878} disabled={disabled} onChange={e=>onChange(e.target.value)}/></label>{allowVisual&&<button type="button" disabled={disabled} onClick={convert}>Use visual canvas</button>}<button type="button" disabled={disabled} onClick={()=>{if(!slide.body.trim()||window.confirm('Replace existing content with a quiz or poll?'))setActivityOpen(true)}}>Add quiz or poll</button>{roomId&&roomStatus==='active'&&<button type="button" disabled={disabled} onClick={()=>{if(!slide.body.trim()||window.confirm('Replace the content with photo objects?'))setPhotoOpen(true)}}>Add photo objects</button>}<label>Adjustable demonstration<select disabled={disabled} value="" onChange={e=>{const kind=e.target.value as DemoKind;if(!kind||!Object.prototype.hasOwnProperty.call(DEMO_RANGES,kind))return;if(slide.body.trim()&&!window.confirm('Replace existing content with the demonstration?'))return;onChange(encodeDemo(defaultDemo(kind)))}}><option value="">Choose demonstration</option>{Object.keys(DEMO_RANGES).map(k=><option key={k} value={k}>{diagramLabel(k as DemoKind)}</option>)}</select></label></>
 }
