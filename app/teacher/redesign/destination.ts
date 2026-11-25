@@ -23,6 +23,7 @@ export function toolPanel(href:string,label:string):Panel {
  case "/teacher/curriculum":return {kind:"curriculum"};
  case "/teacher/scheme":return {kind:"scheme"};
  case "/teacher/live-studio":return {kind:"studio"};
+ case "/teacher/homework":return {kind:"homework-mark"};
  case "/teacher/attendance":return {kind:"attendance"};
  case "/teacher/assessment/marking":return {kind:"mark"};
  case "/teacher/timetable":return {kind:"timetable"};
