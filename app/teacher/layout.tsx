@@ -205,6 +205,8 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
     </div> : <div className="teacher-boot__skeleton" aria-hidden="true"><div className="teacher-skeleton"/><div className="teacher-skeleton"/><div className="teacher-skeleton"/></div>}
   </div>;
 
+  if (pathname === "/teacher/redesign" || pathname === "/teacher/redesign/") return <>{children}</>;
+
   return (
     <ToastContext.Provider value={{ showToast }}>
       <UserContext.Provider value={{ fullName, initials, school }}>
