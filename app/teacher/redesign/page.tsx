@@ -6,7 +6,7 @@ import {Bell,BookOpen,CheckCircle2,CheckCheck,ChevronRight,ClipboardCheck,Clipbo
 import {teacherTabs,teacherTools,type TeacherTab} from "@/components/teacher/navigation";
 import s from "./redesign.module.css";
 import DesignLab from "./design-lab";
-import {SmartSearch} from "./controls";
+import {SmartSearch,ReorderList} from "./controls";
 import {ActionButton,SearchField,SelectField,TextField,CheckField,StatusPill,StateView,Progress,DataTable} from "./ui";
 import {parseDestination,destinationSearch,openingFor,toolPanel,type Panel,type Destination} from "./destination";
 
@@ -32,6 +32,7 @@ export default function TeacherRedesignPage(){
  const historyDepth=useRef(0);
  const [theme,setTheme]=useState<Theme>("system");
  const [density,setDensity]=useState("compact"),[size,setSize]=useState("default");
+ const [font,setFont]=useState("default"),[motion,setMotion]=useState("system");
  const [mode,setMode]=useState<DemoState>("normal"),[done,setDone]=useState([true,true,true,false,false]);
  const [audience,setAudience]=useState("Grade 4 Kilimanjaro"),[live,setLive]=useState<string|null>(null),[past,setPast]=useState<string[]>([]);
  const [mark,setMark]=useState(5),[attendance,setAttendance]=useState(2);
@@ -55,7 +56,7 @@ export default function TeacherRedesignPage(){
  const navigate=(next:Destination)=>{
   if(routeKey(next)===routeKey(currentRoute.current))return;
   historyDepth.current+=1;
-  window.history.pushState({redesignDepth:historyDepth.current},"",window.location.pathname+destinationSearch(next));
+  window.history.pushState({...window.history.state,redesignDepth:historyDepth.current},"",window.location.pathname+destinationSearch(next));
   applyRoute(next);
  };
  const open=(p:Panel)=>{
@@ -66,13 +67,13 @@ export default function TeacherRedesignPage(){
  const close=()=>{
   if(historyDepth.current>0){window.history.back();return}
   const next:Destination={tab:currentRoute.current.tab,panel:null};
-  window.history.replaceState({redesignDepth:0},"",window.location.pathname+destinationSearch(next));applyRoute(next);
+  window.history.replaceState({...window.history.state,redesignDepth:0},"",window.location.pathname+destinationSearch(next));applyRoute(next);
  };
  const changeTab=(next:TeacherTab)=>{setEdit(false);navigate({tab:next,panel:null})};
  useEffect(()=>{
   const initial=parseDestination(window.location.search);
   historyDepth.current=0;
-  window.history.replaceState({redesignDepth:0},"",window.location.pathname+destinationSearch(initial));applyRoute(initial);
+  window.history.replaceState({...window.history.state,redesignDepth:0},"",window.location.pathname+destinationSearch(initial));applyRoute(initial);
   const pop=(event:PopStateEvent)=>{historyDepth.current=typeof event.state?.redesignDepth==="number"?event.state.redesignDepth:0;applyRoute(parseDestination(window.location.search))};
   window.addEventListener("popstate",pop);return()=>window.removeEventListener("popstate",pop);
  },[]);
@@ -80,11 +81,11 @@ export default function TeacherRedesignPage(){
   const d=dialog.current;
   if(panel&&opening==="sheet"&&d&&!d.open)d.showModal();
   if((!panel||opening!=="sheet")&&d?.open)d.close();
-  if(!panel&&opener.current?.isConnected)opener.current.focus({preventScroll:true});
+  if(!panel){if(opener.current?.isConnected)opener.current.focus({preventScroll:true});else mainRef.current?.focus({preventScroll:true})}
   if(panel&&opening!=="sheet")mainRef.current?.focus({preventScroll:true});
   if(!panel||opening!=="sheet"){const target=positions.current[routeKey({tab,panel})]??0;mainRef.current?.scrollTo({top:target,behavior:"auto"})}
  },[tab,panel,opening]);
- function reset(){setAccent("blue");setToolCategory("all");setToolQuery("");setRecentTools([]);setQuery("");setTheme("system");setDensity("compact");setSize("default");setMode("normal");setPins(initialPins);setDone([true,true,true,false,false]);setMark(5);setAttendance(2);setLive(null);setPast([]);setAudience("Grade 4 Kilimanjaro");setNotes("Identify homophones in short sentences.");setNotesDraft(null);setPendingChecks({});setMessage("Preview reset")}
+ function reset(){setAccent("blue");setToolCategory("all");setToolQuery("");setRecentTools([]);setQuery("");setTheme("system");setDensity("compact");setSize("default");setFont("default");setMotion("system");setMode("normal");setPins(initialPins);setDone([true,true,true,false,false]);setMark(5);setAttendance(2);setLive(null);setPast([]);setAudience("Grade 4 Kilimanjaro");setNotes("Identify homophones in short sentences.");setNotesDraft(null);setPendingChecks({});setMessage("Preview reset")}
  function togglePin(href:string){setPins(old=>old.includes(href)?old.filter(x=>x!==href):old.length<11?[...old,href]:old)}
  const visible=registry.filter(t=>t.label.toLowerCase().includes(query.trim().toLowerCase()));
  const toolSearchItems=teacherTabs.flatMap(tab=>teacherTools[tab.id].filter(t=>registry.some(r=>r.href===t.href)).map(t=>({id:t.href,label:t.label,category:tab.label})));
@@ -97,14 +98,14 @@ export default function TeacherRedesignPage(){
     panel.kind==="studio"?<><p>Prepare your sample lesson before going live.</p>{[4,3,2].map(i=><button key={i} className={s.outline+" "+s.inline} onClick={()=>open({kind:"stage",index:i})}>{stages[i].label} {done[i]?"· Complete":"· Pending"}</button>)}<ActionButton variant="primary" onClick={()=>open({kind:"live"})}>Go Live (demo)</ActionButton></>:
     panel.kind==="past"?<>{past.length?past.map((a,i)=><p key={i}>English · {a} · Ended (sample)</p>):<p className={s.empty}>No ended sample classes</p>}</>:
     panel.kind==="mark"||panel.kind==="attendance"?<><p>{panel.kind==="mark"?mark+" sample submissions to mark":attendance+" sample lessons awaiting attendance"}</p><ActionButton variant="primary" disabled={panel.kind==="mark"?mark===0:attendance===0} onClick={()=>{if(panel.kind==="mark")setMark(n=>Math.max(0,n-1));else setAttendance(n=>Math.max(0,n-1));setMessage("Sample record updated")}}>{panel.kind==="mark"?"Complete sample marking":"Save sample attendance"}</ActionButton></>:
-    panel.kind==="settings"?<div className={s.settings}><SelectField label="Accent" value={accent} onChange={setAccent} options={[{value:"blue",label:"Intelligent Blue"},{value:"indigo",label:"Indigo"},{value:"teal",label:"Teal"},{value:"emerald",label:"Emerald"},{value:"neutral",label:"Neutral"}]}/><label>Theme<select value={theme} onChange={e=>setTheme(e.target.value as Theme)}><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select></label><label>Density<select value={density} onChange={e=>setDensity(e.target.value)}><option value="compact">Compact</option><option value="comfortable">Comfortable</option></select></label><label>Text size<select value={size} onChange={e=>setSize(e.target.value)}><option value="default">Default</option><option value="large">Large</option></select></label><label>Preview lesson state<select value={mode} onChange={e=>setMode(e.target.value as DemoState)}><option value="normal">Normal</option><option value="empty">Empty</option><option value="loading">Loading</option><option value="error">Error</option></select></label><small>Settings apply to this preview session only.</small><ActionButton variant="outline" onClick={()=>open({kind:"lab"})}>Open Design Lab</ActionButton><ActionButton variant="outline" onClick={reset}>Reset preview</ActionButton></div>:
+    panel.kind==="settings"?<div className={s.settings}><SelectField label="Accent" value={accent} onChange={setAccent} options={[{value:"blue",label:"Intelligent Blue"},{value:"indigo",label:"Indigo"},{value:"teal",label:"Teal"},{value:"emerald",label:"Emerald"},{value:"neutral",label:"Neutral"}]}/><label>Theme<select value={theme} onChange={e=>setTheme(e.target.value as Theme)}><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select></label><label>Density<select value={density} onChange={e=>setDensity(e.target.value)}><option value="compact">Compact</option><option value="comfortable">Comfortable</option><option value="detailed">Detailed</option></select></label><label>Text size<select value={size} onChange={e=>setSize(e.target.value)}><option value="default">Default</option><option value="large">Large</option><option value="extra-large">Extra large</option></select></label><SelectField label="Interface font" value={font} onChange={setFont} options={[{value:"default",label:"Default"},{value:"system",label:"System"}]}/><SelectField label="Motion" value={motion} onChange={setMotion} options={[{value:"system",label:"Follow system"},{value:"reduce",label:"Reduce motion"}]}/><label>Preview lesson state<select value={mode} onChange={e=>setMode(e.target.value as DemoState)}><option value="normal">Normal</option><option value="empty">Empty</option><option value="loading">Loading</option><option value="error">Error</option></select></label><small>Settings apply to this preview session only.</small><ActionButton variant="outline" onClick={()=>open({kind:"lab"})}>Open Design Lab</ActionButton><ActionButton variant="outline" onClick={reset}>Reset preview</ActionButton></div>:
     panel.kind==="tools"?<SmartSearch mode="filtered" label="Search all tools" items={toolSearchItems} value={toolQuery} onChange={setToolQuery} categoryValue={toolCategory} onCategoryChange={setToolCategory} recentValue={recentTools} onRecentChange={setRecentTools} renderIcon={item=>{const tool=registry.find(t=>t.href===item.id);return tool?<tool.icon size={18}/>:null}} onSelect={item=>open(toolPanel(item.id,item.label))}/>:
     panel.kind==="timetable"?<><small>Sample day · Grade 4</small>{mode==="empty"?<p>No lessons scheduled</p>:<DataTable caption="Sample timetable" columns={["Time","Subject"]} rows={[["8:00","Mathematics"],["9:00","Science"],["11:00","Social Studies"],["14:00","English"]].map(([time,subject])=>({key:time,cells:[time,subject]}))}/>}</>:
     panel.kind==="teach"?<><strong>English · Homophones</strong><p>Sample teaching context. The full lesson workspace will be built separately.</p><ActionButton variant="outline" onClick={()=>open({kind:"stage",index:1})}>View preparation</ActionButton><ActionButton variant="primary" onClick={()=>open({kind:"studio"})}>Open Live Studio</ActionButton></>:
     panel.kind==="notifications"?<StateView kind="empty" title="No sample notifications"/>:<p>This tool remains in the existing Teacher App. Its redesigned workspace is not built yet.</p>}
     {message&&<p role="status" className={s.status}>{message}</p>}
    </div>;
- return <div className={s.shell} data-theme={theme} data-density={density} data-size={size} data-collapsed={collapsed} data-accent={accent} data-immersive={opening==="immersive"}>
+ return <div className={s.shell} data-theme={theme} data-density={density} data-size={size} data-font={font} data-motion={motion} data-collapsed={collapsed} data-accent={accent} data-immersive={opening==="immersive"}>
   <header className={s.header}>
    <button className={s.railToggle+" "+s.iconButton} aria-label={collapsed?"Expand sidebar":"Collapse sidebar"} aria-expanded={!collapsed} onClick={()=>setCollapsed(v=>!v)}><PanelLeft size={21}/></button>
    <div className={s.brand}><Image className={s.lightLogo} src="/brand/vibeschool-wordmark.svg" alt="VibeSchool" width={620} height={160}/><Image className={s.darkLogo} src="/brand/vibeschool-wordmark-dark.svg" alt="VibeSchool" width={620} height={160}/><small>Teacher workspace</small></div>
@@ -139,7 +140,7 @@ export default function TeacherRedesignPage(){
     </div>
     <div className={s.stack}>
      <section className={s.panel} aria-label="Your workspace"><div className={s.row}><h2>Your workspace</h2><button aria-expanded={edit} className={s.inline} onClick={()=>{setEdit(!edit)}}><SlidersHorizontal size={18}/>{edit?"Done":"Edit"}</button></div>
-      {edit?<><SearchField label="Find tools" placeholder="Find tools" value={query} onChange={setQuery}/><small>{pins.length}/11 shortcuts · preview session</small><div className={s.choices}>{visible.map(t=><label key={t.href}><input type="checkbox" checked={pins.includes(t.href)} disabled={!pins.includes(t.href)&&pins.length>=11} onChange={()=>togglePin(t.href)}/>{t.label}</label>)}</div>{!visible.length&&<p className={s.empty}>No matching tools</p>}<ActionButton variant="outline" onClick={()=>setPins(initialPins)}>Reset shortcuts</ActionButton></>:<div className={s.tools}>{pins.map(href=>{const t=registry.find(x=>x.href===href);return t?<button key={href} onClick={()=>open(toolPanel(href,t.label))}><span className={s.toolIcon}><t.icon size={21}/></span>{short[href]??t.label}</button>:null})}<button onClick={()=>open({kind:"tools"})}><span className={s.toolIcon}><LayoutGrid size={21}/></span>All tools</button></div>}
+      {edit?<><SearchField label="Find tools" placeholder="Find tools" value={query} onChange={setQuery}/><small>{pins.length}/11 shortcuts · preview session</small><div className={s.choices}>{visible.map(t=><label key={t.href}><input type="checkbox" checked={pins.includes(t.href)} disabled={!pins.includes(t.href)&&pins.length>=11} onChange={()=>togglePin(t.href)}/>{t.label}</label>)}</div>{!visible.length&&<p className={s.empty}>No matching tools</p>}<ReorderList items={pins.map(id=>({id,label:registry.find(t=>t.href===id)?.label??id}))} onChange={items=>setPins(items.map(i=>i.id))}/><ActionButton variant="outline" onClick={()=>setPins(initialPins)}>Reset shortcuts</ActionButton></>:<div className={s.tools}>{pins.map(href=>{const t=registry.find(x=>x.href===href);return t?<button key={href} onClick={()=>open(toolPanel(href,t.label))}><span className={s.toolIcon}><t.icon size={21}/></span>{short[href]??t.label}</button>:null})}<button onClick={()=>open({kind:"tools"})}><span className={s.toolIcon}><LayoutGrid size={21}/></span>All tools</button></div>}
      </section>
      <section className={s.panel}><h2>Action centre</h2><div className={s.queue}>{mark>0&&<button onClick={()=>open({kind:"mark"})}><CheckCheck size={20}/><span><strong>Mark {mark} submissions</strong><small>Grade 4 · Mathematics</small></span><ChevronRight size={17}/></button>}{attendance>0&&<button onClick={()=>open({kind:"attendance"})}><ClipboardCheck size={20}/><span><strong>Record attendance</strong><small>Grade 4 · English</small></span><ChevronRight size={17}/></button>}{completed<5&&mode==="normal"&&<button onClick={()=>open({kind:"stage",index:done.indexOf(false)})}><BookOpen size={20}/><span><strong>Continue preparation</strong><small>{stages[done.indexOf(false)].label} · English</small></span><ChevronRight size={17}/></button>}{!mark&&!attendance&&(completed===5||mode!=="normal")&&<p className={s.empty}>No pending actions</p>}</div></section>
     </div>
