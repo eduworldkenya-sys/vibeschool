@@ -248,3 +248,47 @@ Every existing operation must communicate what is happening, whether the intende
 
 ### 24.4 Action feedback verification
 For each applicable action in the inventory, exercise ready, pending, success, actual failure, retry/recovery, slow network, interruption/timeout, rapid double-tap, and reload/reopen paths; add partial completion, offline queue, cancellation and cross-user delivery checks when supported. Verify authoritative data and downstream visibility, not merely the displayed toast. Verify that success indicators never appear on failed operations, errors do not erase legitimate input, and a retry does not duplicate writes or messages. Record evidence and defects using the existing preview inventory and engineering records. These are refinements and tests of existing operations, not a mandate to build new features or add approvals.
+
+## 25. Interaction effects, meaningful rewards and workflow completion
+Extend the universal action feedback standard in section 24 to the complete user experience. Audit and refine existing interactions rather than invent new products, reward systems, approvals or restrictions. Effects must serve an actual user outcome.
+
+### 25.1 Microinteractions and perceived responsiveness
+- Provide immediate, visible pressed/focus feedback on buttons; distinguish active selections, tabs, toggles, drag targets and disabled states. Make clickable elements discoverable without excessive labels.
+- Use consistent, brief and purposeful transitions for menus, dropdowns, sheets, tabs, dialogs, list changes, loading, progress and navigation. Maintain stable layouts and input focus. Do not introduce artificial delays or animations that delay the next action.
+- Use a subtle checkmark or state change for ordinary confirmed success; visibly update actual progress when a step completes. Reserve optional celebratory effects for meaningful accomplishments. Make failure and recovery clear without alarming, repetitive or distracting effects.
+- Existing draggable/interactive teaching objects must follow pointer or touch reliably, with appropriate selection and movement feedback, keyboard alternatives where applicable and consistent response across supported devices.
+- Respect reduced-motion settings, device capability, accessibility, low memory, mobile bandwidth and battery usage. Effects must not obscure content, block controls or replace text/semantic feedback.
+- Audit existing sound, timer alerts, message sounds, correct/incorrect answer feedback, classroom connection alerts, milestone sounds and haptics where supported. Keep them proportionate and respect available sound preferences, silent mode and browser/device capabilities. Do not introduce a new sound/haptic subsystem merely to satisfy the audit.
+
+### 25.2 Meaningful rewards and accomplishment
+Reward users primarily by showing real progress, completed work, useful outcomes and the next meaningful action. Do not invent scores, mastery, certificates, approvals, badges, earnings, bookings or achievements. Do not create points, streaks, leaderboards or a new reward engine under this program. Avoid manipulative engagement patterns and distracting celebrations, particularly for learners.
+Examples to reconcile against existing functionality: a completed lesson preparation shows actual completed steps and readiness; an assessed practice activity shows the actual score, remaining mistakes and available review; a published Mini Lesson shows confirmed publication and its existing view/share action. Marking, attendance, progress and curriculum completion must reflect authoritative records. Completion and readiness are distinct from permission or approval: a preparation progress indicator must not block instant teaching when that is already supported.
+
+### 25.3 Completion and next useful action
+Audit every existing workflow for a useful conclusion rather than a dead end. Preserve user choice; do not force a redirect, extra step or another approval when a direct continuation is intended.
+| Confirmed outcome | Existing next action to verify where applicable |
+| --- | --- |
+| Account created / profile updated | Enter or return to the intended workspace |
+| Lesson prepared | Preview or teach; preserve optional instant teaching |
+| Live preparation finished | Go live using the existing classroom |
+| Live class ended | View available lesson summary or return to teaching |
+| Assessment submitted | View actual submission/results when available |
+| Practice completed | Review mistakes or continue |
+| Topic mastery achieved | Continue learning according to the existing mastery contract |
+| Mini Lesson published | View or share the actual publication |
+| Payment confirmed and entitlement updated | Access the purchased service |
+| Attendance recorded | Continue teaching |
+| Marking completed | View available class performance or return to records |
+Do not implement an absent summary or next action solely because it is listed; reconcile against intended existing functionality first.
+
+### 25.4 Acknowledgements, confirmations and approvals are different
+A success acknowledgement reports a verified outcome and does not require permission. Ordinary authorized saves, submissions, message sends, profile edits, follows and publishing should execute directly with meaningful feedback. Use undo for reversible operations only when actual restoration exists. Retain proportionate existing confirmations for destructive irreversible actions, actual transaction authorization and essential security requirements. Do not add confirmation dialogs to routine actions or require the solo founder to approve work twice.
+Where an existing approval process genuinely applies, show its actual pending/approved/rejected status, reason where appropriate, and available next action. Diagnose redundant approval gates under section 1A, distinguish them from essential authorization and existing independent assurance, and repair the governing source through the existing engineering process. Never invent an approver, approval state, waiting period, HQ dependency or additional publishing restriction. Do not mislabel a successful save as an approval or a pending process as completed.
+
+### 25.5 Context continuity and intelligent convenience
+Verify that existing workflows remember relevant user context: reader position, prepared lesson drafts, next lesson priority, correct role workspace on account switch, relevant search filters, preferences, first-time instructions, and theme. Reconnect supported interrupted operations; reflect successful profile updates and learning progress across relevant screens. Preserve role and account isolation. Avoid repeating onboarding or explanations after they are no longer useful. Do not introduce unrelated personalization or automation features.
+
+### 25.6 Complete interaction inspection and quality dimensions
+For each meaningful existing action inspect discoverability -> understanding -> immediate interaction feedback -> processing -> confirmed completion or failure -> meaningful progress/outcome -> optional next action -> recovery when required. Failure/recovery is an alternative branch, not a required step after success. Record observable behavior and evidence in the action inventory.
+Assess functionality, visual design, design consistency, interaction quality, performance, contextual convenience, user satisfaction/usability, accessibility, reliability and workflow simplicity. Include affordance, discoverability, feedback timing, progress visibility, cognitive load, error prevention, recovery, consistent terminology, perceived speed, trust in displayed results and cross-product continuity. Use actual evidence rather than invented satisfaction or quality scores. Inspect reduced motion, accessibility, representative low-end devices and relevant failure paths in addition to the normal success path.
+These are design and engineering refinement standards for existing functionality. They do not authorize new customer-facing features, a reward or approval engine, or new release restrictions.
