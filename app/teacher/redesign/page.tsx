@@ -34,7 +34,7 @@ export default function TeacherRedesignPage(){
  const dialog=useRef<HTMLDialogElement>(null);
  const opener=useRef<HTMLElement|null>(null);
  const completed=done.filter(Boolean).length;
- const open=(p:Panel)=>{opener.current=document.activeElement instanceof HTMLElement?document.activeElement:null;setMessage("");setChecked(p.kind==="stage"?done[p.index]:false);setDraft(p.kind==="stage"&&p.index===2?notes:"");setQuery("");setPanel(p)};
+ const open=(p:Panel)=>{if(!dialog.current?.open)opener.current=document.activeElement instanceof HTMLElement?document.activeElement:null;setMessage("");setChecked(p.kind==="stage"?done[p.index]:false);setDraft(p.kind==="stage"&&p.index===2?notes:"");setQuery("");setPanel(p)};
  const close=()=>{setPanel(null);setMessage("")};
  useEffect(()=>{const d=dialog.current;if(panel&&d&&!d.open)d.showModal();if(!panel&&d?.open){d.close();opener.current?.focus()}},[panel]);
  function reset(){setTheme("system");setDensity("compact");setSize("default");setMode("normal");setPins(initialPins);setDone([true,true,true,false,false]);setMark(5);setAttendance(2);setLive(null);setPast([]);setAudience("Grade 4 Kilimanjaro");setNotes("Identify homophones in short sentences.");setMessage("Preview reset")}
