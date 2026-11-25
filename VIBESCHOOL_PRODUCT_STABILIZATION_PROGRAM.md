@@ -666,3 +666,18 @@ Design for control, accomplishment, confidence, familiarity, discoverability, mo
 
 ### 37.7 Verification and execution
 Include representative status transitions, offline/reconnect and conflict scenarios, timer accuracy, session interruption, updates, permissions, density and real mobile ergonomics in existing Master Preview and journey tests. Verify state against actual authoritative data, and distinguish simulated examples, emulated-device evidence and physical-device production results. Apply these refinements through shared components and existing architecture; no additional HQ dependencies, invented approval gates or unrelated feature expansion. Prioritize evidence-led implementation and remediation rather than further speculative planning.
+
+## 38. Owner-approved implementation priority
+The owner approved the following implementation order. Use it to sequence the existing stabilization program, not to block urgent cross-product defects or create new release approvals.
+1. Master Preview and shared design system.
+2. Teacher OS.
+3. Live Classroom and Live Studio.
+4. Student OS.
+5. Learn, Practice, Exams and Revision.
+6. Content Studio.
+7. VibeTutor.
+8. Minis.
+9. VibeChat.
+10. Remaining products in the verified inventory.
+
+Prioritize shared root causes and dependencies where doing so improves multiple products. Address critical security, data integrity, service reliability and active-user blockers promptly irrespective of the sequence. Each product should progress through actual audit, implementation, testing, integration, deployment and production verification using the existing engineering workflow. Routine technical and design decisions are delegated within the agreed standards; do not request repeated approval for component-level work. Escalate genuine business-policy or major product-direction changes where needed. Brand identity remains a separate founder choice; retain existing brand until an explicit selection is made and reconcile any chosen direction against actual tokens and accessibility. This approval concerns priority, not evidence that implementation or deployment has occurred.
