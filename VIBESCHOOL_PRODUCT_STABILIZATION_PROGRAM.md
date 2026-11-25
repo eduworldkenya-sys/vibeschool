@@ -152,3 +152,58 @@ These are engineering acceptance criteria, not additional customer restrictions 
 
 ## 15. First implementation assignment
 Inspect repository truth and existing reusable architecture; map routes, products, shared components and tests; discover preview candidates and current deployment domain; produce a real route/feature inventory with honest UNTESTED defaults; identify the highest-impact reproducible defects; propose a minimal implementation using existing components. Then repair and refine iteratively. Do not claim the preview is live until deployment is verified.
+
+## 16. Detailed interaction and visual refinement
+Audit existing modals, bottom sheets, tooltips, context menus, active/selected/pressed/focus states, status indicators, sticky headers, floating controls, keyboard insets, portrait and landscape layouts, fullscreen entry/exit, gestures (tap, swipe, drag, zoom, long press where supported), scroll restoration, visual density, logo, favicon and installed app icon. Keep important actions visible without obscuring content; use consistent dismissal and back behavior. Check touch targets and accessible keyboard alternatives to gestures. Keep explanations contextual and concise. Use shared components and tokens rather than per-screen exceptions. Do not add an interaction solely because it appears in this audit list.
+
+## 17. Application continuity and device behavior
+- Verify refresh, navigation history, browser back/forward, scroll position, autosave, draft recovery, resume, preferences and appropriate state persistence across sessions and devices.
+- Verify synchronization across screens and roles, real-time event delivery, reconnect and recovery from interruption; prevent unintended duplicate actions and conflicting writes.
+- Verify date/time formatting and timezone handling (including Africa/Nairobi for Kenyan use cases), device orientation, virtual keyboard, and existing camera/microphone/file permissions and denial/recovery paths.
+- Test existing file upload, preview, replace, delete, file size/type handling, sharing, link destinations and link previews. Preserve legitimate drafts when errors occur.
+- Inspect existing PWA installation, service worker, cache invalidation, application updates, offline behavior and subscription-aware access. Do not require users to clear caches to recover from an ordinary release. Respect existing intended offline and access policies.
+
+## 18. Product-specific functional audit extensions
+Reconcile these candidate capabilities against the existing application; a listed item is not proof of implementation and does not authorize a new feature.
+| Product | Additional verification |
+| --- | --- |
+| Teacher OS | Prepared and archived lessons, dated timetable-to-scheme-to-outcome linking, resources, notes, marking, attendance, record persistence |
+| Student OS | Reader position and resume, practice feedback, mastery, mistakes/retry, revision, offline learning, progress persistence |
+| Live Classroom / VibeMesh | Real audio between participants, mic and speaking controls, joining via existing links, participant state, slides/whiteboard synchronization, reconnect, session end, existing fallback behavior |
+| Live Studio | Optional preparation, resource linking, rehearsal, preview, instant live and transition to the same classroom |
+| Interactive tools | Individual tool correctness, meaningful interactivity, touch/mouse/keyboard behavior, responsive layout, teaching and learner views where applicable |
+| Mini Lessons | Images, slides, audio record/import, drafts, edit, preview, publish, discovery, visibility, sharing and deletion |
+| VibeTutor | Teacher discovery, profiles, existing bookings, tutoring workflows and linked classroom tools |
+| VibeChat | User search, sending/receiving, delivery state, unread counts, conversation search and synchronization |
+| Accounts | One email with separate authorized identities, role switching, onboarding, profile, school and parent/learner linking without identity leakage |
+| Payments | M-PESA sandbox or authorized test flows, reconciliation, duplicate protection, subscription expiry, restoration and intended access |
+| Curriculum | Existing published content completeness, curriculum/scheme links, resource references, correct level, answer/feedback integrity and learner visibility |
+| PWA | Installation, version updates, cache coherence, offline reading and supported tools, recovery on reconnect |
+Do not add HQ or internal worker-management dependencies. Use the source-defined intended behavior and existing product decisions; investigate contradictions before changing behavior.
+
+## 19. Individual action inventory and test contract
+Catalogue each existing meaningful interactive action, not merely each page: buttons, icon actions, links, menus, filters, inputs, toggles, gestures and relevant keyboard shortcuts. Use stable action IDs tied to parent screen, role and state; reusable components may share tests but each material usage/context must be accounted for. Discover from source and rendered interfaces, including conditional, responsive and role-specific actions.
+Each action record includes visible label/accessibility name, route and component, trigger, intended behavior/source, applicable preconditions, handler and destination or API/RPC, expected state transitions, data side effects, success/error/retry behavior, observed result, evidence link, exact revision/environment, status, last-tested date, defect/PR reference and next repair action. If an action is legitimately unavailable in a given state, record why rather than assume it is broken. Test actual user interaction and observable outcome, including persistence when relevant; visual appearance alone is insufficient.
+In the preview, a screen inspection shows its individual actions and their statuses, with drill-down to evidence and repair references. Example Mini Lesson actions to reconcile: Add image, Add slides, Record audio, Import audio, Save draft, Preview, Publish, Edit, Delete and Share. Do not create missing actions solely to satisfy the example.
+
+## 20. Master Preview usability and measurable coverage
+Make the preview usable by the solo founder without reading source code or operating several dashboards. Provide direct links to verified existing production routes and code-backed redesigned screens; compare matching role/device/theme/state. Where available, retain sanitized before/after screenshots, test recordings, failure traces and regression history linked to the relevant revision. Keep artifacts in existing suitable storage; redact private data and secrets. Expose last-tested dates, actionable defect summaries, next repair actions and links to the existing GitHub issue/PR and deployment evidence. No new approval engine, manual sign-off workflow or HQ dependency.
+Track distinct inventory totals for products, screens/routes, features, individual actions, shared components, user journeys and applicable test scenarios. For each entity type show discovered, applicable, not applicable (reason), untested, tested, passed/working, failed/broken, partial where meaningful, stale, needs redesign and production verified. Keep independent status dimensions separate so overlapping design and functional counts are not summed as if mutually exclusive.
+Coverage formula: current tested applicable entities / discovered applicable entities, with numerator, denominator and environment displayed. A tested entity has current applicable evidence, whether passing or failing; report pass and production-verification coverage separately. Exclude justified not-applicable entities from the denominator and show exclusions; do not silently exclude unknown, failed or stale items. Label an incomplete inventory as provisional, never claim full-product coverage based on discovered items alone. Show missing inventory areas, last discovery run, evidence freshness and change since previous comparable baseline; do not fabricate counts or percentages. Invalidate only evidence affected by code, configuration, schema or deployment changes. Avoid introducing a parallel certification ledger.
+Prioritize a compact searchable dashboard with drill-down filters for broken, partial, untested, stale and redesign-needed items. Show useful counts and clear next actions, not decorative charts or lengthy explanations. Preserve user navigation and ordinary application performance; the preview is an internal evidence workspace, not another customer product.
+
+## 21. Expanded test matrix and regression evidence
+Reuse available test infrastructure. Cover representative supported browsers (Chrome, Safari, Firefox, Edge), Android/iOS physical devices where available, desktop/tablet/mobile viewports, light/dark/system themes and relevant authenticated roles. Distinguish emulated from physical devices and record unavailable environments honestly. Test:
+- Individual action and link destinations, accessibility names, focus, keyboard and touch.
+- Visual regression and responsive layout, including overlays, overflow, keyboard, rotation and fullscreen.
+- Unit/integration and end-to-end tests against actual intended contracts, including persistence after reload and reauthentication.
+- Multi-user and concurrent scenarios (teacher/learner, messaging, shared records, permissions), real-time events, retry, interrupted networks and safe duplicate protection.
+- Regressions for reproduced defects and positive/negative paths, deployment smoke tests and production verification using authorized non-destructive operations.
+- Practical usability tasks with representative users or a clearly labeled test evaluator; do not substitute synthetic evidence for physical-user evidence.
+Record failures, missing environments and test scope without inventing a new release gate or requiring the solo founder to arrange extra organizational approvals. Existing mandatory governance remains applicable.
+
+## 22. Kenya-first usability and performance
+Test the existing application on representative affordable Android phones, small screens, constrained memory and slow/intermittent mobile data; include connection loss and recovery. Measure bandwidth, loading responsiveness, unnecessary requests, media size, and live-class data/battery impact where practicable. Use real or clearly labeled simulated network/device conditions and compare against baseline, not arbitrary thresholds. Verify Kenyan terminology, date/time and KSh display and existing M-PESA journeys. Make labels understandable to teachers, learners and parents with limited technical experience. Preserve accessibility and intended user freedom. Do not add new account, publishing, or access restrictions in the name of localization or optimization.
+
+## 23. Additional acceptance evidence
+A stabilization record is actionable when it identifies the existing screen/action, intended outcome, current observed behavior, reproducible evidence, design inconsistency if any, root cause or investigation needed, and next repair. A repaired record links regression proof and exact release evidence. Inventory coverage and the preview's before/after comparison must be maintained as work proceeds, not filled in retrospectively with assumptions. These sections extend the audit checklist only; they do not impose new customer-facing features, approval stages, restrictions or HQ involvement.
