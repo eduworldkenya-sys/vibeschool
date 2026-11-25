@@ -1,0 +1,8 @@
+.page{max-width:52rem;margin:auto;padding:clamp(16px,4vw,36px) clamp(12px,4vw,28px) 32px;color:var(--teacher-ink,#172c3e)}
+.header{display:grid;gap:8px;margin-bottom:20px}
+.header h1{margin:0;font-size:clamp(1.65rem,5vw,2.5rem);line-height:1.15}
+.header p{margin:0;line-height:1.5}
+.header a{justify-self:start;color:inherit;text-underline-offset:.2em}
+.page section{min-width:0}
+.page :is(button,input,select,a):focus-visible{outline:3px solid #2479ce;outline-offset:3px}
+.page button{min-height:44px}
