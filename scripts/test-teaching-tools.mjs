@@ -175,3 +175,20 @@ test('Stage 4 families are registered but cannot be offered as tools before cert
   for (const id of planned) assert.ok(doc.includes('`'+id+'`'),id+' missing from rollout documentation')
   assert.equal(SPECIALIST_TOOL_ROADMAP.filter(x=>x.status==='planned').length,14)
 })
+
+
+test('standalone interactive tools belong to teacher resources, not Learn navigation',()=>{
+  const destination='/teacher/resources/interactive-tools'
+  const navigation=read('../components/learn/LearnNavigation.tsx')
+  const learnerLinks=read('../components/student/StudentLearningFeatureLinks.tsx')
+  const legacy=read('../app/learn/tools/page.tsx')
+  const teacherPage=read('../app/teacher/resources/interactive-tools/page.tsx')
+  assert.ok(!navigation.includes('/learn/tools'))
+  assert.ok(!learnerLinks.includes('/learn/tools'))
+  assert.ok(legacy.includes("redirect('"+destination+"')"))
+  assert.ok(!legacy.includes('TeachingToolsLibrary'))
+  assert.match(teacherPage,/<TeachingToolsLibrary\/>/)
+  assert.ok(read('../app/teacher/tutoring/page.tsx').includes(destination))
+  assert.ok(read('../app/teacher/resources/page.tsx').includes(destination))
+  assert.match(read('../components/live-classroom/LiveClassroom.tsx'),/TeachingModelPicker/)
+})
