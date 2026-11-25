@@ -12,6 +12,7 @@ on:
       - 'supabase/functions/generate-canonical-lesson-plan/**'
       - 'supabase/migrations/**lesson_package_cache.sql'
       - 'supabase/migrations/**lesson_plan*.sql'
+      - 'supabase/migrations/**scheme_outcome_reconciliation*.sql'
       - 'supabase/migrations/**lesson_homework_occurrence*.sql'
       - 'scripts/test-lesson-system-release-contract.py'
       - 'scripts/test-lesson-plan-spine-security-contract.py'
@@ -19,6 +20,7 @@ on:
       - 'scripts/test-lesson-timing-contract.cjs'
       - 'scripts/test-lesson-source-version-pins.mjs'
       - 'scripts/test-lesson-question-pairs.mjs'
+      - 'scripts/test-scheme-reconciliation-compatibility.mjs'
       - 'scripts/test-lesson-plan-prepared-mobile-contract.py'
       - '.github/workflows/lesson-system-release-gate.yml'
   push:
@@ -33,6 +35,7 @@ on:
       - 'supabase/functions/generate-canonical-lesson-plan/**'
       - 'supabase/migrations/**lesson_package_cache.sql'
       - 'supabase/migrations/**lesson_plan*.sql'
+      - 'supabase/migrations/**scheme_outcome_reconciliation*.sql'
       - 'supabase/migrations/**lesson_homework_occurrence*.sql'
       - 'scripts/test-lesson-system-release-contract.py'
       - 'scripts/test-lesson-plan-spine-security-contract.py'
@@ -40,6 +43,7 @@ on:
       - 'scripts/test-lesson-timing-contract.cjs'
       - 'scripts/test-lesson-source-version-pins.mjs'
       - 'scripts/test-lesson-question-pairs.mjs'
+      - 'scripts/test-scheme-reconciliation-compatibility.mjs'
       - '.github/workflows/lesson-system-release-gate.yml'
 
 permissions:
@@ -70,6 +74,7 @@ jobs:
             node scripts/test-lesson-source-version-pins.mjs /tmp/vibeschool-lesson-pins/lessonSourceVersionPins.js
             npx tsc lib/teaching/lessonQuestionPairs.ts --target ES2020 --module commonjs --outDir /tmp/vibeschool-lesson-questions --skipLibCheck
             node scripts/test-lesson-question-pairs.mjs /tmp/vibeschool-lesson-questions/lessonQuestionPairs.js
+            node scripts/test-scheme-reconciliation-compatibility.mjs
             npm run lint
           supabase_url: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           supabase_anon_key: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
