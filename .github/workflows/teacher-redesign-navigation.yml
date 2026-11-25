@@ -25,7 +25,7 @@ jobs:
       - run: npm ci
       - run: node --import ./scripts/register-typescript.mjs --test scripts/test-teacher-redesign-navigation.mjs
   browser-contract:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
