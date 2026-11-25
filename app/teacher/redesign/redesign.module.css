@@ -272,3 +272,15 @@
 .shell .recordAction .actionButton:hover{background:var(--base)}
 @media(min-width:760px){.fullWorkspace[data-opening=workspace]{padding:20px 24px}.recordLine{min-height:58px}.collectionToolbar>.searchField{flex-basis:300px}}
 @media(max-width:359px){.collectionToolbar>.searchField{flex-basis:100%;min-width:0}.recordLine{gap:var(--gap-xs)}}
+
+/* Contextual workspace tabs: no pills, no redundant page navigation. */
+.fullWorkspace[data-opening=workspace] .contextTabs{gap:var(--gap-lg);padding:0;align-items:end}
+.fullWorkspace[data-opening=workspace] .contextTabs button{padding:8px 0;border-radius:0;background:transparent}
+.fullWorkspace[data-opening=workspace] .contextTabs button[aria-selected=true]{color:var(--ink);border-bottom-color:var(--selected)}
+.workspaceTabContent{display:grid;gap:var(--gap-md);padding-top:var(--gap-md);min-width:0}
+.compactToolbar{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--gap-sm);align-items:end}
+.compactToolbar>.searchField{grid-column:1/-1}
+.compactToolbar .field{font-size:.92em;gap:2px}
+.compactToolbar select{text-overflow:ellipsis}
+@media(min-width:760px){.compactToolbar{grid-template-columns:minmax(140px,220px) minmax(120px,190px) minmax(180px,300px)}.compactToolbar>.searchField{grid-column:auto}}
+@media(max-width:359px){.fullWorkspace[data-opening=workspace] .contextTabs{gap:var(--gap-md)}}
