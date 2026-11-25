@@ -176,3 +176,34 @@
 @media(prefers-reduced-motion:reduce){.shell .spinner,.shell .skeleton span{animation:none}.shell .switchTrack>span{transition:none}}
 
 .searchWithClear{display:flex;align-items:center;gap:4px;min-width:0}.searchWithClear>.searchField{flex:1;min-width:0}.directory .actionButton>span{flex:1;min-width:0;overflow-wrap:anywhere}
+
+/* Professional workspace controls: same geometry and semantic tokens as the shell. */
+.contextToolbar{display:flex;align-items:center;gap:var(--gap-xs);flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:var(--gap-sm)}
+.splitWorkspace{display:grid;align-items:start;min-width:0}
+.splitPrimary,.splitSecondary{min-width:0;display:grid;gap:var(--gap-sm);padding:var(--gap-md);border:1px solid var(--line);border-radius:var(--radius-md);background:var(--surface)}
+.splitMobile{display:flex;gap:var(--gap-sm);flex-wrap:wrap}
+.splitDesktopControls,.resizeHandle{display:none}
+.splitWorkspace{grid-template-columns:minmax(0,1fr)!important}
+.splitWorkspace[data-mobile-panel=primary] .splitSecondary,.splitWorkspace[data-mobile-panel=secondary] .splitPrimary{display:none}
+.resizeHandle{align-self:stretch;min-height:44px;cursor:col-resize;touch-action:none;border-radius:var(--radius-sm);position:relative}
+.resizeHandle:before{content:"";position:absolute;left:calc(50% - 1px);top:4px;bottom:4px;width:2px;background:var(--control);border-radius:2px}
+.resizeHandle:focus-visible{outline:3px solid var(--selected);outline-offset:1px}
+.resizeHandle:active:before{background:var(--selected)}
+@media(min-width:1024px){
+ .splitWorkspace{grid-template-columns:var(--split-columns, minmax(0,1fr))!important}
+ .splitMobile{display:none}
+ .splitDesktopControls{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+ .splitWorkspace[data-mobile-panel] .splitPrimary,.splitWorkspace[data-mobile-panel] .splitSecondary{display:grid}
+ .splitWorkspace[data-collapsed=true] .splitSecondary{display:none}
+ .resizeHandle{display:block}
+ .labGrid>section:has(.splitWorkspace){grid-column:1/-1}
+}
+.shell .fullscreenDialog{inset:0;margin:0;width:100%;height:100dvh;max-width:none;max-height:none;border:0;border-radius:0;padding:var(--space);background:var(--surface);animation:none}
+.shell input[type=file]{max-width:100%;color:var(--ink);font:inherit}
+.shell input[type=file]::file-selector-button{border:1px solid var(--control);border-radius:var(--radius-md);min-height:44px;margin-right:8px;padding:6px 10px;color:var(--ink);background:var(--surface);font:inherit;cursor:pointer}
+.shell[data-font=system]{font-family:system-ui,sans-serif}
+.shell[data-size=extra-large]{--font:18px}
+.shell[data-density=detailed]{--space:20px}
+.shell[data-motion=reduce] *{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+@media(hover:none){.shell .actionButton:not(:disabled):hover{filter:none}}
+@media(forced-colors:active){.shell button[aria-pressed=true],.shell button[aria-current=page],.shell button[aria-selected=true]{outline:2px solid Highlight;outline-offset:-2px}.switchTrack{border:1px solid ButtonText}.switchField[aria-checked=true] .switchTrack{background:Highlight}.switchTrack>span{background:ButtonText}}
