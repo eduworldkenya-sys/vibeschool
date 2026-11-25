@@ -118,7 +118,7 @@ test("exact lesson identity round trips, and unknown IDs cannot select a foreign
   const panel={kind,occurrenceId:"english-tomorrow",...(kind==="stage"?{index:2}:{})};
   const d={tab:"today",panel};assert.deepEqual(parseDestination(destinationSearch(d)),d);
  }
- assert.deepEqual(parseDestination("?panel=stage:2&occurrence=other-school"),{tab:"today",panel:{kind:"stage",index:2}});
+ assert.deepEqual(parseDestination("?panel=stage:2&occurrence=other-school"),{tab:"today",panel:null});
  assert.equal(openingFor({kind:"homework-mark"}),"workspace");
  assert.deepEqual(parseDestination("?panel=homework-mark"),{tab:"today",panel:{kind:"homework-mark"}});
  assert.equal(toolPanel("/teacher/assessment/marking","Mark submissions").kind,"mark");
