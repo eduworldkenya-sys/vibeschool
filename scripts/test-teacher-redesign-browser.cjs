@@ -40,6 +40,13 @@ async function todayChecks(browser,dir,errors){
     assert.equal(style.background,"rgba(0, 0, 0, 0)","Active navigation must remain flat");
     assert.equal(style.left,"0px");assert.equal(style.top,"0px");assert.ok(style.weight>=650);
     if(width>=600)assert.equal(style.radius,"0px","Sidebar must not use selected pills");
+    for(const [name,heading] of [["Subjects","Subject Hub"],["Curriculum map","Curriculum Map"],["Scheme of work","Scheme of Work"]]){
+     await p.getByRole("main").getByRole("button",{name,exact:true}).click();
+     await p.getByRole("heading",{name:heading,exact:true}).waitFor();
+     assert(await p.locator("main").evaluate(el=>el.scrollWidth<=el.clientWidth+1),heading+" overflow "+width+" "+colorScheme);
+     await p.getByRole("button",{name:"Back",exact:true}).click();
+     await p.getByRole("heading",{name:"Teach",exact:true}).waitFor();
+    }
     await p.close();
    }
   }
@@ -79,7 +86,24 @@ async function todayChecks(browser,dir,errors){
   await p.goto(origin+"?panel=stage%3A2&occurrence=english-tomorrow");
   await p.getByRole("heading",{name:"Notes",exact:true}).waitFor();await p.getByText("Writing sentences",{exact:true}).waitFor();
   await p.goto(origin+"?panel=stage%3A2&occurrence=bad");await home();
-  await p.close();console.log("Today: six widths and two themes; scoped preparation, queues, live, recovery, reset and deep links.");
+  await p.goto(origin+"?tab=teach&panel=curriculum&classId=class-4&subjectId=english&unitId=unit-reading");
+  await p.getByRole("heading",{name:"Curriculum Map",exact:true}).waitFor();
+  await p.getByText("Reading comprehension",{exact:true}).waitFor();
+  await p.getByRole("checkbox",{name:"Answer questions using evidence from the passage."}).uncheck();
+  await button("Add to Term 3, Week 11").click();
+  await button("Open linked scheme").click();
+  await p.getByRole("heading",{name:"Scheme of Work",exact:true}).waitFor();
+  await p.getByText("Reading comprehension",{exact:true}).waitFor();
+  await p.locator("summary").filter({hasText:"Lesson details"}).click();
+  await p.getByRole("textbox",{name:"Unscheduled lesson draft"}).fill("Sample introduction");
+  await button("Save draft").click();
+  await p.getByText("Sample draft saved; no lesson scheduled.",{exact:true}).waitFor();
+  await p.goto(origin+"?tab=teach&panel=scheme&classId=class-4&subjectId=english&unitId=unit-homophones");
+  await p.getByRole("heading",{name:"Scheme of Work",exact:true}).waitFor();
+  await button("Prepare lesson").click();
+  assert.match(p.url(),/occurrence=english-today/);
+  await p.getByRole("heading",{name:"Plan",exact:true}).waitFor();
+  await p.close();console.log("Today and Teach: six widths and two themes; scoped preparation, queues, live, recovery, reset, curriculum saves and dated handoff.");
  }finally{await new Promise(resolve=>server.close(resolve))}
 }
 

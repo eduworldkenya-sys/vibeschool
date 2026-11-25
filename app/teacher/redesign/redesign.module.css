@@ -216,3 +216,24 @@
 .header .iconButton{position:relative}
 .header .iconButton>.unreadCount{position:absolute;right:0;top:0;min-width:16px;line-height:16px;padding:0 3px;border-radius:var(--radius-lg);background:var(--blue);color:var(--onblue);font-size:10px;font-weight:650}
 @media(min-width:480px){.contextRow>.field:first-child{flex-basis:120px}}
+
+/* Teach workspace: document-like flat sections, not a second card dashboard. */
+.teachSurface{display:grid;gap:var(--gap-md);background:var(--surface);min-width:0;padding:var(--space);overflow-wrap:anywhere}
+.teachGroup{display:grid;gap:var(--gap-xs);border-top:1px solid var(--line);padding-top:var(--gap-md)}
+.teachGroup h3{font-size:1.05em;font-weight:650}
+.teachRecord{display:grid;gap:var(--gap-sm);padding:var(--gap-sm) 0;border-bottom:1px solid var(--line)}
+.teachRecord:last-child{border-bottom:0}
+.teachLinks{display:flex;align-items:center;flex-wrap:wrap;gap:var(--gap-xs)}
+.teachLinks .actionButton{justify-content:flex-start;padding-inline:var(--gap-sm)}
+.teachFilters{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--gap-sm)}
+.teachFilters select{text-overflow:ellipsis}
+.teachSummary{display:flex;flex-wrap:wrap;gap:var(--gap-lg);border-block:1px solid var(--line);padding-block:var(--gap-sm);font-size:.95em}
+.teachSummary strong{font-variant-numeric:tabular-nums;font-size:1.25em;margin-right:4px}
+.teachOutcomes{margin:0;padding-inline-start:1.25em;display:grid;gap:var(--gap-xs)}
+.teachDirectory{display:grid;gap:0}
+.shell .teachDirectory button{display:flex;align-items:center;gap:var(--gap-md);text-align:left;border:0;border-radius:0;border-bottom:1px solid var(--line);padding:var(--gap-sm) 0;min-height:44px}
+.teachDirectory button span{flex:1}
+.teachDirectory button:hover{background:var(--base)}
+.teachSurface .accordion{border:0;border-radius:0;border-bottom:1px solid var(--line);padding:0}
+@media(min-width:760px){.teachFilters{grid-template-columns:repeat(4,minmax(0,1fr))}.teachSurface{padding:var(--gap-lg)}}
+@media print{.shell:has(.teachSurface){height:auto;overflow:visible;color:#111;background:#fff}.shell:has(.teachSurface) .header,.shell:has(.teachSurface) .nav,.teachSurface button,.teachSurface select,.teachSurface input,.teachSurface textarea,.teachSurface .teachLinks{display:none!important}.shell:has(.teachSurface) .workspace,.shell:has(.teachSurface) .main{display:block;height:auto;overflow:visible;padding:0}.teachSurface{color:#111;background:#fff}.teachSurface small{color:#444}.teachSurface details{display:block}.teachSurface details>div{display:block!important}.teachRecord{break-inside:avoid}}

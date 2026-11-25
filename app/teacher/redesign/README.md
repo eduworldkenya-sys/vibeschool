@@ -64,3 +64,19 @@ The shared browser gate now mounts Today in addition to the Design Lab. The loca
 ### Navigation visual rule — owner feedback, 25 November 2026
 
 Avoid the generic selected navigation treatment shown in the owner's screenshot: rounded pale-blue fill, thick colored side stripe, and small colored label. Use flat rows, aligned conventional icons, normal readable labels and stronger typography for the current destination; reserve the selected accent for its icon. No persistent selected pill or stripe on desktop or mobile. Hover may use a restrained neutral surface. Preserve accessible current-page semantics, keyboard focus, 44px minimum touch targets and collapsed navigation. This rule applies to the shared redesign navigation; other navigation and component styles require their own appropriate treatment, not automatic removal of all semantic colors.
+
+## Stage 2.2 — Teach batch 1: Subjects, Curriculum and Scheme
+
+The three original routes remain unchanged. The preview now routes registered Subjects, Curriculum map and Scheme of work destinations to dedicated shared workspaces rather than placeholder panels. The source audit identified `app/teacher/subjecthub/page.tsx`, shared `app/teacher/scheme/AuthoritySchemePage.jsx` (used by both routes), the canonical scheme commit/generate routes and the existing dated occurrence contract.
+
+| Existing capability | Synthetic implementation | Remaining scope |
+| --- | --- | --- |
+| Subject/class selection, subject addition | Searchable grouped assignments, add/remove synthetic pairs with duplicate and dependent-record protection | Actual subject discovery, custom subject creation, independent teacher setup, class onboarding, teammates and subject growth details |
+| Curriculum selection | Class/subject-scoped illustrative strands, sub-strands, selected outcomes, term/week handoff and linked scheme | Full official curriculum catalogue, grade-specific reference readers, actual eligible outcome/source records, resources and authoritative allocations |
+| Scheme authority and planning | Saved versus suggested records, term/week and query filters, expandable weeks, selected outcome commit, custom lessons, reflection, confirmed unscheduled status, browser print | Actual generation/commit services, specialized grade workflows, authoritative calendar, weekly allocations, and print/export parity |
+| Lesson preparation | Existing dated occurrence link opens exact current plan preview; unscheduled draft saves text on the scheme item only | Full lesson editor and unscheduled-to-dated attachment in subsequent phases |
+| Teaching state | Shared reducer updates dated scheme status from occurrence start/end; a scheme-readiness checkbox cannot unlink actual sample records | Real delivery, persistence and authorization verified only during backend phase |
+
+The illustrative term/week and outcomes do not represent official KICD source data. New saved scheme items never fabricate a dated timetable occurrence. Subject assignment removal is deliberately non-destructive in the preview. The flat document layout uses existing tokens, buttons, search, fields, overlays and accordion. Explicit selected class/subject/unit links are validated; term/week and query choices are session-local. Saved draft/reflection data survive navigation in memory; unsaved field edits may not. Existing feature-specific components and backend adapters remain unchanged. No production service calls or migrations.
+
+Unit and real Chromium preview tests are added for route round-trip, subject isolation, outcome selection, duplicate protection, unscheduled draft and linked dated plan. Exact-head CI, print/accessibility evidence, signed-in preview deployment, and Cyborg completion evidence remain outstanding; this increment is not full Stage 2.2 completion.
