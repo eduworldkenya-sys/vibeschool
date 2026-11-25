@@ -206,3 +206,17 @@ test('Live Studio can prepare interactive models without starting a live lesson'
  assert.match(library,/actionLabel="Add to lesson"/)
  assert.match(picker,/actionLabel='Present to class'/)
 })
+
+
+test('teacher catalogue uses a responsive three-column visual picker with every result reachable',()=>{
+ const picker=read('../components/live-classroom/TeachingModelPicker.tsx')
+ const css=read('../components/live-classroom/TeachingModelPicker.module.css')
+ const library=read('../components/learn/tools/TeachingToolsLibrary.tsx')
+ assert.match(library,/layout="grid"/)
+ assert.match(picker,/const PAGE_SIZE=6/)
+ assert.match(picker,/results\.slice\(currentPage\*PAGE_SIZE,\(currentPage\+1\)\*PAGE_SIZE\)/)
+ assert.match(picker,/aria-pressed=\{active\?\.kind===item\.kind\}/)
+ assert.match(picker,/aria-label="Next tools"/)
+ assert.match(css,/grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/)
+ assert.match(css,/\.addButton\{[^}]*width:100%/)
+})
