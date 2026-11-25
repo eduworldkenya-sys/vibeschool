@@ -12,14 +12,14 @@ export const sampleClasses=[{id:"class-4",label:"Grade 4 · Kilimanjaro"},{id:"c
 export const sampleSubjects=[{id:"english",label:"English"},{id:"math",label:"Mathematics"},{id:"science",label:"Science"},{id:"social",label:"Social Studies"}];
 export const sampleAssignments=[{classId:"class-4",subjectId:"english"},{classId:"class-4",subjectId:"math"},{classId:"class-4",subjectId:"science"},{classId:"class-5",subjectId:"social"},{classId:"class-5",subjectId:"english"}];
 export const sampleLearners=[{id:"learner-1",classId:"class-4",label:"Sample learner A"},{id:"learner-2",classId:"class-4",label:"Sample learner B"},{id:"learner-3",classId:"class-4",label:"Sample learner C"},{id:"learner-4",classId:"class-5",label:"Sample learner D"},{id:"learner-5",classId:"class-4",label:"Sample learner E"}];
-export const sampleResources=[{id:"resource-1",title:"Sample English reading"},{id:"resource-2",title:"Sample place value activity"}];
-export const sampleSlides=[{id:"slide-1",title:"Homophones example"}];
+export const sampleResources=[{id:"resource-1",subjectId:"english",title:"Sample English reading"},{id:"resource-2",subjectId:"math",title:"Sample place value activity"},{id:"resource-3",subjectId:"science",title:"Sample plant observation"},{id:"resource-4",subjectId:"social",title:"Sample compass activity"}];
+export const sampleSlides=[{id:"slide-1",occurrenceId:"english-today",title:"Homophones example"},{id:"slide-2",occurrenceId:"math-today",title:"Place value example"},{id:"slide-3",occurrenceId:"science-today",title:"Plant observation"},{id:"slide-4",occurrenceId:"social-today",title:"Compass directions"},{id:"slide-5",occurrenceId:"english-tomorrow",title:"Sentence examples"}];
 export const sampleAssessments=[{id:"assessment-1",classId:"class-4",subjectId:"english",title:"Sample language exercise",max:10}];
 export const classLabel=(id:string)=>sampleClasses.find(x=>x.id===id)?.label??"Unknown class";
 export const subjectLabel=(id:string)=>sampleSubjects.find(x=>x.id===id)?.label??"Unknown subject";
 export const matchesScope=(x:Scope,scope:Scope)=>(scope.classId==="all"||x.classId===scope.classId)&&(scope.subjectId==="all"||x.subjectId===scope.subjectId);
 function occurrence(id:string,classId:string,subjectId:string,date:string,start:string,end:string,topic:string,preparation:Readiness[],attendance:Occurrence["attendance"],delivery:Occurrence["delivery"]):Occurrence{
- return {id,slotId:"slot-"+id,date,start,end,classId,subjectId,topic,planId:preparation[1]==="done"?"plan-"+id:null,schemeId:preparation[0]==="done"?"scheme-"+id:null,preparation,notes:id==="english-today"?"Identify homophones in short sentences.":"",resourceIds:[],slideIds:[],attendance,delivery};
+ return {id,slotId:"slot-"+id,date,start,end,classId,subjectId,topic,planId:preparation[1]==="done"?"plan-"+id:null,schemeId:preparation[0]==="done"?"scheme-"+id:null,preparation,notes:id==="english-today"?"Identify homophones in short sentences.":"",resourceIds:preparation[3]==="done"?sampleResources.filter(x=>x.subjectId===subjectId).map(x=>x.id):[],slideIds:preparation[4]==="done"?sampleSlides.filter(x=>x.occurrenceId===id).map(x=>x.id):[],attendance,delivery};
 }
 export function createPreviewState():PreviewState{
  return {occurrences:[
@@ -65,8 +65,8 @@ export function previewReducer(state:PreviewState,action:PreviewAction):PreviewS
   const next:Occurrence={...row,notes,preparation:row.preparation.map((v,i)=>i===action.index&&checked!==undefined?(checked?"done":"pending"):v)};
   if(action.index===0&&checked!==undefined)next.schemeId=checked?"scheme-"+row.id:null;
   if(action.index===1&&checked!==undefined)next.planId=checked?"plan-"+row.id:null;
-  if(action.index===3&&checked!==undefined)next.resourceIds=checked?["resource-1"]:[];
-  if(action.index===4&&checked!==undefined)next.slideIds=checked?["slide-1"]:[];
+  if(action.index===3&&checked!==undefined)next.resourceIds=checked?sampleResources.filter(x=>x.subjectId===row.subjectId).map(x=>x.id):[];
+  if(action.index===4&&checked!==undefined)next.slideIds=checked?sampleSlides.filter(x=>x.occurrenceId===row.id).map(x=>x.id):[];
   const checks={...draft?.checks};delete checks[action.index];
   return {...state,occurrences:state.occurrences.map(x=>x.id===row.id?next:x),drafts:{...state.drafts,[row.id]:{checks,...(action.index!==2&&draft?.notes!==undefined?{notes:draft.notes}:{})}}};
  }
