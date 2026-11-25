@@ -17,6 +17,7 @@ on:
       - 'scripts/test-lesson-plan-spine-security-contract.py'
       - 'scripts/test-lesson-plan-remaining-ledger.py'
       - 'scripts/test-lesson-timing-contract.cjs'
+      - 'scripts/test-lesson-source-version-pins.mjs'
       - 'scripts/test-lesson-plan-prepared-mobile-contract.py'
       - '.github/workflows/lesson-system-release-gate.yml'
   push:
@@ -36,6 +37,7 @@ on:
       - 'scripts/test-lesson-plan-spine-security-contract.py'
       - 'scripts/test-lesson-plan-remaining-ledger.py'
       - 'scripts/test-lesson-timing-contract.cjs'
+      - 'scripts/test-lesson-source-version-pins.mjs'
       - '.github/workflows/lesson-system-release-gate.yml'
 
 permissions:
@@ -62,6 +64,8 @@ jobs:
             python scripts/test-lesson-plan-remaining-ledger.py
             npx tsc lib/teaching/lessonTiming.ts --target ES2020 --module commonjs --outDir /tmp/vibeschool-lesson-timing --skipLibCheck
             node scripts/test-lesson-timing-contract.cjs /tmp/vibeschool-lesson-timing/lessonTiming.js
+            npx tsc lib/teaching/lessonSourceVersionPins.ts --target ES2020 --module commonjs --outDir /tmp/vibeschool-lesson-pins --skipLibCheck
+            node scripts/test-lesson-source-version-pins.mjs /tmp/vibeschool-lesson-pins/lessonSourceVersionPins.js
             npm run lint
           supabase_url: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           supabase_anon_key: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
