@@ -97,13 +97,9 @@ export function previewReducer(state:PreviewState,action:PreviewAction):PreviewS
   if(action.index===3&&checked!==undefined)next.resourceIds=checked?sampleResources.filter(x=>x.subjectId===row.subjectId).map(x=>x.id):[];
   if(action.index===4&&checked!==undefined)next.slideIds=checked?sampleSlides.filter(x=>x.occurrenceId===row.id).map(x=>x.id):[];
   const checks={...draft?.checks};delete checks[action.index];
-  let scheme=state.scheme;
-  if(action.index===0&&checked!==undefined){
-   const existing=scheme.find(x=>x.occurrenceId===row.id);
-   if(!checked&&existing)scheme=scheme.map(x=>x.id===existing.id?{...x,occurrenceId:null}:x);
-   if(checked&&!existing){const detached=scheme.find(x=>x.id==="scheme-"+row.id);scheme=detached?scheme.map(x=>x.id===detached.id?{...x,occurrenceId:row.id}:x):[...scheme,...initialScheme([next])];}
-  }
-  return {...state,scheme,occurrences:state.occurrences.map(x=>x.id===row.id?next:x),drafts:{...state.drafts,[row.id]:{checks,...(action.index!==2&&draft?.notes!==undefined?{notes:draft.notes}:{})}}};
+  // A readiness checkbox must never detach or invent an authoritative scheme relationship.
+  if(action.index===0){next.schemeId=row.schemeId;next.preparation[0]=row.schemeId&&state.scheme.some(x=>x.id===row.schemeId&&x.occurrenceId===row.id)?"done":"pending";}
+  return {...state,occurrences:state.occurrences.map(x=>x.id===row.id?next:x),drafts:{...state.drafts,[row.id]:{checks,...(action.index!==2&&draft?.notes!==undefined?{notes:draft.notes}:{})}}};
  }
  if(action.type==="recordAttendance")return {...state,occurrences:state.occurrences.map(x=>x.id===action.id?{...x,attendance:"completed"}:x)};
  if(action.type==="markSubmission")return {...state,submissions:state.submissions.map(x=>x.id===action.id?{...x,status:"marked"}:x)};
