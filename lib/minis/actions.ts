@@ -1,5 +1,7 @@
 import { supabase } from '@/lib/supabase'
 import {miniSlidesEnabled} from './slide-release'
+import { validateMiniVoice } from './voice'
+import {miniVoiceEnabled} from './voice-release'
 import type { MiniPost } from './data'
 import {parseMiniDeck,miniDeckText,type MiniSlideEntry} from './slides'
 import { miniSubjectFromTags, parseMiniHashtags } from './tags'
@@ -42,12 +44,13 @@ export async function miniIsVerifiedAdult(userId: string): Promise<boolean> {
 }
 
 export async function submitMini({
-  title, body, hashtags, photo, slides, userId, challenge, requestId,
+  title, body, hashtags, photo, slides, voice, userId, challenge, requestId,
 }: {
   title: string
   body: string
   hashtags: string
   photo?: File
+  voice?: File | null
   slides?: MiniSlideEntry[]
   userId: string
   requestId?: string | null
@@ -86,6 +89,8 @@ export async function submitMini({
   if (eligibilityError || canSubmit !== true)
     throw Error('Public creators need an opted-in profile and independent age eligibility. Check your public profile settings.')
 
+  if(voice&&!miniVoiceEnabled())throw Error('Voice publishing is not yet available.')
+  if(voice)validateMiniVoice(new Uint8Array(await voice.arrayBuffer()))
   const coverPath=photo?userId+'/'+crypto.randomUUID()+'.'+ext:null
   if (photo && coverPath) {
     const { error: uploadError } = await supabase.storage.from('mini-covers')
@@ -93,12 +98,18 @@ export async function submitMini({
     if (uploadError) throw Error('Unable to upload this image. Please try again.')
   }
 
+  const audioPath=voice?userId+'/'+crypto.randomUUID()+'.wav':null
+  if(voice&&audioPath){
+    const {error:voiceError}=await supabase.storage.from('mini-voice').upload(audioPath,voice,{contentType:'audio/wav',cacheControl:'900',upsert:false})
+    if(voiceError){if(coverPath)await supabase.storage.from('mini-covers').remove([coverPath]);throw Error('Could not upload voice. Try again.')}
+  }
   const { data: submitted, error: publishError } = await supabase.from('mini_lessons')
-    .insert({ creator_id: userId, title: cleanTitle, body: cleanBody, subject, tags, quiz_question:question, quiz_options:options, quiz_correct:correct, quiz_explanation:explanation, cover_path: coverPath, ...(slides?{slide_deck:slides}:{}), status: 'pending', request_id: requestId ?? null })
+    .insert({ creator_id: userId, title: cleanTitle, body: cleanBody, subject, tags, quiz_question:question, quiz_options:options, quiz_correct:correct, quiz_explanation:explanation, cover_path: coverPath, ...(slides?{slide_deck:slides}:{}), ...(audioPath?{audio_path:audioPath}:{}), status: 'pending', request_id: requestId ?? null })
     .select('id').single()
   if (publishError || !submitted?.id) {
     // Best-effort rollback of an unused, private file; the DB stays fail-closed.
     if(coverPath)await supabase.storage.from('mini-covers').remove([coverPath])
+    if(audioPath)await supabase.storage.from('mini-voice').remove([audioPath])
     throw Error('The Mini could not be submitted. Your profile may need additional verification.')
   }
   try {await publishMiniSafely('mini',submitted.id as string)}
