@@ -1033,6 +1033,17 @@ export default function LessonPlanModal({
       const { data: { user } } = await supabase.auth.getUser()
       if (user == null) return
 
+      // Fix 14C: week_start / day_of_week / taught_date come from the exact
+      // occurrence the teacher browsed to (props) — never from the old
+      // server-clock lookup, which always resolved to "now" regardless of
+      // which week was on screen.
+      if (slot.day_of_week == null) {
+        throw new Error('LessonPlanModal: slot.day_of_week is missing — refusing to save to an unknown occurrence.')
+      }
+      if (!taughtDate) {
+        throw new Error('LessonPlanModal: taughtDate is missing — refusing to save to an unknown occurrence.')
+      }
+
       const durationMinutes = await loadScheduledLessonDuration({
         teacher_id: user.id,
         class_id: slot.class_id,
@@ -1138,16 +1149,6 @@ export default function LessonPlanModal({
 
       setSections(parsed)
 
-      // Fix 14C: week_start / day_of_week / taught_date come from the exact
-      // occurrence the teacher browsed to (props) — never from the old
-      // server-clock lookup, which always resolved to "now" regardless of
-      // which week was on screen.
-      if (slot.day_of_week == null) {
-        throw new Error('LessonPlanModal: slot.day_of_week is missing — refusing to save to an unknown occurrence.')
-      }
-      if (!taughtDate) {
-        throw new Error('LessonPlanModal: taughtDate is missing — refusing to save to an unknown occurrence.')
-      }
       const { data: prof, error: profileError } = await supabase
         .from('profiles')
         .select('school_id')

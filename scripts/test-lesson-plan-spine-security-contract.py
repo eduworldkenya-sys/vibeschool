@@ -28,6 +28,9 @@ truth_migration = text(
     "supabase/migrations/20260903123000_lesson_plan_truth_convergence.sql"
 )
 repository = text("lib/teaching/lessonRepository.ts")
+modal = text("components/teacher/LessonPlanModal.tsx")
+assert modal.index("if (slot.day_of_week == null)", modal.index("async function generate()")) < modal.index("const durationMinutes = await loadScheduledLessonDuration("), "weekday must be validated before duration lookup"
+assert modal.index("if (!taughtDate)", modal.index("async function generate()")) < modal.index("const durationMinutes = await loadScheduledLessonDuration("), "date must be validated before duration lookup"
 evidence = text("components/teacher/EvidenceCaptureSheet.tsx")
 
 # Gate 1: exact timetable occurrence is database authority, not only UI state.
