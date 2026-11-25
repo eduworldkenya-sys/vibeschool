@@ -1,0 +1,24 @@
+name: Teacher Redesign Navigation
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/teacher/redesign/**'
+      - 'components/teacher/navigation.ts'
+      - 'scripts/test-teacher-redesign-navigation.mjs'
+      - 'scripts/register-typescript.mjs'
+      - '.github/workflows/teacher-redesign-navigation.yml'
+permissions:
+  contents: read
+jobs:
+  navigation-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: node --import ./scripts/register-typescript.mjs --test scripts/test-teacher-redesign-navigation.mjs
