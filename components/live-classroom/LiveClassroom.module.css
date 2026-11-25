@@ -388,7 +388,7 @@
 .studioHeader{display:flex;align-items:center;gap:12px;min-width:0}.studioHeader>div{min-width:0;flex:1}.studioHeader h1{font-size:1.15rem;margin:0}.studioHeader small{display:block;overflow-wrap:anywhere}.studioHeader button{flex:none}
 .studioLibraryMenu{min-width:0;max-width:100%;border:1px solid color-mix(in srgb,currentColor 16%,transparent);border-radius:10px;padding:10px;box-sizing:border-box}.studioLibraryMenu summary{cursor:pointer;font-weight:600}.studioLibraryMenu[open]>:not(summary){margin-top:10px}
 .studioStatus{display:flex;align-items:center;justify-content:space-between;gap:8px}.studioStatus small{min-width:0;overflow-wrap:anywhere}
-.studioTabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}.live .studioTabs button{font-size:12px;padding:7px 3px;border:0;border-radius:18px}
+.studioTabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}.live .studioTabs button{font-size:12px;padding:7px 3px;border:0;border-radius:18px}
 .studioSection{display:grid;gap:10px}.studioSection[hidden]{display:none}
 .studioPage .slideFields input,.studioPage .slideFields select,.studioPage .slideFields textarea{background:var(--vs-surface,Canvas);color:var(--vs-text,CanvasText)}
 .studioPage .presentationCanvas:not([data-mini=true]){width:100%;max-width:600px;min-width:0;min-height:0;aspect-ratio:16/9}.studioPage .presentationCanvas[data-layout=portrait]:not([data-mini=true]){aspect-ratio:3/4;max-width:430px}
