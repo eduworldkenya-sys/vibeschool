@@ -33,11 +33,11 @@ function SchemeRecord({item,state,dispatch,open}:{item:SchemeItem;state:PreviewS
   <AdaptiveOverlay open={status!==null} onClose={()=>setStatus(null)} title="Change scheme status" mode="center"><p>Change this sample scheme item to {status?labels[status]:""}? This does not record dated lesson delivery.</p><div className={s.actions}><ActionButton variant="outline" onClick={()=>setStatus(null)}>Cancel</ActionButton><ActionButton onClick={()=>{if(status)dispatch({type:"schemeStatus",id:item.id,status});setStatus(null)}}>Confirm</ActionButton></div></AdaptiveOverlay>
  </div>;
 }
-function UnitEditor({unit,state,view,dispatch,open}:{unit:CurriculumUnit;state:PreviewState;view:TeachView;dispatch:Dispatch<PreviewAction>;open:(p:Panel)=>void}){
+function UnitEditor({unit,state,view,dispatch,open,expanded=false}:{unit:CurriculumUnit;state:PreviewState;view:TeachView;dispatch:Dispatch<PreviewAction>;open:(p:Panel)=>void;expanded?:boolean}){
  const [selected,setSelected]=useState(unit.outcomes.map(o=>o.id));
  const saved=state.scheme.find(x=>x.classId===unit.classId&&x.subjectId===unit.subjectId&&x.term===view.term&&x.unitId===unit.id);
  return <div className={s.teachRecord}><div className={s.row}><strong>{unit.subStrand}</strong><small>{saved?"In scheme":"Not in scheme"}</small></div>
-  <Accordion title={"Learning outcomes ("+unit.outcomes.length+")"}>
+  <Accordion title={"Learning outcomes ("+unit.outcomes.length+")"} defaultOpen={expanded}>
    {unit.outcomes.map(o=><CheckField key={o.id} label={o.text} checked={saved?saved.outcomeIds.includes(o.id):selected.includes(o.id)} disabled={!!saved} onChange={e=>setSelected(old=>e.target.checked?[...old,o.id]:old.filter(id=>id!==o.id))}/>)}
    <small>Illustrative outcomes only; not official curriculum source text.</small>
    {saved?<ActionButton variant="outline" onClick={()=>open({kind:"scheme",classId:unit.classId,subjectId:unit.subjectId,unitId:unit.id})}>Open linked scheme</ActionButton>:<ActionButton disabled={!selected.length} onClick={()=>dispatch({type:"saveSchemeUnit",scope:{classId:unit.classId,subjectId:unit.subjectId},unitId:unit.id,outcomeIds:selected,term:view.term,week:view.week})}>Add to Term {view.term}, Week {view.week}</ActionButton>}
@@ -60,9 +60,9 @@ export default function TeachWorkspace({panel,state,dispatch,scope,view,onView,o
  const next=todayView(state,scope).next;
  const openContext=(kind:TeachingPanel["kind"],pair=scope,unitId?:string)=>open({kind,classId:pair.classId,subjectId:pair.subjectId,...(unitId?{unitId}:{})});
  const selectedUnit=panel.unitId?activeUnits.find(x=>x.id===panel.unitId):undefined;
- const filterUnit=(u:CurriculumUnit)=>match(view.curriculumQuery,u.strand,u.subStrand,...u.outcomes.map(x=>x.text))&&(!selectedUnit||u.id===selectedUnit.id);
+ const filterUnit=(u:CurriculumUnit)=>selectedUnit?u.id===selectedUnit.id:match(view.curriculumQuery,u.strand,u.subStrand,...u.outcomes.map(x=>x.text));
  const filtered=activeUnits.filter(filterUnit);
- const schemeItems=items.filter(x=>(!panel.unitId||x.unitId===panel.unitId)&&match(view.schemeQuery,x.topic,x.strand)&& (view.filter!=="unplanned"||x.occurrenceId===null));
+ const schemeItems=items.filter(x=>(panel.unitId?x.unitId===panel.unitId:match(view.schemeQuery,x.topic,x.strand))&& (view.filter!=="unplanned"||x.occurrenceId===null));
  const shownSuggestions=suggestions.filter(x=>(!panel.unitId||x.id===panel.unitId)&&match(view.schemeQuery,x.subStrand,x.strand));
  const hasDependencies=(pair:Scope)=>state.occurrences.some(x=>x.classId===pair.classId&&x.subjectId===pair.subjectId)||state.scheme.some(x=>x.classId===pair.classId&&x.subjectId===pair.subjectId)||state.submissions.some(x=>x.classId===pair.classId&&x.subjectId===pair.subjectId);
  if(panel.kind==="subjects")return <section className={s.teachSurface} aria-label="Subject hub">
@@ -81,7 +81,7 @@ export default function TeachWorkspace({panel,state,dispatch,scope,view,onView,o
    <div className={s.row}><strong>{subjectLabel(scope.subjectId)}</strong><small>{activeUnits.length} sample sub-strands</small></div>
    <SearchField label="Search curriculum" value={view.curriculumQuery} onChange={curriculumQuery=>onView({curriculumQuery})} placeholder="Find strand, topic or outcome"/>
    {selectedUnit&&<ActionButton variant="ghost" onClick={()=>openContext("curriculum")}>Show all sub-strands</ActionButton>}
-   {Array.from(new Set(filtered.map(u=>u.strand))).map(strandName=><section key={strandName} className={s.teachGroup}><h3>{strandName}</h3>{filtered.filter(u=>u.strand===strandName).map(u=><UnitEditor key={u.id+":"+view.term} unit={u} state={state} view={view} dispatch={dispatch} open={open}/>)}</section>)}
+   {Array.from(new Set(filtered.map(u=>u.strand))).map(strandName=><section key={strandName} className={s.teachGroup}><h3>{strandName}</h3>{filtered.filter(u=>u.strand===strandName).map(u=><UnitEditor key={u.id+":"+view.term} expanded={panel.unitId===u.id} unit={u} state={state} view={view} dispatch={dispatch} open={open}/>)}</section>)}
    {!filtered.length&&<StateView kind="empty" title="No matching sample curriculum"/>}
   </>:<>
    <div className={s.row}><strong>{subjectLabel(scope.subjectId)} · Term {view.term}</strong><ActionButton size="compact" variant="ghost" icon={<Printer size={16}/>} onClick={()=>window.print()}>Print</ActionButton></div>
@@ -91,7 +91,7 @@ export default function TeachWorkspace({panel,state,dispatch,scope,view,onView,o
    <SelectField label="Show" value={view.filter} options={[{value:"all",label:"All"},{value:"saved",label:"Saved"},{value:"suggested",label:"Suggested"},{value:"unplanned",label:"Unscheduled"}]} onChange={v=>onView({filter:v as TeachView["filter"]})}/>
    {selectedUnit&&<ActionButton variant="ghost" onClick={()=>openContext("scheme")}>Show all scheme items</ActionButton>}
    {next&&<div className={s.row}><small>Next dated lesson · {next.topic}</small><ActionButton variant="outline" onClick={()=>open({kind:"stage",index:1,occurrenceId:next.id})}>Prepare lesson</ActionButton></div>}
-   {view.filter!=="suggested"&&<div className={s.teachGroup}><h3>Weekly sequence</h3>{sampleWeeks.filter(w=>w===view.week||schemeItems.some(x=>x.week===w)).map(w=><Accordion key={w} title={"Week "+w+" · "+schemeItems.filter(x=>x.week===w).length+" saved"}>{schemeItems.filter(x=>x.week===w).length?schemeItems.filter(x=>x.week===w).map(item=><SchemeRecord key={item.id} item={item} state={state} dispatch={dispatch} open={open}/>):<StateView kind="empty" title="No saved lessons in this week"/>}<ActionButton variant="ghost" onClick={()=>onView({week:w})}>Select Week {w}</ActionButton></Accordion>)}</div>}
+   {view.filter!=="suggested"&&<div className={s.teachGroup}><h3>Weekly sequence</h3>{sampleWeeks.filter(w=>w===view.week||schemeItems.some(x=>x.week===w)).map(w=><Accordion key={w} defaultOpen={w===view.week||!!panel.unitId} title={"Week "+w+" · "+schemeItems.filter(x=>x.week===w).length+" saved"}>{schemeItems.filter(x=>x.week===w).length?schemeItems.filter(x=>x.week===w).map(item=><SchemeRecord key={item.id} item={item} state={state} dispatch={dispatch} open={open}/>):<StateView kind="empty" title="No saved lessons in this week"/>}<ActionButton variant="ghost" onClick={()=>onView({week:w})}>Select Week {w}</ActionButton></Accordion>)}</div>}
    {(view.filter==="all"||view.filter==="suggested")&&<section className={s.teachGroup}><h3>Suggested lessons · Week {view.week}</h3>{shownSuggestions.map(u=><UnitEditor key={u.id+":"+view.term} unit={u} state={state} view={view} dispatch={dispatch} open={open}/>)}{!shownSuggestions.length&&<small>No matching suggestions.</small>}</section>}
    <Accordion title="Add teacher-created lesson"><TextField label="Lesson focus" value={topic} onChange={setTopic} required/><TextField label="Strand (optional)" value={strand} onChange={setStrand}/><ActionButton disabled={!topic.trim()} onClick={()=>{dispatch({type:"addSchemeItem",scope,topic,strand,term:view.term,week:view.week});setTopic("");setStrand("");setFeedback("Sample lesson saved to Week "+view.week)}}>Add to Week {view.week}</ActionButton>{feedback&&<p role="status">{feedback}</p>}</Accordion>
   </>}
