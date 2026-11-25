@@ -73,6 +73,18 @@ async function todayChecks(browser,dir,errors){
   await p.locator("summary").filter({hasText:"Teaching context"}).click();
   await count("4 Lessons");await count("5 To mark");
   await p.getByRole("region",{name:"Sample lesson records"}).getByRole("button",{name:"5 To mark",exact:true}).click();
+  const queue=p.getByRole("region",{name:"Homework marking queue"});
+  await queue.getByRole("heading",{name:"Place value",exact:true}).waitFor();
+  assert.equal(await queue.getByRole("heading",{name:"Place value",exact:true}).count(),1);
+  assert.equal(await queue.getByRole("listitem").count(),5);
+  const firstRow=queue.getByRole("listitem").first();
+  const geometry=await firstRow.evaluate(el=>({row:el.getBoundingClientRect().width,button:el.querySelector("button").getBoundingClientRect().width,height:el.getBoundingClientRect().height,border:getComputedStyle(el).borderRadius}));
+  assert.ok(geometry.button<geometry.row/2,"Row action must not stretch across the workspace");
+  assert.ok(geometry.height<100,"Queue row must remain compact");
+  assert.equal(geometry.border,"0px");
+  const search=queue.getByRole("searchbox",{name:"Find homework submissions"});
+  await search.fill("learner B");assert.equal(await queue.getByRole("listitem").count(),1);
+  await search.fill("");assert.equal(await queue.getByRole("listitem").count(),5);
   await p.getByRole("button",{name:"Mark sample submission",exact:true}).first().click();await back();await count("4 To mark");
   await p.getByRole("region",{name:"Sample lesson records"}).getByRole("button",{name:"2 Attendance",exact:true}).click();
   await p.getByRole("button",{name:"Complete sample attendance",exact:true}).first().click();await back();await count("1 Attendance");
