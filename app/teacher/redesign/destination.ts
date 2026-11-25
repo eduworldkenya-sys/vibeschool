@@ -37,6 +37,7 @@ export function parseDestination(search:string):Destination {
  const key=q.get("panel");
  const rawId=q.get("occurrence");
  const occurrenceId=createPreviewState().occurrences.find(x=>x.id===rawId)?.id;
+ if(rawId!==null&&!occurrenceId)return {tab,panel:null};
  const scoped=occurrenceId?{occurrenceId}:{};
  if(key?.startsWith("stage:")){
   const index=Number(key.slice(6));
