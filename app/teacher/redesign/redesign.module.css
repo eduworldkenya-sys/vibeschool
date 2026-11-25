@@ -207,3 +207,12 @@
 .shell[data-motion=reduce] *{animation:none!important;transition:none!important;scroll-behavior:auto!important}
 @media(hover:none){.shell .actionButton:not(:disabled):hover{filter:none}}
 @media(forced-colors:active){.shell button[aria-pressed=true],.shell button[aria-current=page],.shell button[aria-selected=true]{outline:2px solid Highlight;outline-offset:-2px}.switchTrack{border:1px solid ButtonText}.switchField[aria-checked=true] .switchTrack{background:Highlight}.switchTrack>span{background:ButtonText}}
+
+/* Today scope controls use the existing shared field and spacing contract. */
+.contextRow{display:flex;flex-wrap:wrap;align-items:end;gap:var(--gap-sm);padding-bottom:var(--gap-sm);border-bottom:1px solid var(--line)}
+.contextRow>.field{flex:1 1 120px;font-size:.86em;min-width:0}
+.contextRow>.field:first-child{flex-basis:100%}
+.contextRow select{text-overflow:ellipsis}
+.header .iconButton{position:relative}
+.header .iconButton>.unreadCount{position:absolute;right:0;top:0;min-width:16px;line-height:16px;padding:0 3px;border-radius:var(--radius-lg);background:var(--blue);color:var(--onblue);font-size:10px;font-weight:650}
+@media(min-width:480px){.contextRow>.field:first-child{flex-basis:120px}}
