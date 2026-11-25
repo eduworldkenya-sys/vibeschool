@@ -50,10 +50,12 @@ async function todayChecks(browser,dir,errors){
   assert.equal(await p.getByRole("progressbar",{name:"Lesson preparation"}).getAttribute("aria-valuenow"),"4");
   await button("Notes, complete").click();await p.getByRole("textbox",{name:"Teacher notes"}).fill("Retained sample draft");await back();
   await button("Notes, complete").click();assert.equal(await p.getByRole("textbox",{name:"Teacher notes"}).inputValue(),"Retained sample draft");await button("Save and return").click();await home();
+  await p.locator("summary").filter({hasText:"Teaching context"}).click();
   await p.getByRole("combobox",{name:"Class",exact:true}).selectOption("class-5");
   await p.getByRole("combobox",{name:"Subject",exact:true}).selectOption("english");
   await count("0 Lessons");await p.getByText(/Writing sentences/).waitFor();
   await p.getByRole("combobox",{name:"Class",exact:true}).selectOption("all");
+  await p.locator("summary").filter({hasText:"Teaching context"}).click();
   await count("4 Lessons");await count("5 To mark");
   await p.getByRole("region",{name:"Sample lesson records"}).getByRole("button",{name:"5 To mark",exact:true}).click();
   await p.getByRole("button",{name:"Mark sample submission",exact:true}).first().click();await back();await count("4 To mark");
