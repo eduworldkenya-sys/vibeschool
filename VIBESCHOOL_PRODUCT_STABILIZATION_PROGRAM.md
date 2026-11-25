@@ -681,3 +681,26 @@ The owner approved the following implementation order. Use it to sequence the ex
 10. Remaining products in the verified inventory.
 
 Prioritize shared root causes and dependencies where doing so improves multiple products. Address critical security, data integrity, service reliability and active-user blockers promptly irrespective of the sequence. Each product should progress through actual audit, implementation, testing, integration, deployment and production verification using the existing engineering workflow. Routine technical and design decisions are delegated within the agreed standards; do not request repeated approval for component-level work. Escalate genuine business-policy or major product-direction changes where needed. Brand identity remains a separate founder choice; retain existing brand until an explicit selection is made and reconcile any chosen direction against actual tokens and accessibility. This approval concerns priority, not evidence that implementation or deployment has occurred.
+
+## 39. Owner-selected VibeSchool brand direction
+The owner agreed to combine **Intelligent Blue** with **Midnight Premium** simplicity. Retain the VibeSchool name and develop a recognizable, restrained technology and education identity rather than a decorative multicolor interface.
+
+| Element | Selected direction / reference value |
+| --- | --- |
+| Primary brand accent | #2563EB (Intelligent Blue) |
+| Stronger blue | #1D4ED8 |
+| Supporting blue scale | #60A5FA, #DBEAFE, #EFF6FF |
+| Primary light-mode text | #18181B |
+| Neutral scale | #52525B, #A1A1AA, #E4E4E7 |
+| Light-mode secondary surface | #F4F4F5 |
+| Light-mode base surface | #FFFFFF |
+| Typography | Inter preferred or an equivalent existing suitable font; separate professional reading-focused textbook typography |
+| Logo direction | Simple recognizable V symbol with VibeSchool wordmark; inspect existing official logo and assets before modifying or replacing them |
+| Iconography | Consistent outlined icon family with coherent sizes and stroke weights |
+| Shape and depth | Moderate corner radii, subtle thin borders, minimal purposeful shadows |
+| Motion | Smooth restrained effects, consistent with prior interaction standards |
+| Theme | Universal light, dark and system-following appearance |
+
+Use blue selectively for important actions, active navigation, focus, selection and meaningful progress; avoid coloring entire workspaces or every card. Keep clean neutral backgrounds and typography with intentional hierarchy. Semantic success, warning and error colors remain distinct from brand accent and must have appropriate contrast and non-color cues. Adapt token values for dark surfaces; do not blindly reuse light-mode contrast pairs or black accents on dark backgrounds. Preserve existing user theme preferences and system behavior.
+
+Audit actual brand assets, font loading, current CSS/design tokens, existing components, dark-mode contrast and product-specific reading requirements. Map the selected direction into a single reusable semantic token system and migrate consumers coherently rather than introduce competing theme definitions. Keep the existing logo until an actual suitable asset refinement is available; the illustrated V symbol is a concept, not a production asset. Reference hex values are the selected visual direction, with accessibility and existing architecture informing exact state and theme variants. Verify representative real screens across light, dark and system modes, mobile/tablet/desktop and accessible text scaling. No extra approval round is required for routine token reconciliation within this owner-selected direction. Do not claim the brand is implemented until code, tests and production evidence support that conclusion.
