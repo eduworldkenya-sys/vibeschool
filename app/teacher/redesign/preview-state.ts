@@ -1,4 +1,5 @@
 // Deterministic, synthetic preview data only. No external services or persistence.
+import {initialScheme,curriculumUnits,validPair,validTermWeek,type SchemeItem,type SchemeStatus} from "./teach-data";
 export const previewDate="2026-11-25";
 export const previewTime="13:50";
 export type Readiness="done"|"pending"|"unknown";
@@ -7,7 +8,7 @@ export type Scope={classId:string;subjectId:string};
 export type Occurrence=Scope & {id:string;slotId:string;date:string;start:string;end:string;topic:string;planId:string|null;schemeId:string|null;preparation:Readiness[];notes:string;resourceIds:string[];slideIds:string[];delivery:"scheduled"|"teaching"|"taught";attendance:"pending"|"completed"};
 export type Submission=Scope & {id:string;homeworkId:string;learnerId:string;title:string;status:"pending"|"marked"};
 export type Session={id:string;audience:string;occurrenceId:string|null;title:string;status:"active"|"paused"|"ended"};
-export type PreviewState={occurrences:Occurrence[];submissions:Submission[];sessions:Session[];drafts:Record<string,{checks:Partial<Record<number,boolean>>;notes?:string}>;readNotifications:string[];sequence:number};
+export type PreviewState={assignments:Scope[];scheme:SchemeItem[];schemeSequence:number;occurrences:Occurrence[];submissions:Submission[];sessions:Session[];drafts:Record<string,{checks:Partial<Record<number,boolean>>;notes?:string}>;readNotifications:string[];sequence:number};
 export const sampleClasses=[{id:"class-4",label:"Grade 4 · Kilimanjaro"},{id:"class-5",label:"Grade 5 · Aberdare"}];
 export const sampleSubjects=[{id:"english",label:"English"},{id:"math",label:"Mathematics"},{id:"science",label:"Science"},{id:"social",label:"Social Studies"}];
 export const sampleAssignments=[{classId:"class-4",subjectId:"english"},{classId:"class-4",subjectId:"math"},{classId:"class-4",subjectId:"science"},{classId:"class-5",subjectId:"social"},{classId:"class-5",subjectId:"english"}];
@@ -22,12 +23,13 @@ function occurrence(id:string,classId:string,subjectId:string,date:string,start:
  return {id,slotId:"slot-"+id,date,start,end,classId,subjectId,topic,planId:preparation[1]==="done"?"plan-"+id:null,schemeId:preparation[0]==="done"?"scheme-"+id:null,preparation,notes:preparation[2]==="done"?(id==="english-today"?"Identify homophones in short sentences.":"Review sample examples of "+topic.toLowerCase()+"."):"",resourceIds:preparation[3]==="done"?sampleResources.filter(x=>x.subjectId===subjectId).map(x=>x.id):[],slideIds:preparation[4]==="done"?sampleSlides.filter(x=>x.occurrenceId===id).map(x=>x.id):[],attendance,delivery};
 }
 export function createPreviewState():PreviewState{
- return {occurrences:[
+ const occurrences:Occurrence[]=[
  occurrence("math-today","class-4","math",previewDate,"08:00","08:35","Place value",["done","done","done","done","unknown"],"pending","taught"),
  occurrence("science-today","class-4","science",previewDate,"09:00","09:35","Plants",["done","done","done","pending","unknown"],"completed","taught"),
  occurrence("social-today","class-5","social",previewDate,"11:00","11:35","Compass directions",["done","done","done","pending","unknown"],"completed","taught"),
  occurrence("english-today","class-4","english",previewDate,"14:00","14:35","Homophones",["done","done","done","pending","pending"],"pending","scheduled"),
- occurrence("english-tomorrow","class-5","english","2026-11-26","08:00","08:35","Writing sentences",["done","pending","pending","pending","unknown"],"pending","scheduled")],
+ occurrence("english-tomorrow","class-5","english","2026-11-26","08:00","08:35","Writing sentences",["done","pending","pending","pending","unknown"],"pending","scheduled")];
+ return {occurrences,assignments:sampleAssignments.map(x=>({...x})),scheme:initialScheme(occurrences),schemeSequence:0,
  submissions:sampleLearners.map((l,i)=>({id:"submission-"+(i+1),homeworkId:l.classId==="class-4"?"homework-place-value":"homework-directions",learnerId:l.id,classId:l.classId,subjectId:l.classId==="class-4"?"math":"social",title:l.classId==="class-4"?"Place value":"Compass directions",status:"pending"})),
  sessions:[],drafts:{},readNotifications:[],sequence:0};
 }
@@ -48,9 +50,36 @@ export type PreviewAction=
  | {type:"startTeaching"|"finishTeaching";id:string}
  | {type:"startSession";audience:string;occurrenceId:string|null}
  | {type:"pauseSession"|"resumeSession"|"endSession";id:string}
- | {type:"readNotification";id:string};
+ | {type:"readNotification";id:string}
+ | {type:"addAssignment"|"removeAssignment";scope:Scope}
+ | {type:"saveSchemeUnit";scope:Scope;unitId:string;outcomeIds:string[];term:number;week:number}
+ | {type:"addSchemeItem";scope:Scope;topic:string;strand:string;term:number;week:number}
+ | {type:"schemeStatus";id:string;status:SchemeStatus}
+ | {type:"schemeReflection"|"schemePlanDraft";id:string;text:string};
 export function previewReducer(state:PreviewState,action:PreviewAction):PreviewState{
  if(action.type==="reset")return createPreviewState();
+ if(action.type==="addAssignment"){
+  if(validPair(action.scope,state.assignments)||!sampleClasses.some(x=>x.id===action.scope.classId)||!sampleSubjects.some(x=>x.id===action.scope.subjectId))return state;
+  return {...state,assignments:[...state.assignments,{...action.scope}]};
+ }
+ if(action.type==="removeAssignment"){
+  if(!validPair(action.scope,state.assignments)||state.occurrences.some(x=>matchesScope(x,action.scope))||state.scheme.some(x=>matchesScope(x,action.scope))||state.submissions.some(x=>matchesScope(x,action.scope)))return state;
+  return {...state,assignments:state.assignments.filter(x=>!matchesScope(x,action.scope))};
+ }
+ if(action.type==="saveSchemeUnit"||action.type==="addSchemeItem"){
+  if(!validPair(action.scope,state.assignments)||!validTermWeek(action.term,action.week))return state;
+  const u=action.type==="saveSchemeUnit"?curriculumUnits.find(x=>x.id===action.unitId&&matchesScope(x,action.scope)):null;
+  if(action.type==="saveSchemeUnit"&&(!u||!action.outcomeIds.length||action.outcomeIds.some(id=>!u.outcomes.some(x=>x.id===id))||state.scheme.some(x=>matchesScope(x,action.scope)&&x.term===action.term&&x.unitId===u.id)))return state;
+  if(action.type==="addSchemeItem"&&!action.topic.trim())return state;
+  const item:SchemeItem={...action.scope,id:"scheme-custom-"+(state.schemeSequence+1),unitId:u?.id??null,outcomeIds:action.type==="saveSchemeUnit"?[...new Set(action.outcomeIds)]:[],term:action.term,week:action.week,topic:action.type==="addSchemeItem"?action.topic.trim():u!.subStrand,strand:action.type==="addSchemeItem"?action.strand.trim():u!.strand,status:"planned",reflection:"",occurrenceId:null,source:action.type==="saveSchemeUnit"?"curriculum":"teacher",planDraft:""};
+  return {...state,schemeSequence:state.schemeSequence+1,scheme:[...state.scheme,item]};
+ }
+ if(action.type==="schemeStatus"||action.type==="schemeReflection"||action.type==="schemePlanDraft"){
+  const item=state.scheme.find(x=>x.id===action.id);if(!item)return state;
+  if(action.type==="schemeStatus"&&(!["planned","teaching","done","cancelled"].includes(action.status)||item.occurrenceId))return state;
+  if(action.type==="schemePlanDraft"&&item.occurrenceId)return state;
+  return {...state,scheme:state.scheme.map(x=>x.id!==item.id?x:action.type==="schemeStatus"?{...x,status:action.status}:action.type==="schemeReflection"?{...x,reflection:action.text}:action.type==="schemePlanDraft"?{...x,planDraft:action.text}:x)};
+ }
  if(action.type==="draft"){
   if(!state.occurrences.some(x=>x.id===action.id))return state;
   const draft=state.drafts[action.id]??{checks:{}};
@@ -68,11 +97,21 @@ export function previewReducer(state:PreviewState,action:PreviewAction):PreviewS
   if(action.index===3&&checked!==undefined)next.resourceIds=checked?sampleResources.filter(x=>x.subjectId===row.subjectId).map(x=>x.id):[];
   if(action.index===4&&checked!==undefined)next.slideIds=checked?sampleSlides.filter(x=>x.occurrenceId===row.id).map(x=>x.id):[];
   const checks={...draft?.checks};delete checks[action.index];
-  return {...state,occurrences:state.occurrences.map(x=>x.id===row.id?next:x),drafts:{...state.drafts,[row.id]:{checks,...(action.index!==2&&draft?.notes!==undefined?{notes:draft.notes}:{})}}};
+  let scheme=state.scheme;
+  if(action.index===0&&checked!==undefined){
+   const existing=scheme.find(x=>x.occurrenceId===row.id);
+   if(!checked&&existing)scheme=scheme.map(x=>x.id===existing.id?{...x,occurrenceId:null}:x);
+   if(checked&&!existing){const detached=scheme.find(x=>x.id==="scheme-"+row.id);scheme=detached?scheme.map(x=>x.id===detached.id?{...x,occurrenceId:row.id}:x):[...scheme,...initialScheme([next])];}
+  }
+  return {...state,scheme,occurrences:state.occurrences.map(x=>x.id===row.id?next:x),drafts:{...state.drafts,[row.id]:{checks,...(action.index!==2&&draft?.notes!==undefined?{notes:draft.notes}:{})}}};
  }
  if(action.type==="recordAttendance")return {...state,occurrences:state.occurrences.map(x=>x.id===action.id?{...x,attendance:"completed"}:x)};
  if(action.type==="markSubmission")return {...state,submissions:state.submissions.map(x=>x.id===action.id?{...x,status:"marked"}:x)};
- if(action.type==="startTeaching"||action.type==="finishTeaching")return {...state,occurrences:state.occurrences.map(x=>x.id===action.id&&(action.type==="startTeaching"?x.delivery==="scheduled"&&x.date===previewDate:x.delivery==="teaching")?{...x,delivery:action.type==="startTeaching"?"teaching":"taught"}:x)};
+ if(action.type==="startTeaching"||action.type==="finishTeaching"){
+  const row=state.occurrences.find(x=>x.id===action.id);if(!row||(action.type==="startTeaching"?row.delivery!=="scheduled"||row.date!==previewDate:row.delivery!=="teaching"))return state;
+  const delivery=action.type==="startTeaching"?"teaching":"taught";
+  return {...state,occurrences:state.occurrences.map(x=>x.id===row.id?{...x,delivery}:x),scheme:state.scheme.map(x=>x.occurrenceId===row.id?{...x,status:delivery==="taught"?"done":"teaching"}:x)};
+ }
  if(action.type==="startSession"){
   if(state.sessions.some(x=>x.status!=="ended")||(!sampleClasses.some(x=>x.id===action.audience)&&!["tuition","open"].includes(action.audience)))return state;
   const lesson=state.occurrences.find(x=>x.id===action.occurrenceId&&x.classId===action.audience);
