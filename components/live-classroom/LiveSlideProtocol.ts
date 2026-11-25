@@ -1,3 +1,5 @@
+import {TEACHING_TOOL_MODELS,teachingToolModel} from './TeachingToolModels.mjs'
+
 export const SLIDE_DIAGRAMS = ['none','fraction-circle','fraction-bars','number-line','ruler','protractor','coordinate-grid','counters','base-ten','clock','money','solids','handwriting','music'] as const
 export const SLIDE_THEMES = ['paper','ocean','forest','night'] as const
 export type SlideDiagram = typeof SLIDE_DIAGRAMS[number]
@@ -29,7 +31,7 @@ export function decodeSlide(body:string):PublishedSlide|null {
   return {title:x.title,body:x.body,diagram:x.diagram,theme:x.theme,layout:x.layout,font:x.font,number:x.number,total:x.total}
  }catch{return null}
 }
-export function diagramLabel(d:SlideDiagram|DemoKind){return d==='none'?'Text only':d.replaceAll('-',' ').replace(/^./,s=>s.toUpperCase())}
+export function diagramLabel(d:SlideDiagram|DemoKind){return teachingToolModel(d)?.label??(d==='none'?'Text only':d.replaceAll('-',' ').replace(/^./,s=>s.toUpperCase()))}
 
 /** Find a publishable neighbour without exposing unsaved or invalid content.
  * Empty draft placeholders are skipped, but the published numbering is retained.
@@ -99,10 +101,11 @@ export function visualSlideBody(board:string):string{
  return VISUAL_SLIDE_PREFIX+board
 }
 
-export type DemoKind='clock'|'fraction-circle'|'fraction-bars'|'number-line'|'ruler'|'coordinate-grid'|'protractor'|'electric-circuit'|'lever-balance'|'map-scale'
+export type DemoKind=keyof typeof TEACHING_TOOL_MODELS|'clock'|'fraction-circle'|'fraction-bars'|'number-line'|'ruler'|'coordinate-grid'|'protractor'|'electric-circuit'|'lever-balance'|'map-scale'
 export type SlideDemo={kind:DemoKind;a:number;b:number}
 const DEMO_PREFIX='VSLIDEDEMO1:'
 export const DEMO_RANGES:Record<DemoKind,{a:[number,number];b:[number,number];labels:[string,string];initial:[number,number]}>={
+ ...TEACHING_TOOL_MODELS,
  clock:{a:[1,12],b:[0,59],labels:['Hour','Minute'],initial:[3,30]},
  'fraction-circle':{a:[0,12],b:[1,12],labels:['Shaded parts','Total parts'],initial:[2,4]},
  'fraction-bars':{a:[0,12],b:[1,12],labels:['Shaded parts','Total parts'],initial:[2,4]},
@@ -114,12 +117,13 @@ export const DEMO_RANGES:Record<DemoKind,{a:[number,number];b:[number,number];la
  'lever-balance':{a:[1,10],b:[1,10],labels:['Left force (N)','Right force (N)'],initial:[6,4]},
  'map-scale':{a:[1,12],b:[1,10],labels:['Map distance (cm)','Scale (km per cm)'],initial:[5,2]}
 }
+function isShadedFraction(kind:DemoKind){return kind==='fraction-circle'||kind==='fraction-bars'}
 export function validDemo(value:unknown):value is SlideDemo {
  if(!value||typeof value!=='object'||Array.isArray(value))return false
  const d=value as SlideDemo
  if(!Object.prototype.hasOwnProperty.call(DEMO_RANGES,d.kind)||Object.keys(d).some(k=>!['kind','a','b'].includes(k)))return false
  const r=DEMO_RANGES[d.kind]
- return Number.isInteger(d.a)&&d.a>=r.a[0]&&d.a<=r.a[1]&&Number.isInteger(d.b)&&d.b>=r.b[0]&&d.b<=r.b[1]&&(!d.kind.startsWith('fraction-')||d.a<=d.b)
+ return Number.isInteger(d.a)&&d.a>=r.a[0]&&d.a<=r.a[1]&&Number.isInteger(d.b)&&d.b>=r.b[0]&&d.b<=r.b[1]&&(!isShadedFraction(d.kind)||d.a<=d.b)
 }
 export function isDemoBody(body:string):boolean{return body.startsWith(DEMO_PREFIX)}
 export function decodeDemo(body:string):SlideDemo|null{
@@ -134,7 +138,7 @@ export function changeDemo(d:SlideDemo,field:'a'|'b',value:number):SlideDemo{
  const range=DEMO_RANGES[d.kind][field]
  if(!Number.isFinite(value))return d
  const next={...d,[field]:Math.min(range[1],Math.max(range[0],Math.round(value)))}
- if(next.kind.startsWith('fraction-'))next.a=Math.min(next.a,next.b)
+ if(isShadedFraction(next.kind))next.a=Math.min(next.a,next.b)
  return next
 }
 export function buildTextRevealSlides(slide:LiveSlide,available:number):LiveSlide[]{
