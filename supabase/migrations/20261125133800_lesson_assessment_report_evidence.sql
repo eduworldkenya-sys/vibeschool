@@ -416,4 +416,185 @@ end;
 $function$
 ;
 
+-- Release the grade and its outcome evidence in one transaction.
+CREATE OR REPLACE FUNCTION public.exq_finalize_attempt(p_attempt_id uuid, p_feedback text DEFAULT NULL::text, p_release boolean DEFAULT false)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare caller uuid:=auth.uid(); at public.assessment_attempts%rowtype; aa public.assessment_assignments%rowtype; assessment public.assessment_definitions%rowtype; unresolved integer; response_count integer; total_score numeric; total_max numeric; pct numeric; next_status text; next_result text;
+begin
+  if caller is null then raise exception 'not_authenticated'; end if;
+  select * into at from public.assessment_attempts where id=p_attempt_id for update;
+  if not found then raise exception 'attempt_not_found'; end if;
+  select * into aa from public.assessment_assignments where id=at.assignment_id;
+  if not found or aa.assessment_id is distinct from at.assessment_id
+    or aa.school_id is distinct from at.school_id or aa.class_id is distinct from at.class_id
+  then raise exception 'attempt_assignment_mismatch'; end if;
+  if aa.teacher_id is distinct from caller then raise exception 'attempt_not_owned'; end if;
+
+  if not public.is_active_school_member(aa.school_id)
+    or (public.teacher_get_operating_context()->>'school_id') is distinct from aa.school_id::text
+    or not exists(select 1 from public.teacher_classes tc join public.assessment_definitions ad on ad.id=aa.assessment_id
+      where tc.teacher_id=caller and tc.school_id=aa.school_id and tc.class_id=aa.class_id and tc.subject_id=ad.subject_id)
+  then raise exception 'assessment_context_not_authorized'; end if;
+  if at.status='released' or at.result_status='released' then raise exception 'released_attempt_locked'; end if;
+  if at.status not in ('teacher_review','marked','auto_marked') then raise exception 'attempt_not_finalizable'; end if;
+  if p_release and exists(select 1 from public.assessment_moderation_requests where attempt_id=at.id and status='pending') then raise exception 'mark_review_pending_release_blocked'; end if;
+  select count(*),count(*) filter (where final_score is null) into response_count,unresolved
+  from public.assessment_responses where attempt_id=at.id and status<>'void';
+  if response_count=0 then raise exception 'attempt_has_no_responses'; end if;
+  if unresolved>0 then raise exception 'responses_unmarked'; end if;
+  select coalesce(sum(final_score),0),coalesce(sum(max_score),0) into total_score,total_max
+  from public.assessment_responses where attempt_id=at.id and status<>'void';
+  pct:=case when total_max>0 then round((total_score/total_max)*100,3) else 0 end;
+  next_status:=case when p_release then 'released' else 'marked' end;
+  next_result:=case when p_release then 'released' else 'marked' end;
+  update public.assessment_attempts
+  set status=next_status,result_status=next_result,score=total_score,max_score=total_max,percentage=pct,
+      feedback=nullif(btrim(coalesce(p_feedback,'')),''),reviewed_by=caller,teacher_reviewed_at=now(),
+      active_client_id=null,client_lease_expires_at=null,client_lease_updated_at=now(),
+      locked_at=coalesce(locked_at,now()),lock_reason=coalesce(lock_reason,'submitted'),updated_at=now()
+  where id=at.id;
+  if p_release then
+    select * into strict assessment from public.assessment_definitions where id=at.assessment_id;
+    insert into public.assessment_gradebook_entries(
+      attempt_id,assignment_id,assessment_id,student_id,school_id,class_id,subject_id,
+      teacher_id,score,max_score,percentage,assessment_type,assessment_title,released_at,updated_at
+    ) values (
+      at.id,at.assignment_id,at.assessment_id,at.student_id,at.school_id,at.class_id,
+      assessment.subject_id,caller,total_score,total_max,pct,assessment.assessment_type,
+      assessment.title,now(),now()
+    )
+    on conflict(attempt_id) do update set score=excluded.score,max_score=excluded.max_score,
+      percentage=excluded.percentage,updated_at=excluded.updated_at;
+
+    perform public.exq_sync_attempt_outcome_evidence(at.id);
+  end if;
+
+  return jsonb_build_object('ok',true,'attempt_id',at.id,'status',next_status,'result_status',next_result,
+    'score',total_score,'max_score',total_max,'percentage',pct,'released',p_release);
+end;
+$function$
+;
+
+CREATE OR REPLACE FUNCTION public.exq_sync_attempt_outcome_evidence(p_attempt_id uuid)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  caller uuid := auth.uid();
+  v_attempt public.assessment_attempts%rowtype;
+  v_assignment public.assessment_assignments%rowtype;
+  v_assessment public.assessment_definitions%rowtype;
+  rows_written integer := 0;
+begin
+  if caller is null then raise exception 'not_authenticated'; end if;
+
+  select * into v_attempt from public.assessment_attempts where id = p_attempt_id;
+  if not found then raise exception 'attempt_not_found'; end if;
+
+  select * into v_assignment from public.assessment_assignments where id = v_attempt.assignment_id;
+  if not found then raise exception 'assignment_not_found'; end if;
+  if v_assignment.teacher_id is distinct from caller then raise exception 'attempt_not_owned'; end if;
+  if v_attempt.status not in ('marked','released') then raise exception 'attempt_not_finalized'; end if;
+
+  select * into v_assessment from public.assessment_definitions where id = v_attempt.assessment_id;
+  if not found then raise exception 'assessment_not_found'; end if;
+
+  insert into public.competency_evidence_ledger(
+    student_id, outcome_id, evidence_source, evidence_id, score, max_score,
+    proficiency, observed_by, observed_at, weight, school_id, class_id, subject_id
+  )
+  select
+    v_attempt.student_id,
+    aio.outcome_id,
+    'assessment_response',
+    ar.id,
+    ar.final_score,
+    ar.max_score,
+    case
+      when ar.max_score is null or ar.max_score <= 0 then 'not_started'
+      when (ar.final_score / ar.max_score) * 100 >= 85 then 'exceeding'
+      when (ar.final_score / ar.max_score) * 100 >= 70 then 'meeting'
+      when (ar.final_score / ar.max_score) * 100 >= 55 then 'developing'
+      when (ar.final_score / ar.max_score) * 100 >= 40 then 'emerging'
+      else 'needs_intervention'
+    end,
+    caller,
+    coalesce(v_attempt.teacher_reviewed_at, now()),
+    greatest(coalesce(aio.weight, 1), 0.000001),
+    v_attempt.school_id,
+    v_attempt.class_id,
+    v_assessment.subject_id
+  from public.assessment_responses ar
+  join public.assessment_item_outcomes aio on aio.assessment_item_id = ar.assessment_item_id
+  where ar.attempt_id = v_attempt.id
+    and ar.status<>'void'
+    and ar.final_score is not null
+  on conflict (evidence_source, evidence_id, outcome_id)
+  do update set
+    score = excluded.score,
+    max_score = excluded.max_score,
+    proficiency = excluded.proficiency,
+    observed_by = excluded.observed_by,
+    observed_at = excluded.observed_at,
+    weight = excluded.weight,
+    school_id = excluded.school_id,
+    class_id = excluded.class_id,
+    subject_id = excluded.subject_id;
+  get diagnostics rows_written = row_count;
+
+  insert into public.student_outcome_mastery(
+    student_id, outcome_id, mastery_level, mastery_score, evidence_count,
+    last_evidence_at, updated_at
+  )
+  select
+    cel.student_id,
+    cel.outcome_id,
+    case
+      when sum(cel.max_score * cel.weight) <= 0 then 'not_started'
+      when (sum(cel.score * cel.weight) / sum(cel.max_score * cel.weight)) * 100 >= 85 then 'exceeding'
+      when (sum(cel.score * cel.weight) / sum(cel.max_score * cel.weight)) * 100 >= 70 then 'meeting'
+      when (sum(cel.score * cel.weight) / sum(cel.max_score * cel.weight)) * 100 >= 55 then 'developing'
+      when (sum(cel.score * cel.weight) / sum(cel.max_score * cel.weight)) * 100 >= 40 then 'emerging'
+      else 'needs_intervention'
+    end,
+    case
+      when sum(cel.max_score * cel.weight) > 0
+        then round((sum(cel.score * cel.weight) / sum(cel.max_score * cel.weight)) * 100, 2)
+      else 0
+    end,
+    count(*),
+    max(cel.observed_at),
+    now()
+  from public.competency_evidence_ledger cel
+  where cel.student_id = v_attempt.student_id
+    and cel.outcome_id in (
+      select distinct aio.outcome_id
+      from public.assessment_responses ar
+      join public.assessment_item_outcomes aio on aio.assessment_item_id = ar.assessment_item_id
+      where ar.attempt_id = v_attempt.id and ar.status<>'void' and ar.final_score is not null
+    )
+  group by cel.student_id, cel.outcome_id
+  on conflict (student_id, outcome_id)
+  do update set
+    mastery_level = excluded.mastery_level,
+    mastery_score = excluded.mastery_score,
+    evidence_count = excluded.evidence_count,
+    last_evidence_at = excluded.last_evidence_at,
+    updated_at = now();
+
+  return jsonb_build_object(
+    'ok', true,
+    'attempt_id', v_attempt.id,
+    'evidence_rows', rows_written
+  );
+end;
+$function$
+;
+
 commit;
