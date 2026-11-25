@@ -6,6 +6,8 @@ on:
       - 'app/teacher/redesign/**'
       - 'components/teacher/navigation.ts'
       - 'scripts/test-teacher-redesign-navigation.mjs'
+      - 'scripts/test-teacher-redesign-browser.cjs'
+      - 'scripts/fixtures/teacher-redesign-lab.tsx'
       - 'scripts/register-typescript.mjs'
       - '.github/workflows/teacher-redesign-navigation.yml'
 permissions:
@@ -22,3 +24,19 @@ jobs:
           cache: npm
       - run: npm ci
       - run: node --import ./scripts/register-typescript.mjs --test scripts/test-teacher-redesign-navigation.mjs
+  browser-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Install isolated browser test tools
+        run: |
+          npm install --prefix "$RUNNER_TEMP/redesign-browser" --no-save --package-lock=false playwright@1.56.1 esbuild@0.25.12
+          "$RUNNER_TEMP/redesign-browser/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Verify actual shared components in Chromium
+        run: REDESIGN_BROWSER_DEPS="$RUNNER_TEMP/redesign-browser" node scripts/test-teacher-redesign-browser.cjs
