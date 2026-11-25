@@ -7,17 +7,18 @@ export type Panel =
  | TeachingPanel
  | {kind:"stage";index:number;occurrenceId?:string}
  | {kind:"live"|"studio"|"teach";occurrenceId?:string}
- | {kind:"past"|"mark"|"homework-mark"|"attendance"|"settings"|"notifications"|"tools"|"timetable"|"lab"}
+ | {kind:"past"|"mark"|"homework-mark"|"attendance"|"settings"|"notifications"|"tools"|"timetable"|"lab"|"plans"|"notes-library"}
  | {kind:"pending";label:string;href:string};
 export type Destination={tab:TeacherTab;panel:Panel|null};
 export type Opening="sheet"|"workspace"|"immersive";
 
 const tools=Object.values(teacherTools).flat();
-const kinds=["live","studio","past","mark","homework-mark","attendance","settings","notifications","teach","tools","timetable","lab","subjects","curriculum","scheme"] as const;
+const kinds=["live","studio","past","mark","homework-mark","attendance","settings","notifications","teach","tools","timetable","lab","subjects","curriculum","scheme","plans","notes-library"] as const;
 export function toolPanel(href:string,label:string):Panel {
- const index=["","/teacher/lessonplan","/teacher/lesson-notes","/teacher/resources"].indexOf(href);
- if(index>=0)return {kind:"stage",index};
+ if(href==="/teacher/resources")return {kind:"stage",index:3};
  switch(href){
+ case "/teacher/lessonplan":return {kind:"plans"};
+ case "/teacher/lesson-notes":return {kind:"notes-library"};
  case "/teacher/subjecthub":return {kind:"subjects"};
  case "/teacher/curriculum":return {kind:"curriculum"};
  case "/teacher/scheme":return {kind:"scheme"};
@@ -34,7 +35,7 @@ export function toolPanel(href:string,label:string):Panel {
 }
 export function openingFor(panel:Panel|null):Opening {
  if(panel?.kind==="live")return "immersive";
- if(panel&&["stage","studio","teach","timetable","mark","homework-mark","attendance","pending","past","lab","subjects","curriculum","scheme"].includes(panel.kind))return "workspace";
+ if(panel&&["stage","studio","teach","timetable","mark","homework-mark","attendance","pending","past","lab","subjects","curriculum","scheme","plans","notes-library"].includes(panel.kind))return "workspace";
  return "sheet";
 }
 export function parseDestination(search:string):Destination {
