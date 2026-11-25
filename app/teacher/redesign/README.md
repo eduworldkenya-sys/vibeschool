@@ -80,3 +80,17 @@ The three original routes remain unchanged. The preview now routes registered Su
 The illustrative term/week and outcomes do not represent official KICD source data. New saved scheme items never fabricate a dated timetable occurrence. Subject assignment removal is deliberately non-destructive in the preview. The flat document layout uses existing tokens, buttons, search, fields, overlays and accordion. Explicit selected class/subject/unit links are validated; term/week and query choices are session-local. Saved draft/reflection data survive navigation in memory; unsaved field edits may not. Existing feature-specific components and backend adapters remain unchanged. No production service calls or migrations.
 
 Unit and real Chromium preview tests are added for route round-trip, subject isolation, outcome selection, duplicate protection, unscheduled draft and linked dated plan. Exact-head CI, print/accessibility evidence, signed-in preview deployment, and Cyborg completion evidence remain outstanding; this increment is not full Stage 2.2 completion.
+
+## Stage 2.2 — Teach batch 2: Lesson Plans and Lesson Notes
+
+Source inspection: existing `app/teacher/lessonplan/page.tsx`, `app/teacher/lessonplan/prepare/page.tsx`, `app/teacher/lesson-notes/page.tsx`, `components/teacher/CanonicalLessonNotesPanel.tsx`, `components/teacher/LessonNotesLibrary.tsx`, and canonical `lib/teaching/lessonPlanCodec.ts` / `lessonReadiness.ts`.
+
+| Existing workflow | Preview implementation | Remaining parity |
+| --- | --- | --- |
+| Dated lesson plan list | Week navigation, class/subject/search and ready/review/no-plan filters, exact occurrence editor | Authoritative school calendar, real plan history and permissions |
+| Plan creation/editing | Eight canonical sections, linked synthetic curriculum, draft retention, save/discard, canonical format and readiness validation, Today readiness follows saved plan | Actual content generation and certified source retrieval, production persistence, complete plan history |
+| Prepare ahead | Existing unscheduled scheme draft retained locally without inventing a dated slot | Full structured unscheduled editor, attach/archive/restore and timing workflow |
+| Lesson notes | Browse/my notes/prepared views over sample records, editable personal notes, canonical saved plan reference, exact linked resources, Teach and Live Studio entry | Certified catalogue, canonical released notes reader, external resources, teaching kit, reflection/evidence and completion workflows |
+| Dated linkage | Plan ID, scheme ID and occurrence ID preserved; validation cannot infer delivery or make a missing plan ready from a checkbox | Backend integration and authorized end-to-end verification |
+
+This preview reuses the existing canonical codec and readiness evaluator. Synthetic example text is not a KICD source, approved teaching content or a publication. The sample readiness checks only validate the stored sample plan format/structure, not pedagogical quality. Plan editor changes remain separate until saved; preparation and delivery are distinct. Plan lists and notes use flat shared document rows and existing controls. In-memory draft changes survive navigation within the preview, not a reload. No production writes, new service, migrations or existing route changes. Exact-head CI and signed-in verification are required; full Stage 2.2 parity and Cyborg runtime completion remain outstanding.
