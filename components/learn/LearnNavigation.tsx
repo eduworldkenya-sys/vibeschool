@@ -57,7 +57,6 @@ function useStudentNavigation(enabled: boolean): boolean | null {
 export function isLearnDiscoveryPath(pathname: string): boolean {
   return pathname === '/learn'
     || pathname === '/learn/visuals'
-    || pathname === '/learn/tools'
     || pathname === '/learn/stories'
     || /^\/learn\/stories\/[^/]+$/.test(pathname)
 }
@@ -95,7 +94,6 @@ function LearnHeader({ student }: { student: boolean }) {
     <nav className={styles.sections} aria-label="VibeSchool Learn sections">
       <Link href="/learn" aria-current={subjects ? 'page' : undefined}>School subjects</Link>
       <Link href="/learn?view=reading" aria-current={reading ? 'page' : undefined}>All reading</Link>
-      <Link href="/learn/tools" aria-current={pathname==='/learn/tools'?'page':undefined}>Interactive tools</Link>
       <Link href="/learn/stories" aria-current={stories ? 'page' : undefined}>Stories &amp; Series</Link>
       {POST_SECONDARY_PUBLIC_ENABLED && !student && <Link href="/learn?view=courses" aria-current={courses ? 'page' : undefined}>College &amp; courses</Link>}
       {student && <Link href="/student/study">My learning</Link>}
