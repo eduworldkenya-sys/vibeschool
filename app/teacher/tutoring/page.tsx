@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CalendarDays, Users, GraduationCap, ArrowRight, RefreshCw, Video, MessageCircle, BookOpen, ClipboardCheck, ChartNoAxesColumn, NotebookPen, UserPlus } from "lucide-react";
+import { CalendarDays, Users, GraduationCap, ArrowRight, RefreshCw, Video, MessageCircle, BookOpen, ClipboardCheck, ChartNoAxesColumn, NotebookPen, UserPlus, Shapes } from "lucide-react";
 import { getSupabaseClient } from "@/lib/supabase";
 import { tuitionLessonState } from "@/lib/vibetutor/lessonLifecycle";
 
@@ -96,6 +96,7 @@ export default function TeacherTutoringPage() {
   ];
   // Canonical teaching routes: these are shared, not private replicas.
   const sharedTools = [
+    { label: "Interactive tools", detail: "Preview teaching models and activities", href: "/teacher/resources/interactive-tools", icon: Shapes },
     { label: "Curriculum", detail: "Explore learning outcomes", href: "/teacher/curriculum", icon: BookOpen },
     { label: "Schemes of work", detail: "Plan learning progression", href: "/teacher/scheme", icon: ClipboardCheck },
     { label: "Lesson planning", detail: "Prepare lessons and activities", href: "/teacher/lessonplan", icon: NotebookPen },

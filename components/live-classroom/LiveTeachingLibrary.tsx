@@ -6,10 +6,11 @@ import {SlidePrintPreview} from './LiveSlidePrintPreview'
 import {PrivateSlideFields} from './LivePreparedAssessment'
 import {SlideBodyEditor} from './LiveSlideBodyEditor'
 import {LiveStudioRehearsal} from './LiveStudioRehearsal'
+import {TeachingToolsLibrary} from '@/components/learn/tools/TeachingToolsLibrary'
 import {LiveResourcePicker} from './LiveResourcePicker'
 import {validateStudioResources} from './LiveStudioResourceValidation'
 import {StudioFilePreview,uploadStudioFile,validateStudioFiles} from './LiveStudioFiles'
-import {exportDeck,importDeck,MAX_DECK_FILE_BYTES,buildTextRevealSlides,isPhotoBody,studioMinutes,setStudioMinutes,studioResource,studioFile,setStudioFile} from './LiveSlideProtocol'
+import {exportDeck,importDeck,MAX_DECK_FILE_BYTES,buildTextRevealSlides,isPhotoBody,studioMinutes,setStudioMinutes,studioResource,studioFile,setStudioFile,encodeDemo,type SlideDemo} from './LiveSlideProtocol'
 type Summary={id:string;title:string;revision:number;slideCount:number;updatedAt:string}
 type Version=Omit<Summary,'id'>
 type Material={id:string;title:string;revision:number;slides:LiveSlide[]}
@@ -25,7 +26,7 @@ export function TeachingLibrary({command,currentDeck,onUse,onClose}:{command:Com
  const alive=useRef(false),lock=useRef(false),fileInput=useRef<HTMLInputElement>(null)
  const [saveProblem,setSaveProblem]=useState('')
  const [autoSave,setAutoSave]=useState(true)
- const [studioTab,setStudioTab]=useState<'Slides'|'Resources'|'Flow'|'Notes'>('Slides')
+ const [studioTab,setStudioTab]=useState<'Slides'|'Resources'|'Tools'|'Flow'|'Notes'>('Slides')
  const [tool,setTool]=useState<'Content'|'Theme'|null>(null)
  useEffect(()=>{setStudioTab('Slides');setTool(null)},[edit?.id])
  const [rehearsing,setRehearsing]=useState(false)
@@ -135,6 +136,15 @@ export function TeachingLibrary({command,currentDeck,onUse,onClose}:{command:Com
   })
  }
  function changeDeck(slides:LiveSlide[],nextIndex:number){if(lock.current)return;setEdit(m=>m?{...m,slides}:m);setIndex(nextIndex);setDirty(true)}
+ function prepareDemo(demo:SlideDemo){
+  if(!edit||lock.current||edit.slides.length>=30)return
+  const body=encodeDemo(demo)
+  if(!body)return
+  const stage:LiveSlide={title:diagramLabel(demo.kind),body}
+  if(!validSlide(stage))return
+  changeDeck([...edit.slides,stage],edit.slides.length)
+  setStudioTab('Slides')
+ }
  function move(delta:number){if(!edit)return;const target=index+delta;if(target<0||target>=edit.slides.length)return;const next=[...edit.slides];[next[index],next[target]]=[next[target],next[index]];changeDeck(next,target)}
  const slide=edit?.slides[index]
  if(history)return <section className={styles.slideFields} aria-label="Presentation versions"><div className={styles.controls}><strong>Version history</strong><button type="button" disabled={busy} onClick={()=>setHistory(null)}>Back to preparation</button></div>{error&&<p role="alert">{error}</p>}<small>Latest version and up to ten earlier saves. Restore creates a separate copy.</small>{history.versions.map(v=><div key={v.revision} className={styles.controls}><span>Version {v.revision} · {v.title} · {v.slideCount} slides</span><button type="button" disabled={busy} onClick={()=>restoreVersion(v.revision)}>Restore as copy</button></div>)}</section>
@@ -147,12 +157,14 @@ export function TeachingLibrary({command,currentDeck,onUse,onClose}:{command:Com
   <div className={styles.materialList}>{items.length===0?<p>No saved presentations</p>:items.map(item=><div key={item.id}><div><strong>{item.title}</strong><small>{item.slideCount} slides</small></div><button disabled={busy} onClick={()=>open(item)}>Edit</button>{onClose&&<button type="button" disabled={busy} onClick={()=>open(item,false,true)}>Duplicate</button>}{onClose&&<button type="button" disabled={busy} onClick={()=>openHistory(item)}>Versions</button>}<button disabled={busy} onClick={()=>open(item,true)}>Use</button><button disabled={busy} onClick={()=>{if(!window.confirm('Delete this saved presentation? Shared lesson history remains.'))return;void run(async()=>{await command('materials_delete',null,null,{id:item.id,revision:item.revision});if(alive.current&&edit?.id===item.id){setEdit(null);setDirty(false)}await refresh()})}}>Delete</button></div>)}</div>
   </details>
   {error&&<p role="alert">{error}</p>}
+  {onClose&&!edit&&<details className={styles.studioLibraryMenu}><summary>Explore interactive tools</summary><TeachingToolsLibrary/></details>}
   {edit&&slide&&<section className={styles.slideFields} aria-label="Prepare presentation">
    <div className={styles.studioStatus}><small role="status">{busy?"Saving…":dirty?"Draft · Unsaved changes":edit.revision>0?"Draft · All changes saved":"New presentation"}</small>{onClose&&<button type="button" disabled={busy||!edit.slides.some(s=>s.title.trim()||s.body.trim())} onClick={()=>setRehearsing(true)}>Preview</button>}</div>
    {saveProblem&&<div role="alert"><p>{saveProblem.includes('live_material_conflict')?'A newer version exists. Your draft is intact. Save a separate recovered copy or reopen the latest saved version.':saveProblem}</p><button type="button" disabled={busy} onClick={()=>void save()}>Retry save</button>{saveProblem.includes('live_material_conflict')&&<button type="button" disabled={busy} onClick={preserveCopy}>Recover as new copy</button>}</div>}
    <label>Presentation name<input value={edit.title} maxLength={120} disabled={busy} onChange={e=>{if(lock.current)return;setEdit({...edit,title:e.target.value});setDirty(true)}}/></label>
-   {onClose&&<nav className={styles.studioTabs} aria-label="Preparation sections">{(["Slides","Resources","Flow","Notes"] as const).map(tab=><button type="button" key={tab} aria-pressed={studioTab===tab} onClick={()=>setStudioTab(tab)}>{tab}</button>)}</nav>}
+   {onClose&&<nav className={styles.studioTabs} aria-label="Preparation sections">{(["Slides","Resources","Tools","Flow","Notes"] as const).map(tab=><button type="button" key={tab} aria-pressed={studioTab===tab} onClick={()=>setStudioTab(tab)}>{tab}</button>)}</nav>}
    {onClose&&<div className={styles.studioSection} hidden={studioTab!=="Resources"}><><button type="button" disabled={busy||edit.slides.length>=30} onClick={()=>setResourceOpen(true)}>Add approved resource page</button><label>Add private photo or PDF<input aria-label="Add private photo or PDF" type="file" accept="application/pdf,image/jpeg,image/png,image/webp" disabled={busy||edit.slides.length>=30} onChange={e=>{const file=e.target.files?.[0];e.target.value='';if(file)attachFile(file)}}/><small>8 MB maximum · private until presented</small></label></></div>}
+   {onClose&&studioTab==="Tools"&&<section className={styles.studioSection} aria-label="Prepare interactive tools"><small>Adjust a model and add it to your lesson. Other activities are available for private practice.</small><TeachingToolsLibrary onPrepare={prepareDemo} disabled={busy||edit.slides.length>=30}/></section>}
    {onClose&&<div className={styles.studioSection} hidden={studioTab!=="Flow"}><section aria-label="Lesson flow"><strong>Lesson flow · {edit.slides.reduce((sum,s)=>sum+studioMinutes(s),0)} min planned</strong><ol>{edit.slides.map((step,i)=><li key={i}><button type="button" disabled={busy} aria-current={i===index?'step':undefined} onClick={()=>setIndex(i)}>{step.title||'Untitled stage'} · {studioMinutes(step)||'—'} min</button></li>)}</ol><label>Stage duration (minutes)<select value={studioMinutes(slide)} disabled={busy} onChange={e=>{const notes=setStudioMinutes(slide,Number(e.target.value));if(notes===null)setError('Shorten the private notes before adding a duration.');else patch({notes})}}><option value={0}>Not set</option>{Array.from({length:120},(_,i)=>i+1).map(n=><option key={n} value={n}>{n}</option>)}</select></label>{studioResource(slide)&&<small>Linked certified resource · checked before use.</small>}</section></div>}
    <div className={styles.studioSection} hidden={!!onClose&&studioTab!=="Slides"}>
    {studioFile(slide)?<StudioFilePreview reference={studioFile(slide)!} title={slide.title}/>:<SlideCanvas slide={slide} number={index+1} total={edit.slides.length} ownerPhotoPreview/>}

@@ -175,3 +175,48 @@ test('Stage 4 families are registered but cannot be offered as tools before cert
   for (const id of planned) assert.ok(doc.includes('`'+id+'`'),id+' missing from rollout documentation')
   assert.equal(SPECIALIST_TOOL_ROADMAP.filter(x=>x.status==='planned').length,14)
 })
+
+
+test('standalone interactive tools belong to teacher resources, not Learn navigation',()=>{
+  const destination='/teacher/resources/interactive-tools'
+  const navigation=read('../components/learn/LearnNavigation.tsx')
+  const learnerLinks=read('../components/student/StudentLearningFeatureLinks.tsx')
+  const legacy=read('../app/learn/tools/page.tsx')
+  const teacherPage=read('../app/teacher/resources/interactive-tools/page.tsx')
+  assert.ok(!navigation.includes('/learn/tools'))
+  assert.ok(!learnerLinks.includes('/learn/tools'))
+  assert.ok(legacy.includes("redirect('"+destination+"')"))
+  assert.ok(!legacy.includes('TeachingToolsLibrary'))
+  assert.match(teacherPage,/<TeachingToolsLibrary\/>/)
+  assert.ok(read('../app/teacher/tutoring/page.tsx').includes(destination))
+  assert.ok(read('../app/teacher/resources/page.tsx').includes(destination))
+  assert.match(read('../components/live-classroom/LiveClassroom.tsx'),/TeachingModelPicker/)
+})
+
+
+test('Live Studio can prepare interactive models without starting a live lesson',()=>{
+ const studio=read('../components/live-classroom/LiveTeachingLibrary.tsx')
+ const library=read('../components/learn/tools/TeachingToolsLibrary.tsx')
+ const picker=read('../components/live-classroom/TeachingModelPicker.tsx')
+ assert.ok(studio.includes('["Slides","Resources","Tools","Flow","Notes"]'))
+ assert.match(studio,/<TeachingToolsLibrary onPrepare=\{prepareDemo\}/)
+ assert.match(studio,/const body=encodeDemo\(demo\)/)
+ assert.match(studio,/if\(!validSlide\(stage\)\)return/)
+ assert.match(studio,/changeDeck\(\[\.\.\.edit\.slides,stage\],edit\.slides\.length\)/)
+ assert.match(library,/actionLabel="Add to lesson"/)
+ assert.match(picker,/actionLabel='Present to class'/)
+})
+
+
+test('teacher catalogue uses a responsive three-column visual picker with every result reachable',()=>{
+ const picker=read('../components/live-classroom/TeachingModelPicker.tsx')
+ const css=read('../components/live-classroom/TeachingModelPicker.module.css')
+ const library=read('../components/learn/tools/TeachingToolsLibrary.tsx')
+ assert.match(library,/layout="grid"/)
+ assert.match(picker,/const PAGE_SIZE=6/)
+ assert.match(picker,/results\.slice\(currentPage\*PAGE_SIZE,\(currentPage\+1\)\*PAGE_SIZE\)/)
+ assert.match(picker,/aria-pressed=\{active\?\.kind===item\.kind\}/)
+ assert.match(picker,/aria-label="Next tools"/)
+ assert.match(css,/grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/)
+ assert.match(css,/\.addButton\{[^}]*width:100%/)
+})
