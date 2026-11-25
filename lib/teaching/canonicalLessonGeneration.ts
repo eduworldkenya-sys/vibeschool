@@ -1,4 +1,6 @@
 import type { Json } from '@/lib/database.types'
+import { collectLessonQuestionPairs, formatLessonQuestionPairs } from '@/lib/teaching/lessonQuestionPairs'
+import type { LessonQuestionPair } from '@/lib/teaching/lessonQuestionPairs'
 import { supabase } from '@/lib/supabase'
 import type { LessonPlanSections } from '@/lib/teaching/lessonPlanCodec'
 import type { CertifiedLessonContentAsset } from '@/lib/teaching/lessonSourceBundle'
@@ -59,8 +61,6 @@ export type CanonicalLessonGenerationResult =
 const FIELD_KEYS = {
   teachingPoints: new Set(['body','content','content_text','explanation','explanations','summary','keyPoints','key_points','teacherNotes','teacher_notes','workedExamples','worked_examples','kenyanExamples','kenyan_examples','examples']),
   activities: new Set(['activities','learningActivities','learning_activities','learnerActivities','learner_activities']),
-  questions: new Set(['questions','assessmentQuestions','assessment_questions','diagnostics','diagnosticQuestions','diagnostic_questions']),
-  answers: new Set(['answers','expectedAnswers','expected_answers','markingGuide','marking_guide']),
   misconceptions: new Set(['misconceptions','commonMisconceptions','common_misconceptions']),
   differentiation: new Set(['differentiation','support','extension','challenge']),
   homework: new Set(['homework','homeworkTasks','homework_tasks','followUp','follow_up']),
@@ -198,15 +198,14 @@ function parsePedagogy(value: unknown): GroundedPedagogy | null {
 
 function needsPedagogicalReasoning(input: {
   teachingPoints: string[]
-  questions: string[]
-  answers: string[]
+  questionPairs: LessonQuestionPair[]
   misconceptions: string[]
   differentiation: string[]
   homeworkTasks: string[]
 }): boolean {
   return input.teachingPoints.length < 3 ||
-    input.questions.length < 2 ||
-    input.answers.length < input.questions.length ||
+    input.questionPairs.length < 2 ||
+    input.questionPairs.some(item => !item.expectedAnswer) ||
     input.misconceptions.length === 0 ||
     input.differentiation.length === 0 ||
     input.homeworkTasks.length === 0
@@ -295,8 +294,8 @@ export async function generateCanonicalLessonPlan(
 
   let teachingPoints = collectAssetField(assets, FIELD_KEYS.teachingPoints)
   let activities = collectAssetField(assets, FIELD_KEYS.activities)
-  let questions = collectAssetField(assets, FIELD_KEYS.questions)
-  let answers = collectAssetField(assets, FIELD_KEYS.answers)
+  let questionPairs = collectLessonQuestionPairs(assets.map(asset => asset.payload))
+  let assessmentPairs: LessonQuestionPair[] | null = null
   let misconceptions = collectAssetField(assets, FIELD_KEYS.misconceptions)
   let differentiation = collectAssetField(assets, FIELD_KEYS.differentiation)
   let homeworkTasks = collectAssetField(assets, FIELD_KEYS.homework)
@@ -334,8 +333,7 @@ export async function generateCanonicalLessonPlan(
   let generationMode: 'deterministic' | 'ai_assisted' = 'deterministic'
   if (needsPedagogicalReasoning({
     teachingPoints,
-    questions,
-    answers,
+    questionPairs,
     misconceptions,
     differentiation,
     homeworkTasks,
@@ -346,8 +344,8 @@ export async function generateCanonicalLessonPlan(
         generationMode = 'ai_assisted'
         teachingPoints = pedagogy.teachingPoints
         activities = pedagogy.learnerActivities.length > 0 ? pedagogy.learnerActivities : activities
-        questions = pedagogy.questions.map(item => item.question)
-        answers = pedagogy.questions.map(item => item.expectedAnswer)
+        questionPairs = pedagogy.questions
+        assessmentPairs = pedagogy.assessment.length > 0 ? pedagogy.assessment : null
         misconceptions = pedagogy.misconceptions.map(item => `${item.misconception} → ${item.correction}`)
         differentiation = [
           ...pedagogy.differentiation.support.map(item => `Support: ${item}`),
@@ -368,9 +366,8 @@ export async function generateCanonicalLessonPlan(
     }
   }
 
-  const questionAnswerBlock = questions.length > 0
-    ? questions.map((question, index) => `${index + 1}. ${question}${answers[index] ? `\n   Expected answer: ${answers[index]}` : ''}`).join('\n')
-    : '1. Use the Scheme assessment method(s) below to check the stated objectives.'
+  const questionAnswerBlock = formatLessonQuestionPairs(questionPairs)
+  const assessmentAnswerBlock = formatLessonQuestionPairs(assessmentPairs ?? questionPairs)
 
   const sections: LessonPlanSections = {
     objectives: numbered(objectives, 'No authoritative Scheme objective is attached to this lesson yet.'),
@@ -410,7 +407,7 @@ export async function generateCanonicalLessonPlan(
     assessmentHook: joinNonEmpty([
       `Timing: ${ranges.assessment} (${timing.assessment} min). Total lesson time: ${timing.total}/${timing.total} min.`,
       `\nObjectives being assessed:\n${numbered(objectives, '1. No authoritative Scheme objective is attached yet.')}`,
-      `\nPrepared checks:\n${questionAnswerBlock}`,
+      `\nPrepared checks:\n${assessmentAnswerBlock}`,
       assessmentMethods.length > 0 ? `\nScheme assessment method(s):\n${bullets(assessmentMethods, '')}` : null,
       '\nRecord each learner as Mastered, Developing or Needs support before closing the lesson.',
     ]),

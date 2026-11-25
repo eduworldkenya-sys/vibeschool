@@ -36,7 +36,7 @@ function normalize(value: string): string {
 
 export function buildLessonPackageCacheKey(identity: LessonPackageSourceIdentity): string {
   return [
-    'lesson-package:v1',
+    'lesson-package:v2',
     `curriculum=${normalize(identity.curriculumId)}`,
     `subject=${normalize(identity.subjectId)}`,
     `grade=${normalize(identity.grade)}`,
