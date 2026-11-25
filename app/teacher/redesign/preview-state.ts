@@ -19,7 +19,7 @@ export const classLabel=(id:string)=>sampleClasses.find(x=>x.id===id)?.label??"U
 export const subjectLabel=(id:string)=>sampleSubjects.find(x=>x.id===id)?.label??"Unknown subject";
 export const matchesScope=(x:Scope,scope:Scope)=>(scope.classId==="all"||x.classId===scope.classId)&&(scope.subjectId==="all"||x.subjectId===scope.subjectId);
 function occurrence(id:string,classId:string,subjectId:string,date:string,start:string,end:string,topic:string,preparation:Readiness[],attendance:Occurrence["attendance"],delivery:Occurrence["delivery"]):Occurrence{
- return {id,slotId:"slot-"+id,date,start,end,classId,subjectId,topic,planId:preparation[1]==="done"?"plan-"+id:null,schemeId:preparation[0]==="done"?"scheme-"+id:null,preparation,notes:id==="english-today"?"Identify homophones in short sentences.":"",resourceIds:preparation[3]==="done"?sampleResources.filter(x=>x.subjectId===subjectId).map(x=>x.id):[],slideIds:preparation[4]==="done"?sampleSlides.filter(x=>x.occurrenceId===id).map(x=>x.id):[],attendance,delivery};
+ return {id,slotId:"slot-"+id,date,start,end,classId,subjectId,topic,planId:preparation[1]==="done"?"plan-"+id:null,schemeId:preparation[0]==="done"?"scheme-"+id:null,preparation,notes:preparation[2]==="done"?(id==="english-today"?"Identify homophones in short sentences.":"Review sample examples of "+topic.toLowerCase()+"."):"",resourceIds:preparation[3]==="done"?sampleResources.filter(x=>x.subjectId===subjectId).map(x=>x.id):[],slideIds:preparation[4]==="done"?sampleSlides.filter(x=>x.occurrenceId===id).map(x=>x.id):[],attendance,delivery};
 }
 export function createPreviewState():PreviewState{
  return {occurrences:[
@@ -72,7 +72,7 @@ export function previewReducer(state:PreviewState,action:PreviewAction):PreviewS
  }
  if(action.type==="recordAttendance")return {...state,occurrences:state.occurrences.map(x=>x.id===action.id?{...x,attendance:"completed"}:x)};
  if(action.type==="markSubmission")return {...state,submissions:state.submissions.map(x=>x.id===action.id?{...x,status:"marked"}:x)};
- if(action.type==="startTeaching"||action.type==="finishTeaching")return {...state,occurrences:state.occurrences.map(x=>x.id===action.id&&(action.type==="startTeaching"?x.delivery==="scheduled":x.delivery==="teaching")?{...x,delivery:action.type==="startTeaching"?"teaching":"taught"}:x)};
+ if(action.type==="startTeaching"||action.type==="finishTeaching")return {...state,occurrences:state.occurrences.map(x=>x.id===action.id&&(action.type==="startTeaching"?x.delivery==="scheduled"&&x.date===previewDate:x.delivery==="teaching")?{...x,delivery:action.type==="startTeaching"?"teaching":"taught"}:x)};
  if(action.type==="startSession"){
   if(state.sessions.some(x=>x.status!=="ended")||(!sampleClasses.some(x=>x.id===action.audience)&&!["tuition","open"].includes(action.audience)))return state;
   const lesson=state.occurrences.find(x=>x.id===action.occurrenceId&&x.classId===action.audience);
