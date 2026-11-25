@@ -51,7 +51,7 @@
     "test:vibetwin-muted": "node scripts/test-vibetwin-global-mute.mjs",
     "test:mini-requests": "node --test scripts/test-mini-request-preview.mjs",
     "test:mini-requests-backend": "node scripts/test-mini-requests-contract.mjs",
-    "test:mini-open-publishing": "node --test scripts/test-mini-open-publishing-contract.mjs"
+    "test:mini-open-publishing": "node --import ./scripts/register-typescript.mjs --test scripts/test-mini-open-publishing-contract.mjs scripts/test-mini-teacher-direct.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.97.1",
@@ -76,6 +76,7 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "recharts": "^3.8.1",
+    "sharp": "0.35.5",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   },
   "devDependencies": {

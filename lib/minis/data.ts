@@ -94,12 +94,18 @@ export async function fetchMiniPage({ search = '', tag = 'All', cursor, creators
   return { posts, nextCursor: rows.length > MINI_PAGE_SIZE && last?.published_at ? {publishedAt:last.published_at,id:last.id} : null }
 }
 
-export async function fetchOwnMiniStatus(userId: string) {
+export type OwnMiniStatus = {
+  id: string; title: string; tags: string[]; status: string; created_at: string
+  like_count: number; save_count: number; learned_count: number
+  publication_method?: string | null; cover_path?: string | null
+}
+
+export async function fetchOwnMiniStatus(userId: string, direct = false): Promise<OwnMiniStatus[]> {
   const { data, error } = await supabase.from('mini_lessons')
-    .select('id,title,tags,status,created_at,like_count,save_count,learned_count')
+    .select('id,title,tags,status,created_at,like_count,save_count,learned_count'+(direct?',publication_method,cover_path':''))
     .eq('creator_id',userId).order('created_at',{ascending:false}).limit(30)
   if (error) throw new Error('Unable to load your submissions.')
-  return (data ?? []) as { id: string; title: string; tags: string[]; status: string; created_at: string; like_count:number; save_count:number; learned_count:number }[]
+  return (data ?? []) as OwnMiniStatus[]
 }
 
 export async function loadMiniCovers(posts: MiniPost[]) {

@@ -22,6 +22,9 @@ on:
       - 'supabase/migrations/*mini_open_creator*.sql'
       - 'scripts/test-mini-requests-contract.mjs'
       - 'scripts/test-mini-open-publishing-contract.mjs'
+      - 'scripts/test-mini-teacher-direct.mjs'
+      - 'scripts/tests/mini-teacher-direct.sql'
+      - 'supabase/migrations/*mini_teacher_direct_photo.sql'
       - 'scripts/test-mini-lessons-contract.mjs'
       - '.github/workflows/mini-lessons-v1-contract.yml'
 
@@ -33,6 +36,15 @@ jobs:
     name: Mini Lessons security, privacy and ranking unit proof
     runs-on: ubuntu-latest
     timeout-minutes: 12
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: mini-fixture
+          POSTGRES_DB: mini_fixture
+        options: --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+        ports:
+          - 5432:5432
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -42,6 +54,10 @@ jobs:
       - run: npm ci
       - run: node --import ./scripts/register-typescript.mjs scripts/test-mini-lessons-contract.mjs
       - run: node scripts/test-mini-requests-contract.mjs
-      - run: node --test scripts/test-mini-open-publishing-contract.mjs
+      - run: npm run test:mini-open-publishing
+      - name: Exercise teacher Mini RLS and publication on disposable PostgreSQL
+        run: psql -h localhost -U postgres -d mini_fixture -v ON_ERROR_STOP=1 -f scripts/tests/mini-teacher-direct.sql
+        env:
+          PGPASSWORD: mini-fixture
 
       - run: node --import ./scripts/register-typescript.mjs scripts/test-mini-voice-contract.mjs

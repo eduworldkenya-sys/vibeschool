@@ -19,7 +19,7 @@ test('HQ cannot act as a routine publication approval system',()=>{
  assert.doesNotMatch(creator,/Submit Mini for review|submitted for moderation|after approval/)
  assert.doesNotMatch(requestUi,/Submit request for review|Requests are reviewed before public discovery/)
 })
-test('user submissions are private until automated safety screening succeeds',()=>{
+test('legacy photo, other formats, request and comment submissions still require automated screening',()=>{
  for(const part of ["MINI_LESSONS_OPEN_PUBLISHING_ENABLED!=='true'","getUser(bearer)","sameOrigin(request)","mini_safety_claim","item.status!=='pending'","status:verdict.safe?'approved':'rejected'","published_at=verdict.safe?timestamp:null","status','pending'"])
    assert.ok(api.includes(part),'Missing server-side safety control: '+part)
  assert.match(api,/catch \{[\s\S]*verdict:'unavailable'/)
@@ -51,14 +51,16 @@ test('private scan log, bounded attempts and community safety holds',()=>{
  assert.match(requestUi,/Report request/)
 })
 test('negative control detects a missing safety gate',()=>{
- assert.doesNotMatch(api.replace("MINI_LESSONS_OPEN_PUBLISHING_ENABLED!=='true'",''),/MINI_LESSONS_OPEN_PUBLISHING_ENABLED!=='true'/)
+ const gate = /if\(process.env.MINI_LESSONS_OPEN_PUBLISHING_ENABLED!=='true'\)\s+return approved/
+ assert.match(api, gate)
+ assert.doesNotMatch(api.replace(gate, 'return approved'), gate)
 })
 
 test('pending publication retries the same private record without inserting another',()=>{
  const retry=creator.slice(creator.indexOf('async function retryPublication'),creator.indexOf('async function openMine'))
  assert.match(retry,/publishMiniSafely\('mini',id\)/)
  assert.doesNotMatch(retry,/submitMini\(|\.insert\(/)
- assert.match(retry,/fetchOwnMiniStatus\(viewer\)/)
+ assert.match(retry,/fetchOwnMiniStatus\(viewer,directPostingEnabled\)/)
  assert.match(creator,/p.status==='pending'[\s\S]*Retry safety check/)
 })
 test('publication feedback precedes the feed and refresh errors do not misreport success',()=>{
