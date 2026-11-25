@@ -14,6 +14,32 @@ export function parseLessonDurationMinutes(value?: string | null): number {
   return Number.isFinite(minutes) && minutes > 0 ? Math.round(minutes) : 40
 }
 
+/** Same-day timetable slots use their persisted start/end clock times. */
+export function scheduledLessonMinutes(start: string | null | undefined, end: string | null | undefined): number {
+  const seconds = (value: string | null | undefined): number => {
+    const match = value?.match(/^(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d+))?)?$/)
+    if (!match) return NaN
+    const hours = Number(match[1])
+    const minutes = Number(match[2])
+    const secs = Number(match[3] ?? 0) + Number('0.' + (match[4] ?? '0'))
+    if (hours > 23 || minutes > 59 || secs >= 60) return NaN
+    return hours * 3600 + minutes * 60 + secs
+  }
+  const minutes = (seconds(end) - seconds(start)) / 60
+  if (!Number.isFinite(minutes) || minutes < 1) {
+    throw new Error('This timetable lesson has an invalid duration. Check its start and end times.')
+  }
+  return Math.round(minutes)
+}
+
+/** Refuse a stale generated plan rather than silently changing its source package. */
+export function verifyScheduledLessonMinutes(expected: number | null | undefined, current: number): number {
+  if (expected !== current) {
+    throw new Error('The timetable duration changed during preparation. Generate the lesson again to use the current duration.')
+  }
+  return current
+}
+
 export function allocateLessonTiming(totalMinutes: number): LessonTiming {
   const total = Math.max(1, Math.round(totalMinutes))
 

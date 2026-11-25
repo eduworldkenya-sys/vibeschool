@@ -28,6 +28,9 @@ truth_migration = text(
     "supabase/migrations/20260903123000_lesson_plan_truth_convergence.sql"
 )
 repository = text("lib/teaching/lessonRepository.ts")
+modal = text("components/teacher/LessonPlanModal.tsx")
+assert modal.index("if (slot.day_of_week == null)", modal.index("async function generate()")) < modal.index("const durationMinutes = await loadScheduledLessonDuration("), "weekday must be validated before duration lookup"
+assert modal.index("if (!taughtDate)", modal.index("async function generate()")) < modal.index("const durationMinutes = await loadScheduledLessonDuration("), "date must be validated before duration lookup"
 evidence = text("components/teacher/EvidenceCaptureSheet.tsx")
 
 # Gate 1: exact timetable occurrence is database authority, not only UI state.
@@ -72,6 +75,9 @@ require(repository, "function parseIsoDate", "strict ISO date parser")
 require(repository, "function isoWeekStart", "canonical week derivation")
 require(repository, "week_start: weekStart", "repository canonical week write")
 require(repository, "day_of_week: slot.day_of_week", "repository canonical weekday write")
+require(repository, "duration_minutes: durationMinutes", "repository canonical slot duration write")
+require(repository, "saved.duration_minutes === durationMinutes", "post-write duration verification")
+require(repository, "verifyScheduledLessonMinutes(payload.duration_minutes, scheduledLessonMinutes(slot.start_time, slot.end_time))", "stale generated duration detection")
 require(repository, ".eq('teacher_id', user.id)", "owned mutation filter")
 require(repository, ".select('id')", "mutation row verification")
 require(

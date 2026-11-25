@@ -20,7 +20,8 @@ const certifiedReaderMigration = read('supabase/migrations/20261111133000_grade1
 
 assert.ok(scheme.includes('<JumpingSchemeContent schemeId={item.id}/>'),'Scheme must show exact linked content.')
 assert.ok(modal.includes('buildJumpingDraftSections(jumpingDraft, suggestion)'),'Plan must use original content, not regenerate it.')
-assert.ok(modal.includes('timeOriginalLessonSections(parsed, parseLessonDurationMinutes(calcDuration(slot.start, slot.end)))'),'Scheduled Jumping drafts must use timetable timing.')
+assert.ok(modal.includes('timeOriginalLessonSections(parsed, durationMinutes)'),'Scheduled Jumping drafts must use timetable timing.')
+assert.ok(modal.includes('await loadScheduledLessonDuration({'),'Scheduled generation must read actual slot duration.')
 assert.ok(prepare.includes('timeOriginalLessonSections(sections, Number(duration))'),'Independent preparation must use its saved duration.')
 assert.ok(prepare.includes('Choose one of the 14 Jumping lessons'),'Broad Scheme must not silently choose an original manuscript.')
 assert.ok(picker.includes("onUse(selection)"),'Choosing one manuscript must load it into the builder without another click.')
