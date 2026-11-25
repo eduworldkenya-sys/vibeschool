@@ -58,7 +58,7 @@ export default function TeacherRedesignPage(){
  const lesson=panel&&"occurrenceId" in panel&&panel.occurrenceId?state.occurrences.find(x=>x.id===panel.occurrenceId)??null:next;
  const teachingPanel=panel&&(panel.kind==="subjects"||panel.kind==="curriculum"||panel.kind==="scheme")?panel:null;
  const candidatePair=teachingPanel?.classId&&teachingPanel.subjectId?{classId:teachingPanel.classId,subjectId:teachingPanel.subjectId}:scope;
- const teachingScope=validPair(candidatePair,state.assignments)?candidatePair:state.assignments.find(a=>a.classId===scope.classId&&a.subjectId===scope.subjectId)??state.assignments.find(a=>a.classId===next?.classId&&a.subjectId===next?.subjectId)??state.assignments[0]??defaultScope;
+ const teachingScope=teachingPanel?.classId&&teachingPanel.subjectId?candidatePair:validPair(candidatePair,state.assignments)?candidatePair:state.assignments.find(a=>a.classId===scope.classId&&a.subjectId===scope.subjectId)??state.assignments.find(a=>a.classId===next?.classId&&a.subjectId===next?.subjectId)??state.assignments[0]??defaultScope;
  const draft=lesson?state.drafts[lesson.id]:undefined;
  const done=next?.preparation??[];
  const completed=done.filter(x=>x==="done").length;
