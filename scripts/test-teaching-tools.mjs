@@ -192,3 +192,17 @@ test('standalone interactive tools belong to teacher resources, not Learn naviga
   assert.ok(read('../app/teacher/resources/page.tsx').includes(destination))
   assert.match(read('../components/live-classroom/LiveClassroom.tsx'),/TeachingModelPicker/)
 })
+
+
+test('Live Studio can prepare interactive models without starting a live lesson',()=>{
+ const studio=read('../components/live-classroom/LiveTeachingLibrary.tsx')
+ const library=read('../components/learn/tools/TeachingToolsLibrary.tsx')
+ const picker=read('../components/live-classroom/TeachingModelPicker.tsx')
+ assert.ok(studio.includes('["Slides","Resources","Tools","Flow","Notes"]'))
+ assert.match(studio,/<TeachingToolsLibrary onPrepare=\{prepareDemo\}/)
+ assert.match(studio,/const body=encodeDemo\(demo\)/)
+ assert.match(studio,/if\(!validSlide\(stage\)\)return/)
+ assert.match(studio,/changeDeck\(\[\.\.\.edit\.slides,stage\],edit\.slides\.length\)/)
+ assert.match(library,/actionLabel="Add to lesson"/)
+ assert.match(picker,/actionLabel='Present to class'/)
+})
