@@ -61,8 +61,14 @@ export function timeOriginalLessonSections(
   }
   const timing = allocateLessonTiming(durationMinutes)
   const ranges = lessonTimingRanges(timing)
-  const mark = (content: string, range: string, minutes: number) =>
-    `Timing: ${range} (${minutes} min).\n${content}`
+  // Strip only complete machine-generated timing headers at the start.
+  // Keep the teacher's prose, even when it contains its own timing guidance.
+  const generatedHeader = /^Timing: \d+[–-]\d+ min \(\d+ min\)\.(?: Total lesson time: \d+\/\d+ min\.)?(?:\r?\n|$)/
+  const mark = (content: string, range: string, minutes: number) => {
+    let body = content
+    while (generatedHeader.test(body)) body = body.replace(generatedHeader, '')
+    return `Timing: ${range} (${minutes} min).\n${body}`
+  }
   return {
     ...sections,
     introduction: mark(sections.introduction, ranges.introduction, timing.introduction),
