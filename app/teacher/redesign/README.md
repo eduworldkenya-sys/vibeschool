@@ -4,7 +4,7 @@ This is the frontend-only implementation of the relevant design decisions in [RE
 
 ## Reuse contract
 
-- Import existing primitives from `ui.tsx` and composed controls from `controls.tsx`; do not copy their JSX or CSS into individual redesigned workspaces. Configure labels, actions, variants, data, icons and states through props. Extend the common component for a genuinely reusable new variant.
+- Import existing primitives from `ui.tsx` and composed controls from `controls.tsx` and workspace patterns from `workspace-controls.tsx`; do not copy their JSX or CSS into individual redesigned workspaces. Configure labels, actions, variants, data, icons and states through props. Extend the common component for a genuinely reusable new variant.
 - Shared styles and semantic appearance tokens are in `redesign.module.css`; deterministic search/filter/reorder/calendar logic lives in `component-logic.ts`. The canonical teacher navigation registry remains `components/teacher/navigation.ts`.
 - The Design Lab uses the same imports as the redesigned app. Open Me → Design Lab, or visit `/teacher/redesign?tab=me&panel=lab`. All lab data and actions are synthetic and local.
 - Preserve existing product functionality and permissions. Do not introduce a parallel production service, duplicate established UI infrastructure, or bind sample actions to production writes. Reconcile legacy shared components during adoption; this library is canonical for the redesigned Teacher App, not yet a migration of every VibeSchool surface.
@@ -25,3 +25,22 @@ This is the frontend-only implementation of the relevant design decisions in [RE
 | Verification | Regression contracts and lab checklist for 320–1440px, themes, text scaling, keyboard | Actual CI, device/browser, assistive technology and production checks |
 
 This matrix records implementation scope, not certification. The broader inventory in REDESIGN.md remains applicable to future real workspaces. No extra product features are implied by illustrative samples.
+
+## Advanced workspace reuse guidance
+
+| Component | Use when | Avoid |
+| --- | --- | --- |
+| SplitWorkspace | Teachers must consult two related sources or edit alongside a preview; control width and collapse through props. Mobile switches panes without discarding draft content. | Forcing two columns into narrow devices or duplicating standalone routes. |
+| ContextToolbar | Actions belong to a selected item or working canvas. | Repeating global navigation or hiding essential actions on hover. |
+| CommandPalette | A large authorized tool/action catalogue benefits from quick discovery; retain a visible button as the touch alternative. | Adding multiple global keyboard listeners for the same shortcut in one workspace. |
+| BulkSelection | The user explicitly selects several displayed records for a supported operation; count is limited to the current collection. | Claiming the whole server-side dataset is selected or recording mock completion as real. |
+| ExpandableWorkspace | Focused content preview or working canvas requires more space. | Implying browser fullscreen or real Live connection; retain a clear exit. |
+| ContextPopover | Brief contextual details and secondary actions. | Long forms or destructive confirmations; use AdaptiveOverlay instead. |
+| FileField | Select and remove local attachments before an existing authorized upload flow. | Reporting selected files as uploaded or bypassing file validation and storage permissions. |
+| ReorderList | User-managed shortcuts, resources and ordered collections. | Drag-only interaction; retain accessible move controls and scope persistence correctly. |
+
+The appearance panel supports theme, accent, compact/comfortable/detailed density, default/large/extra-large text, default/system font and system/reduced motion. Preview preferences and shortcut order are session-only; existing account-scoped storage must be integrated later.
+
+## Browser verification
+
+`scripts/test-teacher-redesign-browser.cjs` mounts the real Design Lab using an isolated local fixture, not a customer-facing route or an authentication bypass. The CI browser job exercises six viewport widths, both themes, horizontal overflow, button pending state, keyboard and dialog focus, search, filters, validation, reorder, split resizing, multi-selection and command palette. These tests must actually pass before the scope can be described as verified. Signed-in navigation, production data, screen-reader evaluation, device-specific touch, and real service integration require separate evidence.
