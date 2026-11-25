@@ -92,3 +92,6 @@
 @media(max-width:359px){.header{gap:0;padding:6px 5px}.header .iconButton,.header .avatar{width:44px;flex:none}.brand img{width:108px}.brand small{font-size:.74em}.stages button{font-size:.72em}.shell .main{scrollbar-gutter:auto}}
 @media(max-height:480px) and (orientation:landscape){.fullWorkspace[data-opening=immersive]{padding:8px}.fullWorkspace[data-opening=immersive] .liveCanvas{min-height:100px;padding:8px}}
 @media(prefers-reduced-motion:reduce){.dialog[open]{animation:none!important}}
+
+.field{display:grid;gap:5px;font-weight:550}.field input,.field select,.field textarea{font-weight:400}
+.tableWrap{overflow:auto;max-width:100%}.dataTable{width:100%;border-collapse:collapse;text-align:left}.dataTable caption{text-align:left;color:var(--muted);padding:8px 0}.dataTable th,.dataTable td{padding:10px 8px;border-bottom:1px solid var(--line);vertical-align:top}.dataTable th{color:var(--muted);font-size:.9em}.pagination{display:flex;align-items:center;justify-content:space-between;gap:8px}.hero .progressTrack{background:#52647b}.hero .progressTrack span{background:#93c5fd}.hero .stateView{color:#e2e8f0}.hero .stateView[data-tone=error]{color:#fecaca}.main:focus{outline:none}.stateView[data-tone=success]{color:var(--success)}
