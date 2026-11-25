@@ -14,7 +14,7 @@ export function initialPlanSections(row:Occurrence,scheme?:SchemeItem):LessonPla
 export function samplePlanSections(row:Occurrence,scheme?:SchemeItem):LessonPlanSections{
  const seed=initialPlanSections(row,scheme);
  const topic=row.topic;
- const objective=seed.objectives||"1. Describe the main features of "+topic+" using an example.";
+ const objective=seed.objectives.replace("Distinguish words that sound alike but have different meanings.","Differentiate words that sound alike but have different meanings.")||"1. Describe the main features of "+topic+" using an example.";
  return {objectives:objective,resources:"- Sample activity sheet\n- Classroom board",
  introduction:"Timing: Introduction (5 min)\nKey inquiry question: What do we already know about "+topic+"?",
  development:"Timing: Development (20 min)\nTeaching points / teacher notes:\n1. Explain "+topic+" using a familiar classroom example.\n2. Compare two examples and discuss their differences.\nLearner activities:\n1. Learners work in pairs to discuss and record an example.\nCheck-for-understanding questions and expected answers:\n1. How would you explain "+topic+" to a partner?\nExpected answer: A clear explanation with a relevant example.\nMisconceptions to watch:\n- Check that learners use examples accurately rather than memorising labels.",
