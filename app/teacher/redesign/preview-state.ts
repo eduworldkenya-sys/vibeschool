@@ -107,7 +107,7 @@ export function previewReducer(state:PreviewState,action:PreviewAction):PreviewS
   const row=state.occurrences.find(x=>x.id===action.id);if(!row)return state;
   const draft=state.drafts[row.id],checked=draft?.checks[action.index];
   const notes=action.index===2?draft?.notes??row.notes:row.notes;
-  if(action.index===2&&checked===true&&!notes.trim())return state;
+  if(action.index===2&&(checked??row.preparation[2]==="done")&&!notes.trim())return state;
   const next:Occurrence={...row,notes,preparation:row.preparation.map((v,i)=>i===action.index&&checked!==undefined?(checked?"done":"pending"):v)};
   if(action.index===0&&checked!==undefined)next.schemeId=checked?"scheme-"+row.id:null;
   if(action.index===1){const saved=state.plans[row.id];next.planId=saved?.id??null;next.preparation[1]=saved&&planReview(saved.sections).ready?"done":"pending";}
