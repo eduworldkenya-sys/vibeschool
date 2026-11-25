@@ -409,3 +409,27 @@ Compare anchored popover, dropdown/menu, tooltip, centered dialog, mobile bottom
 ### 28.5 Product language and design selection record
 Show visual alternatives with realistic content and no invented functionality. Compare ordinary, selected, focus/pressed, disabled, loading, empty, error and success states where applicable. Include mobile/tablet/desktop and light/dark/system previews. Record component ID, existing consumers, candidate visual samples, recommendation, selected/default variant and rationale, token and behavior specifications, responsive and accessibility considerations, affected routes and actual test evidence. Link the record to existing design inventory in the Master Preview rather than create a separate approval system. Use the same component across products with justified contextual variants.
 Remove AI-sounding interface paragraphs, repeated introductions and promotional descriptions: use short labels such as Learn, Profile, Prepare, Go live, Saved and Retry; preserve useful educational explanations and necessary instructions, accessibility and safety information. Put optional explanations in context-sensitive help. Every pixel and word should serve the user. No HQ dependency, new approval gates or unrelated new features.
+
+## 29. Modern, intelligent, interactive and time-saving component direction
+Owner preference: a modern look and feel with smart, interactive components that save time, remove friction and respond intelligently to context. Apply this to existing functionality; intelligence means useful deterministic context and behavior where sufficient, not a requirement for AI calls, new features, or additional automation authorities.
+
+### 29.1 Practical component behavior
+| Existing component | Preferred refinement |
+| --- | --- |
+| Search | Fast relevant results, clear input, useful existing suggestions, preserve query on return, cancel obsolete requests; no extra submit step where immediate search is appropriate |
+| Select/dropdown | Clear current value, relevant existing options, search long lists, remember appropriate selection, avoid repeatedly asking for known context; direct selection when few options |
+| Filters/sorting | Visible active filters, useful counts when real data supports them, fast updates, simple reset, preserve relevant choices; compact sheet on mobile where suitable |
+| Navigation/tabs | Restore appropriate workspace and scroll context, predictable back/next, keep most-used actions accessible, avoid unnecessary intermediate pages |
+| Forms/editors | Use known authorized context and safe defaults, retain input, appropriate autosave/drafts, inline validation, minimal necessary fields, one meaningful completion action |
+| Action buttons | Action-specific wording, immediate press/pending feedback, actual confirmed outcome, safe retry and appropriate next action; no redundant popup or approval |
+| Lesson preparation | Show actual upcoming lesson and remaining preparation steps, resume relevant saved work, keep optional instant live available; no invented readiness gate |
+| Learning/progress | Resume actual reading/activity position and show real progress, feedback and next relevant existing learning action |
+| Profile/settings | Show correct active identity, preserve preferences within appropriate scope, immediately reflect confirmed edits across relevant views |
+| Messaging/media | Show truthful send/delivery/upload state, retain failed input, recover where supported, avoid reloading unrelated content |
+| Popups/menus | Relevant contextual actions, lightweight dismissal and sensible mobile placement, no stack of dialogs for routine actions |
+| Tables/lists/cards | Compact useful data, clear selection, direct access to existing frequent actions, existing batch operations where supported, secondary actions in more menu |
+### 29.2 Time-saving and intelligence principles
+Use progressive disclosure, context-sensitive defaults derived from authoritative state, clear editable selections, appropriate persistence, fast local feedback, useful recovery and predictable next actions. Reduce repeat entry, redundant screens, taps and waiting without removing meaningful user choice, accessibility, or essential safeguards. A recommendation or default must be transparent, correctable and scoped to the active authorized identity. Never fabricate progress, infer permission from convenience, silently submit/publish/pay, or add AI dependencies just to make a component seem intelligent.
+Favor restrained modern visual treatment: compact but accessible layouts, consistent typography and spacing, purposeful icons, clear hierarchy, subtle motion, theme-aware components and high-value visible actions. Interactive components must do actual work, not merely animate. Test on affordable mobile devices and slow connections; keep controls responsive and stable.
+### 29.3 Evidence of friction reduction
+For representative existing tasks, compare current and redesigned versions using measured required taps/clicks, screens, repeated fields, completion time where reproducible, errors/recovery, accessibility and actual successful outcome. Record role, device, network, scenario and revision. Do not assume fewer clicks always means better usability; preserve important information and genuine confirmations. Record the baseline and observed improvement or remaining defect in the existing Master Preview inventory. Targets are design/optimization guidance, not new customer restrictions or mandatory approval gates.
