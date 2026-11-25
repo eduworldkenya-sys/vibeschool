@@ -145,3 +145,7 @@ executed or certified.** Keep this gate pending for both subjects.
 and `node scripts/test-curriculum-scheme-routing.mjs` run in the existing
 Engineering Integration Gate. These source-contract checks protect wiring
 but do not replace the signed-in acceptance in item 4. Every newly connected\ngrade/subject must add a corresponding contract regression to the same\nexisting integration gate; a new subject must not rely solely on the Grade 4\nCRE/Creative Arts-specific assertions.
+
+## Forward compatibility — 25 November 2026
+
+Migration `20261125074437_scheme_outcome_reconciliation_compatibility.sql` is a standalone forward convergence for deployments where the November 12 reconciliation objects are absent. It restores the same invoker audit view and exact identity validators without adding a teaching-start restriction solely for an absent outcome. Status-only transitions do not revalidate historical links. No historical backfill is performed; source verification and existing independent certification gates remain unchanged. The older migration is not edited and its migration history is not fabricated. Production application requires exact-head CI, migration governance, and read-only post-deploy verification. Unlinked lessons are still explicitly reported as OUTCOME_MISSING, not certified.
