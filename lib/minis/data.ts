@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase'
+import {miniVoiceColumns} from './voice-release'
 import {miniSlideColumns} from './slide-release'
 import type { RankedMini } from './recommendation'
 
@@ -12,6 +13,7 @@ export type MiniPost = RankedMini & {
   quiz_correct: number | null
   quiz_explanation: string | null
   cover_path: string | null
+  audio_path?: string | null
   slide_deck?: unknown
   status: string
   request_id: string | null
@@ -49,7 +51,7 @@ export function isMiniPost(value: unknown): value is MiniPost {
 
 export async function fetchApprovedMinis(limit = 120): Promise<MiniPost[]> {
   const { data, error } = await supabase.from('mini_lessons')
-    .select('id,creator_id,creator_label,title,body,subject,tags,quiz_question,quiz_options,quiz_correct,quiz_explanation,cover_path,status,request_id,quality_score,like_count,save_count,learned_count,published_at,created_at'+miniSlideColumns())
+    .select('id,creator_id,creator_label,title,body,subject,tags,quiz_question,quiz_options,quiz_correct,quiz_explanation,cover_path,status,request_id,quality_score,like_count,save_count,learned_count,published_at,created_at'+miniSlideColumns()+miniVoiceColumns())
     .eq('status','approved')
     .order('published_at', { ascending: false })
     .limit(Math.min(120, Math.max(1, limit)))
@@ -69,7 +71,7 @@ export async function fetchMiniPage({ search = '', tag = 'All', cursor, creators
   const term = search.normalize('NFKC').replace(new RegExp('[^\\p{L}\\p{N}\\s_-]', 'gu'), ' ').replace(/\s+/g, ' ').trim().slice(0, 80)
   const exactTag = search.trim().replace(/^#/, '').toLowerCase()
   let query = supabase.from('mini_lessons')
-    .select('id,creator_id,creator_label,title,body,subject,tags,quiz_question,quiz_options,quiz_correct,quiz_explanation,cover_path,status,request_id,quality_score,like_count,save_count,learned_count,published_at,created_at'+miniSlideColumns())
+    .select('id,creator_id,creator_label,title,body,subject,tags,quiz_question,quiz_options,quiz_correct,quiz_explanation,cover_path,status,request_id,quality_score,like_count,save_count,learned_count,published_at,created_at'+miniSlideColumns()+miniVoiceColumns())
     .eq('status','approved')
   if (tag !== 'All') query = query.contains('tags', [tag])
   if (creators) query = query.in('creator_id', [...creators])
@@ -131,7 +133,7 @@ export async function loadApprovedComments(id: string): Promise<ApprovedComment[
 
 export async function fetchMiniRequestAnswers(requestId: string): Promise<MiniPost[]> {
   const { data, error } = await supabase.from('mini_lessons')
-    .select('id,creator_id,creator_label,title,body,subject,tags,quiz_question,quiz_options,quiz_correct,quiz_explanation,cover_path,status,request_id,quality_score,like_count,save_count,learned_count,published_at,created_at'+miniSlideColumns())
+    .select('id,creator_id,creator_label,title,body,subject,tags,quiz_question,quiz_options,quiz_correct,quiz_explanation,cover_path,status,request_id,quality_score,like_count,save_count,learned_count,published_at,created_at'+miniSlideColumns()+miniVoiceColumns())
     .eq('status','approved').eq('request_id',requestId)
     .order('published_at',{ascending:false}).limit(60)
   if (error) throw Error('Unable to load explanations.')

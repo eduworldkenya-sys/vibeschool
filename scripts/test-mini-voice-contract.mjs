@@ -1,0 +1,21 @@
+import assert from 'node:assert/strict'
+import {readFileSync} from 'node:fs'
+import {validateMiniVoice} from '../lib/minis/voice.ts'
+const wav=Buffer.alloc(32044)
+wav.write('RIFF');wav.writeUInt32LE(wav.length-8,4);wav.write('WAVE',8);wav.write('fmt ',12)
+wav.writeUInt32LE(16,16);wav.writeUInt16LE(1,20);wav.writeUInt16LE(1,22);wav.writeUInt32LE(16000,24)
+wav.writeUInt32LE(32000,28);wav.writeUInt16LE(2,32);wav.writeUInt16LE(16,34)
+wav.write('data',36);wav.writeUInt32LE(wav.length-44,40)
+assert.equal(validateMiniVoice(wav),1)
+assert.throws(()=>validateMiniVoice(Buffer.alloc(50)))
+const bad=Buffer.from(wav);bad.writeUInt16LE(2,22);assert.throws(()=>validateMiniVoice(bad))
+const read=p=>readFileSync(p,'utf8')
+const schema=read('supabase/migrations/20261124233000_mini_voice_optional.sql')
+assert.match(schema,/status <> 'approved' or audio_path is null or audio_sha256 is not null/)
+assert.match(schema,/revoke insert\(audio_sha256\), update\(audio_path,audio_sha256\)/)
+assert.match(schema,/'mini-voice','mini-voice',false/)
+const api=read('app/api/minis/safety/route.ts')
+assert.match(api,/MINI_GOOGLE_SPEECH_API_KEY/)
+assert.match(api,/verdict=await moderate\(\{target,title:'Voice narration',body:voice.text\}\)/)
+assert.match(api,/if\(verdict.safe\)voiceHash=voice.hash/)
+console.log('Mini voice static contract and WAV validation passed')

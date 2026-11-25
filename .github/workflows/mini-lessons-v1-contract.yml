@@ -11,6 +11,10 @@ on:
       - 'app/hq/minis/**'
       - 'app/student/explore/page.tsx'
       - 'components/public/MiniLive*'
+      - 'components/public/MiniVoice*'
+      - 'app/mini/**'
+      - 'supabase/migrations/*mini_voice*.sql'
+      - 'scripts/test-mini-voice-contract.mjs'
       - 'components/public/MiniHomeSection.tsx'
       - 'lib/minis/**'
       - 'supabase/migrations/*mini_lessons*.sql'
@@ -39,3 +43,5 @@ jobs:
       - run: node --import ./scripts/register-typescript.mjs scripts/test-mini-lessons-contract.mjs
       - run: node scripts/test-mini-requests-contract.mjs
       - run: node --test scripts/test-mini-open-publishing-contract.mjs
+
+      - run: node --import ./scripts/register-typescript.mjs scripts/test-mini-voice-contract.mjs
