@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase'
+import { mergePinnedCandidates, selectPinnedVersion } from '@/lib/teaching/lessonSourceVersionPins'
 import { buildCertifiedTeacherToolContexts } from '@/lib/learn/teachingToolContentBridge.mjs'
 import { includeGradeOneJumpingAsset } from '@/lib/teaching/jumpingContentSelection'
 import type { Json } from '@/lib/database.types'
@@ -50,6 +51,8 @@ interface ResourceCandidate {
   title: string
   asset_kind: string | null
   purpose: string | null
+  pinnedVersionId?: string | null
+  pinConflict?: boolean
 }
 
 interface CertifiedVersionRow {
@@ -59,15 +62,6 @@ interface CertifiedVersionRow {
   content_sha256: string
   certification_policy_version: string | null
   certified_at: string | null
-}
-
-function uniqueById<T extends { id: string }>(items: T[]): T[] {
-  const seen = new Set<string>()
-  return items.filter(item => {
-    if (seen.has(item.id)) return false
-    seen.add(item.id)
-    return true
-  })
 }
 
 function isTeachingContentCandidate(resource: ResourceCandidate): boolean {
@@ -135,12 +129,28 @@ async function loadGenericSchemeResources(
   })
   if (error) throw error
   const payload = data as {ok?:boolean;resources?:Array<{
-    resource_id?:string;sequence?:number
+    link_id?:string;resource_id?:string;sequence?:number
   }>} | null
   if (!payload?.ok) return []
   const links = (payload.resources ?? []).filter(item => Boolean(item.resource_id))
   const ids = Array.from(new Set(links.map(item => item.resource_id).filter((id): id is string => typeof id==='string')))
   if (ids.length === 0) return []
+  // Read exact pins from the same RLS-protected canonical links used by the
+  // Teaching Library. The legacy RPC projection does not expose version IDs.
+  const linkIds = links.map(link => link.link_id)
+  if (linkIds.some(id => !id)) throw new Error('Scheme resource link identity is missing.')
+  const { data: pinRows, error: pinError } = await supabase.from('teaching_resource_links')
+    .select('id,resource_id,resource_version_id')
+    .eq('target_type','scheme_lesson').eq('scheme_lesson_id',schemeId)
+    .in('id',linkIds as string[])
+  if (pinError) throw pinError
+  const pinsByLink = new Map((pinRows ?? []).map(row => [row.id,row]))
+  for (const link of links) {
+    const pinned = pinsByLink.get(link.link_id!)
+    if (!pinned || pinned.resource_id !== link.resource_id) {
+      throw new Error('Scheme resource links changed. Reload the lesson preparation.')
+    }
+  }
 
   const {data: roots,error: rootsError} = await supabase.from('learning_resources')
     .select('*')
@@ -154,6 +164,7 @@ async function loadGenericSchemeResources(
     if (!includeGradeOneJumpingAsset(root.canonical_key,lessonNumber)) return []
     const candidate: ResourceCandidate = {
       id:root.id,title:root.title,
+      pinnedVersionId:pinsByLink.get(link.link_id!)!.resource_version_id,
       asset_kind:'asset_kind' in root && typeof root.asset_kind==='string' ? root.asset_kind : null,
       purpose:'purpose' in root && typeof root.purpose==='string' ? root.purpose : null,
     }
@@ -242,10 +253,6 @@ async function loadCertifiedVersions(
 ): Promise<CertifiedLessonContentAsset[]> {
   if (candidates.length === 0) return []
 
-  const candidateById = new Map(
-    candidates.map(candidate => [candidate.id, candidate]),
-  )
-
   const { data, error } = await supabase
     .from('learning_resource_versions')
     .select(
@@ -268,8 +275,9 @@ async function loadCertifiedVersions(
     }
   }
 
+  const certifiedById = new Map(((data ?? []) as CertifiedVersionRow[]).map(version => [version.id, version]))
   return candidates.flatMap(resource => {
-    const version = newestCertifiedByResource.get(resource.id)
+    const version = selectPinnedVersion(resource, certifiedById, newestCertifiedByResource)
     if (
       !version ||
       !version.certification_policy_version ||
@@ -312,7 +320,7 @@ export async function loadCertifiedContentForSource(
     loadCurriculumResourceCandidates(source),
   ])
 
-  const candidates = uniqueById([
+  const candidates = mergePinnedCandidates([
     ...genericSchemeResources,
     ...explicitResources,
     ...curriculumResources,
