@@ -22,9 +22,10 @@ export function TeachingModelOptions() {
   </optgroup>)}</>
 }
 
-export function TeachingModelPicker({onPresent,disabled=false,activities=[]}:{
+export function TeachingModelPicker({onPresent,disabled=false,activities=[],actionLabel='Present to class'}:{
   onPresent?: (demo:SlideDemo)=>void
   disabled?: boolean
+  actionLabel?: string
   activities?: readonly {kind:string;label:string;subject:string;render:()=>ReactNode}[]
 }) {
   const modelId = useId()
@@ -56,15 +57,15 @@ export function TeachingModelPicker({onPresent,disabled=false,activities=[]}:{
     {active&&<section className={styles.preview} aria-label={active.label}>
       <h2>{active.label}</h2>
       {activeModel&&(onPresent
-        ? <PresentModel key={active.kind} initial={defaultDemo(activeModel.kind)} disabled={disabled} onPresent={onPresent}/>
+        ? <PresentModel key={active.kind} initial={defaultDemo(activeModel.kind)} disabled={disabled} onPresent={onPresent} actionLabel={actionLabel}/>
         : <ExploreDemo key={active.kind} demo={defaultDemo(activeModel.kind)}/>)}
       {activity&&<div key={activity.kind}>{activity.render()}</div>}
     </section>}
   </div>
 }
 
-function PresentModel({initial,disabled,onPresent}:{
-  initial:SlideDemo;disabled:boolean;onPresent:(demo:SlideDemo)=>void
+function PresentModel({initial,disabled,onPresent,actionLabel}:{
+  initial:SlideDemo;disabled:boolean;onPresent:(demo:SlideDemo)=>void;actionLabel:string
 }) {
   const [demo, setDemo] = useState(initial)
   return <div className={styles.present}>
@@ -73,7 +74,7 @@ function PresentModel({initial,disabled,onPresent}:{
     <DemoControls demo={demo} disabled={disabled} onChange={setDemo}/>
     <div className={styles.actions}>
       <button type="button" disabled={disabled} onClick={()=>setDemo(initial)}>Reset diagram</button>
-      <button type="button" disabled={disabled} onClick={()=>onPresent(demo)}>Present to class</button>
+      <button type="button" disabled={disabled} onClick={()=>onPresent(demo)}>{actionLabel}</button>
     </div>
   </div>
 }
