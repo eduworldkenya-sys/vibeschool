@@ -1,5 +1,5 @@
 "use client";
-import {useEffect,useId,useRef,useState,type ReactNode} from "react";
+import {useEffect,useId,useRef,useState,type ReactNode,type CSSProperties} from "react";
 import {ChevronLeft,ChevronRight,Search,X,Maximize,Minimize} from "lucide-react";
 import {ActionButton,CheckField} from "./ui";
 import {AdaptiveOverlay,SmartSearch} from "./controls";
@@ -17,7 +17,7 @@ export function SplitWorkspace({primary,secondary,primaryLabel,secondaryLabel,wi
  return <div className={s.componentStack}>
  <div className={s.splitMobile}><ActionButton variant={mobilePanel==="primary"?"primary":"outline"} aria-pressed={mobilePanel==="primary"} onClick={()=>setMobilePanel("primary")}>{primaryLabel}</ActionButton><ActionButton variant={mobilePanel==="secondary"?"primary":"outline"} aria-pressed={mobilePanel==="secondary"} onClick={()=>setMobilePanel("secondary")}>{secondaryLabel}</ActionButton></div>
  <div className={s.splitDesktopControls}><ActionButton variant="outline" aria-expanded={!collapsed} aria-controls={id} onClick={()=>onCollapsedChange(!collapsed)}>{collapsed?"Show":"Hide"} {secondaryLabel}</ActionButton>{!collapsed&&<><ActionButton variant="ghost" iconOnly aria-label="Narrow side panel" disabled={bounded<=30} icon={<ChevronRight size={18}/>} onClick={()=>resize(bounded-5)}/><ActionButton variant="ghost" iconOnly aria-label="Widen side panel" disabled={bounded>=65} icon={<ChevronLeft size={18}/>} onClick={()=>resize(bounded+5)}/><ActionButton variant="ghost" onClick={()=>resize(40)}>Reset width</ActionButton></>}</div>
- <div ref={container} className={s.splitWorkspace} data-collapsed={collapsed} data-mobile-panel={mobilePanel} style={{gridTemplateColumns:collapsed?"minmax(0,1fr)":"minmax(0,"+(100-bounded)+"fr) 16px minmax(0,"+bounded+"fr)"}}>
+ <div ref={container} className={s.splitWorkspace} data-collapsed={collapsed} data-mobile-panel={mobilePanel} style={{"--split-columns":collapsed?"minmax(0,1fr)":"minmax(0,"+(100-bounded)+"fr) 16px minmax(0,"+bounded+"fr)"} as CSSProperties}>
  <section className={s.splitPrimary} aria-label={primaryLabel}>{primary}</section>
  {!collapsed&&<div role="separator" aria-label="Resize side panel" aria-orientation="vertical" aria-valuemin={30} aria-valuemax={65} aria-valuenow={bounded} tabIndex={0} className={s.resizeHandle} onKeyDown={e=>{if(e.key==="ArrowLeft"||e.key==="ArrowRight"){e.preventDefault();resize(bounded+(e.key==="ArrowLeft"?5:-5))}}} onPointerDown={e=>{if(e.button!==0)return;pointer.current=e.pointerId;e.currentTarget.setPointerCapture(e.pointerId)}} onPointerMove={e=>{const rect=container.current?.getBoundingClientRect();if(pointer.current===e.pointerId&&rect?.width)resize(Math.round((rect.right-e.clientX)/rect.width*100))}} onPointerUp={()=>{pointer.current=null}} onPointerCancel={()=>{pointer.current=null}} onLostPointerCapture={()=>{pointer.current=null}}/>}
  <section id={id} className={s.splitSecondary} aria-label={secondaryLabel}>{secondary}</section>
