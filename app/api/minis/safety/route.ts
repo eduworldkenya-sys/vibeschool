@@ -1,5 +1,7 @@
 import 'server-only'
 import { createHash } from 'node:crypto'
+import { validTeacherMiniPhoto } from '@/lib/minis/teacher-photo'
+import { MINI_ID } from '@/lib/minis/public-url'
 import { validateMiniVoice } from '@/lib/minis/voice'
 import {miniSlidesEnabled} from '@/lib/minis/slide-release'
 import {parseMiniDeck,miniDeckText} from '@/lib/minis/slides'
@@ -9,13 +11,12 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 export const runtime = 'nodejs'
 export const maxDuration = 60
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const NO_STORE = { 'Cache-Control':'private, no-store', 'X-Content-Type-Options':'nosniff' }
 type Target = 'mini' | 'request' | 'comment'
 type SafetyVerdict = { safe: boolean; reason: string }
 type PendingItem = { id:string; status:string; creator_id?:string; requester_id?:string; author_id?:string;
   slide_deck?:unknown; updated_at?:string; title?:string; body?:string; question?:string; cover_path?:string|null; audio_path?:string|null; tags?:string[]; request_id?:string|null;
-  quiz_question?:string|null; quiz_options?:string[]; quiz_explanation?:string|null }
+  publication_method?:string|null; quiz_question?:string|null; quiz_options?:string[]; quiz_explanation?:string|null }
 const tables:Record<Target,string> = { mini:'mini_lessons', request:'mini_requests',comment:'mini_comments' }
 const owners:Record<Target,string> = { mini:'creator_id', request:'requester_id',comment:'author_id' }
 const approved = (body:unknown,status=200) => NextResponse.json(body,{status,headers:NO_STORE})
@@ -115,7 +116,7 @@ async function moderate(input:{target:Target;title:string;body:string;photo?:{da
 
 // Speech recognition is an additional prerequisite, never a replacement for text/image screening.
 async function inspectVoice(db:SupabaseClient,path:string,actor:string):Promise<{text:string;hash:string}> {
-  if(!path.startsWith(actor+'/')||!UUID.test(path.slice(actor.length+1,-4))||!path.endsWith('.wav'))throw Error('Invalid voice path.')
+  if(!path.startsWith(actor+'/')||!MINI_ID.test(path.slice(actor.length+1,-4))||!path.endsWith('.wav'))throw Error('Invalid voice path.')
   const key=process.env.MINI_GOOGLE_SPEECH_API_KEY
   if(!key)throw Error('Voice safety checks unavailable.')
   const {data,error}=await db.storage.from('mini-voice').download(path)
@@ -140,8 +141,33 @@ async function inspectVoice(db:SupabaseClient,path:string,actor:string):Promise<
   return {text,hash:createHash('sha256').update(bytes).digest('hex')}
 }
 
+async function releaseTeacherPhoto(db: SupabaseClient, item: PendingItem, actor: string) {
+  if (process.env.MINI_TEACHER_PHOTO_POSTING_ENABLED !== 'true')
+    return approved({error:'Teacher posting is paused. Your draft is private.'},503)
+  const {data:eligible,error:eligibilityError}=await db.rpc('mini_teacher_photo_public',{p_user:actor})
+  if (eligibilityError) return approved({error:'Unable to verify teacher posting eligibility.'},503)
+  if (eligible !== true) return approved({error:'A verified adult teacher account and public profile are required.'},403)
+  if (item.status === 'approved') return approved({ok:true,published:true})
+  if (item.status !== 'draft') return approved({error:'This Mini cannot be posted.'},409)
+  const cover = item.cover_path
+  const extension = cover?.split('.').at(-1)
+  if (!cover || !extension || cover !== actor+'/'+item.id+'.'+extension ||
+      !item.updated_at || item.slide_deck != null || item.audio_path || item.request_id)
+    return approved({error:'This draft requires a valid private photo.'},422)
+  const {data:photo,error:downloadError}=await db.storage.from('mini-covers').download(cover)
+  if (downloadError || !photo) return approved({error:'Could not read your photo. Reopen the draft to upload it again.'},422)
+  if (!await validTeacherMiniPhoto(photo, extension))
+    return approved({error:'The cover must be a valid JPG, PNG or WebP photo under 5 MB.'},422)
+  const {data:published,error}=await db.rpc('mini_release_teacher_photo',{
+    p_actor:actor,p_id:item.id,p_version:item.updated_at,p_cover:cover,
+  })
+  if (error || published !== true) return approved({error:'Could not post this draft. Check your public profile and try again.'},409)
+  return approved({ok:true,published:true})
+}
+
 export async function POST(request:NextRequest) {
-  if(process.env.MINI_LESSONS_OPEN_PUBLISHING_ENABLED!=='true')
+  if(process.env.MINI_LESSONS_OPEN_PUBLISHING_ENABLED!=='true' &&
+     process.env.MINI_TEACHER_PHOTO_POSTING_ENABLED!=='true')
     return approved({error:'Publishing is not yet available.'},503)
   if(!sameOrigin(request)) return approved({error:'Forbidden origin'},403)
   if(!(request.headers.get('content-type')||'').startsWith('application/json'))
@@ -158,9 +184,11 @@ export async function POST(request:NextRequest) {
     if(!body||typeof body!=='object'||Array.isArray(body))return approved({error:'Invalid request'},400)
     const data=body as Record<string,unknown>
     if(!['mini','request','comment'].includes(String(data.target))||
-       typeof data.id!=='string'||!UUID.test(data.id))return approved({error:'Invalid request'},400)
+       typeof data.id!=='string'||!MINI_ID.test(data.id))return approved({error:'Invalid request'},400)
     target=data.target as Target;id=data.id
   }catch{return approved({error:'Invalid JSON'},400)}
+  if(target!=='mini' && process.env.MINI_LESSONS_OPEN_PUBLISHING_ENABLED!=='true')
+    return approved({error:'Publishing is not yet available.'},503)
 
   try {
     const db=service()
@@ -172,6 +200,10 @@ export async function POST(request:NextRequest) {
     const item=data as PendingItem
     if(item[owners[target] as keyof PendingItem]!==actor)
       return approved({error:'Forbidden'},403)
+    if(target==='mini' && item.publication_method==='teacher_direct_photo')
+      return await releaseTeacherPhoto(db,item,actor)
+    if(process.env.MINI_LESSONS_OPEN_PUBLISHING_ENABLED!=='true')
+      return approved({error:'Publishing is not yet available.'},503)
     if(item.status==='approved')return approved({ok:true,published:true})
     if(item.status!=='pending')return approved({error:'This item is not awaiting a safety check.'},409)
     if(target==='mini'){

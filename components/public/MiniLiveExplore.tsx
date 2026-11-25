@@ -4,11 +4,12 @@ import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { fetchMiniPage, fetchOwnMiniStatus, loadApprovedComments, loadMiniCovers,
-  type MiniCursor, type MiniPost, type ApprovedComment } from '@/lib/minis/data'
+  type MiniCursor, type MiniPost, type ApprovedComment, type OwnMiniStatus } from '@/lib/minis/data'
 import { miniPublicPath, miniExplorePath } from '@/lib/minis/public-url'
 import { rankMiniLessons } from '@/lib/minis/recommendation'
 import { currentMiniUser, miniIsVerifiedAdult, changeMiniFollow, changeMiniInteraction, submitMini,
-  addMiniComment, reportMini, recordMiniLearningSignal, publishMiniSafely, MiniSubmissionSavedError } from '@/lib/minis/actions'
+  addMiniComment, reportMini, recordMiniLearningSignal, publishMiniSafely, MiniSubmissionSavedError,
+  getMiniTeacherPhotoProfile, postMiniTeacherPhoto, uploadMiniTeacherPhoto, type MiniTeacherPhotoProfile } from '@/lib/minis/actions'
 import { miniTagLabel, parseMiniHashtags } from '@/lib/minis/tags'
 import {MiniSlideEditor,MiniSlideReader,MiniSlideCover,blankMiniSlide} from './MiniSlideDeck'
 import {miniSlidesEnabled,miniSlideColumns} from '@/lib/minis/slide-release'
@@ -22,7 +23,6 @@ import styles from './MiniExplore.module.css'
 
 type Section = 'feed' | 'read' | 'compose' | 'creator' | 'mine' | 'profile' | 'request'
 type Tab = 'For You' | 'Following' | 'New'
-type Submission = { id: string; title: string; tags: string[]; status: string; created_at: string; like_count:number; save_count:number; learned_count:number }
 
 const ensureSignIn = (user: string | null) => {
   if (user) return true
@@ -39,11 +39,18 @@ function Cover({ url, subject, title }: { url?: string; subject: string; title: 
   </div>
 }
 
-export function MiniLiveExplore({ enabled = true }: { enabled?: boolean } = {}) {
+export function MiniLiveExplore({ enabled = true, directPostingEnabled = false }: { enabled?: boolean; directPostingEnabled?: boolean } = {}) {
   const [posts, setPosts] = useState<MiniPost[]>([])
   const [covers, setCovers] = useState<Record<string,string>>({})
   const [viewer, setViewer] = useState<string | null>(null)
   const [adult, setAdult] = useState(false)
+  const [teacherProfile, setTeacherProfile] = useState<MiniTeacherPhotoProfile | null>(null)
+  const [teacherProfileError, setTeacherProfileError] = useState('')
+  const [publicConsent, setPublicConsent] = useState(false)
+  const [publicUsername, setPublicUsername] = useState('')
+  const [publicName, setPublicName] = useState('')
+  const pendingPost = useRef<{ key: string; id: string } | null>(null)
+  const posting = useRef(false)
   const [likes, setLikes] = useState<Set<string>>(new Set())
   const [saves, setSaves] = useState<Set<string>>(new Set())
   const [follows, setFollows] = useState<Set<string>>(new Set())
@@ -72,7 +79,7 @@ export function MiniLiveExplore({ enabled = true }: { enabled?: boolean } = {}) 
   const [comments, setComments] = useState<ApprovedComment[]>([])
   const [commentText, setCommentText] = useState('')
   const [reportReason, setReportReason] = useState('incorrect')
-  const [mine, setMine] = useState<Submission[]>([])
+  const [mine, setMine] = useState<OwnMiniStatus[]>([])
   const [loading, setLoading] = useState(enabled)
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState('')
@@ -154,6 +161,14 @@ export function MiniLiveExplore({ enabled = true }: { enabled?: boolean } = {}) 
         setViewer(userId)
         setAdult(adultEligible)
         if (userId) {
+          if (directPostingEnabled) {
+            void getMiniTeacherPhotoProfile().then(profile => {
+              if (!mounted) return
+              setTeacherProfile(profile)
+              setPublicUsername(profile?.username || '')
+              setPublicName(profile?.displayName || '')
+            }).catch(error => { if (mounted) setTeacherProfileError(error.message) })
+          }
           const [interactions, following, learning] = await Promise.all([
             supabase.from('mini_interactions').select('mini_id,kind').eq('user_id',userId).limit(1000),
             supabase.from('global_profile_follows').select('followed_id').eq('follower_id',userId).limit(1000),
@@ -194,7 +209,7 @@ export function MiniLiveExplore({ enabled = true }: { enabled?: boolean } = {}) 
     }
     void load()
     return () => { mounted = false }
-  }, [open,enabled])
+  }, [open,enabled,directPostingEnabled])
 
   const mergePage = useCallback((items: MiniPost[], append: boolean) => {
     setPosts(old => {
@@ -376,45 +391,75 @@ export function MiniLiveExplore({ enabled = true }: { enabled?: boolean } = {}) 
     setSection('compose')
   }
 
+  const directPhoto = directPostingEnabled && !answerRequest && format === 'photo' && !voice &&
+    (teacherProfile?.eligible || !adult)
+
   async function publish(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!enabled) return
-    if (!ensureSignIn(viewer) || !viewer || busy || voiceBusy) return
+    if (!ensureSignIn(viewer) || !viewer || busy || voiceBusy || posting.current) return
     if (format==='photo'&&!photo) {setError('Add a cover photo to publish a Mini Lesson.');return}
+    if (directPhoto && !teacherProfile?.eligible) {
+      setError(teacherProfileError || 'Posting requires a verified adult teacher account.')
+      return
+    }
+    if (directPhoto && !teacherProfile?.isPublic && !publicConsent) {
+      setError('Confirm that your creator name and username will be public.')
+      return
+    }
+    posting.current = true
     setBusy(true);setError('');setNotice('')
     try {
       parseMiniHashtags(draftTags)
       const editedPhoto = format==='photo'&&photo?await prepareMiniPhoto(photo,photoRotation,photoZoom):undefined
+      const challenge = quizEnabled ? { question:quizQuestion, options:quizOptions, correct:quizCorrect, explanation:quizExplanation } : null
+      const consent = directPhoto && !teacherProfile?.isPublic
+        ? { accepted:publicConsent, username:publicUsername.trim().toLowerCase(), displayName:publicName.trim() } : null
+      let direct: { id: string; consent: typeof consent } | undefined
+      if (directPhoto && editedPhoto) {
+        const hash = await crypto.subtle.digest('SHA-256', await editedPhoto.arrayBuffer())
+        const key = JSON.stringify([draftTitle,draftBody,draftTags,challenge,Array.from(new Uint8Array(hash))])
+        if (pendingPost.current?.key !== key) pendingPost.current = { key, id:crypto.randomUUID() }
+        direct = { id:pendingPost.current.id, consent }
+      }
       await submitMini({ title:draftTitle,body:draftBody,hashtags:draftTags,photo:editedPhoto,voice,slides:format==='slides'?buildMiniDeck(slides):undefined,userId:viewer,
-        challenge:quizEnabled ? { question:quizQuestion, options:quizOptions, correct:quizCorrect, explanation:quizExplanation } : null,
-        requestId: answerRequest?.id ?? null })
+        challenge, requestId: answerRequest?.id ?? null, direct })
+      if (consent && teacherProfile) setTeacherProfile({ ...teacherProfile, isPublic:true })
+      pendingPost.current = null
       setDraftPreview('');setDraftTitle('');setDraftBody('');setDraftTags('');setPhoto(null);setVoice(null);setFormat('photo');setSlides([blankMiniSlide(),blankMiniSlide()]);setPhotoRotation(0);setPhotoZoom(1);setQuizEnabled(false);setQuizQuestion('');setQuizOptions(['','','']);setQuizCorrect(0);setQuizExplanation('')
-      setNotice(answerRequest ? 'Your explanation is published on the request.' : 'Mini Lesson published.')
+      setNotice(answerRequest ? 'Your explanation is published on the request.' : 'Mini posted to Explore.')
+      if (directPhoto) { setTab('New'); setTag('All'); setQuery('') }
       back()
       setRefreshKey(key=>key+1)
     } catch(e) {
       setError(e instanceof Error ? e.message : 'Unable to submit Mini.')
       if(e instanceof MiniSubmissionSavedError){
-        setDraftPreview('')
+        if (directPhoto && teacherProfile) setTeacherProfile({ ...teacherProfile, isPublic:true })
+        pendingPost.current = null
         setDraftPreview('');setDraftTitle('');setDraftBody('');setDraftTags('');setPhoto(null);setVoice(null);setFormat('photo');setSlides([blankMiniSlide(),blankMiniSlide()]);setPhotoRotation(0);setPhotoZoom(1);setQuizEnabled(false);setQuizQuestion('');setQuizOptions(['','','']);setQuizCorrect(0);setQuizExplanation('');setAnswerRequest(null)
         setSection('mine')
-        try{setMine(await fetchOwnMiniStatus(viewer))}catch{setError(old=>old+' Open My Minis to reload the saved submission.')}
+        try{setMine(await fetchOwnMiniStatus(viewer,directPostingEnabled))}catch{setError(old=>old+' Open My Minis to reload the saved submission.')}
       }
     }
-    finally {setBusy(false)}
+    finally {posting.current=false;setBusy(false)}
   }
 
-  async function retryPublication(id: string) {
+  async function retryPublication(id: string, direct = false, path?: string | null, replacement?: File) {
     if (!enabled) { setNotice('Publishing is not yet available.'); return }
     if (!viewer || busy) return
     setBusy(true);setError('');setNotice('')
     try {
-      await publishMiniSafely('mini',id)
-      setNotice('Mini Lesson published.')
+      if (direct) {
+        if (replacement && path) await uploadMiniTeacherPhoto(path,await prepareMiniPhoto(replacement,0,1))
+        await postMiniTeacherPhoto(id)
+      } else {
+        await publishMiniSafely('mini',id)
+      }
+      setNotice('Mini posted to Explore.')
       setRefreshKey(key=>key+1)
     } catch(e) {setError(e instanceof Error ? e.message : 'Unable to retry safety check.')}
     finally {
-      try {setMine(await fetchOwnMiniStatus(viewer))}
+      try {setMine(await fetchOwnMiniStatus(viewer,directPostingEnabled))}
       catch {setError(previous=>previous || 'Unable to refresh publication status.')}
       setBusy(false)
     }
@@ -424,7 +469,7 @@ export function MiniLiveExplore({ enabled = true }: { enabled?: boolean } = {}) 
     if (!enabled) { setNotice('Publishing is not yet available.'); return }
     if (!ensureSignIn(viewer) || !viewer || busy) return
     setBusy(true);setError('')
-    try {setMine(await fetchOwnMiniStatus(viewer));setSection('mine')}
+    try {setMine(await fetchOwnMiniStatus(viewer,directPostingEnabled));setSection('mine')}
     catch(e) {setError(e instanceof Error ? e.message : 'Unable to load submissions.')}
     finally {setBusy(false)}
   }
@@ -638,11 +683,25 @@ export function MiniLiveExplore({ enabled = true }: { enabled?: boolean } = {}) 
           <button className={styles.back} type="button" disabled={previewBusy||busy} onClick={draftPreview?()=>setDraftPreview(''):back} aria-label={draftPreview?'Edit Mini Lesson':'Back to Explore'}>←</button>
           <h1>{draftPreview?'Preview':answerRequest?'Explain request':'Create Mini Lesson'}</h1>
           <button type="submit" className={styles.primary} disabled={!enabled || !viewer || busy || voiceBusy || previewBusy || !draftTitle.trim() || !draftBody.trim() || (format==='photo'&&!photo)}>
-            {busy?'Checking…':'Publish'}</button>
+            {busy?'Posting…':'Post'}</button>
         </header>
         {!enabled && <p role="status" className={styles.compactNotice}>Publishing is not yet available. Drafts aren't saved.</p>}
         {enabled && !viewer && <p className={styles.compactNotice}><Link href="/login?redirect=%2Fexplore">Sign in to publish</Link></p>}
-        {enabled && viewer && !draftPreview && <button type="button" className={styles.linkButton+' '+styles.compactNotice} disabled={busy||previewBusy} onClick={()=>void editProfile()}>Creator profile</button>}
+        {enabled && viewer && !draftPreview && !directPhoto && <button type="button" className={styles.linkButton+' '+styles.compactNotice} disabled={busy||previewBusy} onClick={()=>void editProfile()}>Creator profile</button>}
+        {viewer && directPhoto && !teacherProfile?.eligible && <p className={styles.compactNotice}>
+          {teacherProfileError || (teacherProfile ? 'Posting requires a verified adult teacher account.' : 'Checking teacher account…')}
+        </p>}
+        {directPhoto && teacherProfile?.eligible && !teacherProfile.isPublic && <fieldset className={styles.composerFields} disabled={busy}>
+          <legend>Public creator profile</legend>
+          <label htmlFor="mini-post-username">Username</label>
+          <input id="mini-post-username" className={styles.field} value={publicUsername} maxLength={24} required
+            pattern="[a-zA-Z][a-zA-Z0-9_]{2,23}" onChange={e=>setPublicUsername(e.target.value)} />
+          <label htmlFor="mini-post-name">Public name</label>
+          <input id="mini-post-name" className={styles.field} value={publicName} minLength={2} maxLength={80} required
+            onChange={e=>setPublicName(e.target.value)} />
+          <label><input type="checkbox" required checked={publicConsent} onChange={e=>setPublicConsent(e.target.checked)} />
+            {' '}Show my name and username with my public Minis.</label>
+        </fieldset>}
         {answerRequest&&<p className={styles.compactNotice}>{answerRequest.question}</p>}
         <fieldset className={styles.composerFields} disabled={previewBusy||busy} hidden={!!draftPreview}>
           {miniSlidesEnabled()&&<div role="group" aria-label="Mini Lesson format"><button type="button" aria-pressed={format==='photo'} onClick={()=>setFormat('photo')}>Photo</button><button type="button" aria-pressed={format==='slides'} onClick={()=>setFormat('slides')}>Slides</button></div>}
@@ -715,10 +774,17 @@ export function MiniLiveExplore({ enabled = true }: { enabled?: boolean } = {}) 
     {section === 'mine' && <section className={styles.profile}>
       <button type="button" className={styles.back} onClick={back}>← Explore</button>
       <h1>My Mini Lessons</h1>
-      <p className={styles.subline}>View your Mini Lessons and their automatic safety status.</p>
+      <p className={styles.subline}>View your posts and private drafts.</p>
       {mine.length ? mine.map(p=><div key={p.id} className={styles.comment}><strong>{p.title}</strong>
         {p.tags.map(miniTagLabel).join(' ')} · {p.status==='approved'?'Published':p.status==='pending'?'Safety check pending':p.status}
         {p.status==='approved'&&<p className={styles.previewNote}>{p.like_count} likes · {p.save_count} saves · {p.learned_count} understood</p>}
+        {p.status==='draft' && p.publication_method==='teacher_direct_photo' && <div>
+          <button type="button" className={styles.secondary} disabled={busy} onClick={()=>void retryPublication(p.id,true)}>Retry post</button>
+          <label className={styles.label}>Upload cover and post
+            <input type="file" accept="image/jpeg,image/png,image/webp" disabled={busy}
+              onChange={event=>{const file=event.target.files?.[0];if(file)void retryPublication(p.id,true,p.cover_path,file)}} />
+          </label>
+        </div>}
         {p.status==='pending' && <button type="button" className={styles.secondary} disabled={busy} onClick={()=>void retryPublication(p.id)}>Retry safety check</button>}</div>)
         : <p>No Mini Lessons submitted yet.</p>}
     </section>}

@@ -20,7 +20,7 @@ export class MiniSubmissionSavedError extends Error {
   constructor(submissionId:string,message:string){super(message);this.name='MiniSubmissionSavedError';this.submissionId=submissionId;Object.setPrototypeOf(this,MiniSubmissionSavedError.prototype)}
 }
 
-export async function publishMiniSafely(target:'mini'|'request'|'comment',id:string):Promise<void> {
+export async function publishMiniSafely(target:'mini'|'request'|'comment',id:string, direct = false):Promise<void> {
   const {data:{session},error:sessionError}=await supabase.auth.getSession()
   if(sessionError||!session?.access_token)throw Error('Sign in to publish.')
   let response:Response
@@ -31,11 +31,11 @@ export async function publishMiniSafely(target:'mini'|'request'|'comment',id:str
       body:JSON.stringify({target,id}),
       cache:'no-store',
     })
-  }catch{throw Error('Your submission is saved privately. Automatic safety checks are unavailable; retry later.')}
+  }catch{throw Error(direct ? 'Draft saved. Try posting again.' : 'Your submission is saved privately. Automatic safety checks are unavailable; retry later.')}
   const payload:unknown=await response.json().catch(()=>null)
   const result=payload&&typeof payload==='object'?payload as {error?:string;published?:boolean;message?:string}:null
-  if(!response.ok)throw Error(result?.error||'Your submission is saved privately. Retry the automatic safety check.')
-  if(result?.published!==true)throw Error(result?.message||'Content did not pass the automatic safety check.')
+  if(!response.ok)throw Error(result?.error||(direct ? 'Draft saved. Try posting again.' : 'Your submission is saved privately. Retry the automatic safety check.'))
+  if(result?.published!==true)throw Error(result?.message||(direct ? 'Could not confirm posting. Check My Minis.' : 'Content did not pass the automatic safety check.'))
 }
 
 export async function miniIsVerifiedAdult(userId: string): Promise<boolean> {
@@ -43,8 +43,42 @@ export async function miniIsVerifiedAdult(userId: string): Promise<boolean> {
   return !error && data === true
 }
 
+export type MiniTeacherPhotoProfile = {
+  eligible: boolean
+  isPublic: boolean
+  username: string
+  displayName: string
+}
+export type MiniPublicConsent = { accepted: boolean; username: string; displayName: string }
+
+export async function getMiniTeacherPhotoProfile(): Promise<MiniTeacherPhotoProfile | null> {
+  const {data,error} = await supabase.rpc('mini_my_teacher_photo_profile')
+  if (error) throw Error('Unable to check teacher posting eligibility. Reload Explore to try again.')
+  return data
+}
+
+export async function postMiniTeacherPhoto(id: string): Promise<void> {
+  return publishMiniSafely('mini', id, true)
+}
+
+export async function uploadMiniTeacherPhoto(path: string, photo: File): Promise<void> {
+  const storage = supabase.storage.from('mini-covers')
+  const {error} = await storage.upload(path, photo, {
+    contentType: photo.type, cacheControl: '60', upsert: false,
+  })
+  if (!error) return
+  // A response can be lost after storage accepted the immutable upload.
+  const {data:existing} = await storage.download(path)
+  if (existing?.size === photo.size) {
+    const [original, stored] = await Promise.all([photo.arrayBuffer(), existing.arrayBuffer()])
+    const storedBytes = new Uint8Array(stored)
+    if (new Uint8Array(original).every((byte, index) => byte === storedBytes[index])) return
+  }
+  throw Error('Draft saved. Reopen it to retry the photo upload.')
+}
+
 export async function submitMini({
-  title, body, hashtags, photo, slides, voice, userId, challenge, requestId,
+  title, body, hashtags, photo, slides, voice, userId, challenge, requestId, direct,
 }: {
   title: string
   body: string
@@ -54,6 +88,7 @@ export async function submitMini({
   slides?: MiniSlideEntry[]
   userId: string
   requestId?: string | null
+  direct?: { id: string; consent: MiniPublicConsent | null }
   challenge?: { question: string; options: string[]; correct: number; explanation: string } | null
 }): Promise<string> {
   const cleanTitle = title.trim()
@@ -83,6 +118,23 @@ export async function submitMini({
 
   const verified = await currentMiniUser()
   if (!verified || verified !== userId) throw Error('Sign in to submit your Mini Lesson.')
+
+  if (direct) {
+    if (!photo || !ext || deck || voice || requestId) throw Error('Direct posting requires one photo.')
+    const {error:saveError} = await supabase.rpc('mini_save_teacher_photo', {
+      p_id: direct.id, p_title: cleanTitle, p_body: cleanBody, p_subject: subject, p_tags: tags,
+      p_question: question, p_options: options, p_correct: correct, p_explanation: explanation,
+      p_extension: ext, p_consent: direct.consent,
+    })
+    if (saveError) throw Error(saveError.code === '23505' ? 'That username or draft is already in use.' : saveError.message)
+    try {
+      await uploadMiniTeacherPhoto(verified+'/'+direct.id+'.'+ext, photo)
+      await postMiniTeacherPhoto(direct.id)
+    } catch (error) {
+      throw new MiniSubmissionSavedError(direct.id, error instanceof Error ? error.message : 'Draft saved. Try posting again.')
+    }
+    return direct.id
+  }
 
   const { data: canSubmit, error: eligibilityError } =
     await supabase.rpc('mini_creator_can_submit', { p_user: verified })

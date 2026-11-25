@@ -16,7 +16,7 @@ export default function ExplorePage() {
     <PublicHeader product="Explore" />
     <main id="main-content" tabIndex={-1}>
       <Suspense fallback={<p style={{ padding: 32 }}>Opening Explore…</p>}>
-        {process.env.NEXT_PUBLIC_MINI_LESSONS_BACKEND_ENABLED === 'true' ? <MiniLiveExplore/> : <MiniExplore/>}
+        {process.env.NEXT_PUBLIC_MINI_LESSONS_BACKEND_ENABLED === 'true' ? <MiniLiveExplore directPostingEnabled={process.env.MINI_TEACHER_PHOTO_POSTING_ENABLED === 'true'}/> : <MiniExplore/>}
       </Suspense>
     </main>
   </div>
