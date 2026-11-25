@@ -243,3 +243,46 @@ test("custom scheme status and reflection are not delivery evidence; dated state
  state=previewReducer(state,{type:"finishTeaching",id:"english-today"});
  assert.equal(state.scheme.find(x=>x.id==="scheme-english-today").status,"done");
 });
+
+import {planReview,inPreviewWeek,moveWeek,previewWeekStart} from "../app/teacher/redesign/lesson-data.ts";
+test("Lesson Plans and Notes libraries are distinct destinations; exact dated editor links round-trip",()=>{
+ for(const [href,kind] of [["/teacher/lessonplan","plans"],["/teacher/lesson-notes","notes-library"]]){
+  const panel=toolPanel(href,"Tool");assert.equal(panel.kind,kind);assert.equal(openingFor(panel),"workspace");const d={tab:"teach",panel};assert.deepEqual(parseDestination(destinationSearch(d)),d);
+ }
+ assert.equal(inPreviewWeek("2026-11-25",previewWeekStart),true);
+ assert.equal(inPreviewWeek("2026-11-30",previewWeekStart),false);
+ assert.equal(moveWeek(previewWeekStart,1),"2026-11-30");
+});
+test("canonical dated plan saves derive readiness; editing alone does not change Today",()=>{
+ const original=createPreviewState(),id="english-today";
+ assert.equal(planReview(original.plans[id].sections).ready,true);
+ assert.ok(Object.values(original.plans).every(p=>planReview(p.sections).ready));
+ let state=previewReducer(original,{type:"editPlan",id,key:"objectives",text:""});
+ assert.equal(todayView(state,all).next.preparation[1],"done");
+ assert.equal(state.plans[id],original.plans[id]);
+ state=previewReducer(state,{type:"savePlan",id});
+ assert.equal(state.plans[id].id,original.plans[id].id);
+ assert.equal(todayView(state,all).next.preparation[1],"pending");
+ assert.equal(state.plans["math-today"],original.plans["math-today"]);
+ state=previewReducer(state,{type:"editPlan",id,key:"objectives",text:original.plans[id].sections.objectives});
+ state=previewReducer(state,{type:"savePlan",id});
+ assert.equal(todayView(state,all).next.preparation[1],"done");
+ assert.equal(state.planEdits[id],undefined);
+});
+test("invalid plan sections preserve draft; no checkbox can create a ready plan",()=>{
+ let state=createPreviewState(),id="english-tomorrow";
+ state=previewReducer(state,{type:"editPlan",id,key:"development",text:"</development>"});
+ assert.equal(previewReducer(state,{type:"savePlan",id}),state);
+ assert.equal(state.planEdits[id].development,"</development>");
+ state=previewReducer(state,{type:"discardPlanEdits",id});
+ assert.equal(state.planEdits[id],undefined);
+ state=previewReducer(state,{type:"draft",id,index:1,checked:true});
+ state=previewReducer(state,{type:"savePreparation",id,index:1});
+ assert.equal(state.occurrences.find(x=>x.id===id).planId,null);
+ assert.equal(state.occurrences.find(x=>x.id===id).preparation[1],"pending");
+ state=previewReducer(state,{type:"savePlan",id});
+ assert.equal(state.occurrences.find(x=>x.id===id).planId,"plan-"+id);
+ assert.equal(state.occurrences.find(x=>x.id===id).preparation[1],"pending");
+ assert.equal(state.plans[id].schemeId,"scheme-"+id);
+ assert.equal(state.occurrences.find(x=>x.id===id).delivery,"scheduled");
+});

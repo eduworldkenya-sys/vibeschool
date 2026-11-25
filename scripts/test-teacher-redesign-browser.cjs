@@ -40,7 +40,7 @@ async function todayChecks(browser,dir,errors){
     assert.equal(style.background,"rgba(0, 0, 0, 0)","Active navigation must remain flat");
     assert.equal(style.left,"0px");assert.equal(style.top,"0px");assert.ok(style.weight>=650);
     if(width>=600)assert.equal(style.radius,"0px","Sidebar must not use selected pills");
-    for(const [name,heading] of [["Subjects","Subject Hub"],["Curriculum map","Curriculum Map"],["Scheme of work","Scheme of Work"]]){
+    for(const [name,heading] of [["Subjects","Subject Hub"],["Curriculum map","Curriculum Map"],["Scheme of work","Scheme of Work"],["Lesson plans","Lesson Plans"],["Lesson notes","Lesson Notes"]]){
      await p.getByRole("main").getByRole("button",{name,exact:true}).click();
      await p.getByRole("heading",{name:heading,exact:true}).waitFor();
      assert(await p.locator("main").evaluate(el=>el.scrollWidth<=el.clientWidth+1),heading+" overflow "+width+" "+colorScheme);
@@ -73,7 +73,32 @@ async function todayChecks(browser,dir,errors){
   await p.locator("summary").filter({hasText:"Teaching context"}).click();
   await count("4 Lessons");await count("5 To mark");
   await p.getByRole("region",{name:"Sample lesson records"}).getByRole("button",{name:"5 To mark",exact:true}).click();
-  await p.getByRole("button",{name:"Mark sample submission",exact:true}).first().click();await back();await count("4 To mark");
+  const queue=p.getByRole("region",{name:"Homework marking queue"});
+  await queue.getByRole("heading",{name:"Place value",exact:true}).waitFor();
+  assert.equal(await queue.getByRole("heading",{name:"Place value",exact:true}).count(),1);
+  assert.equal(await queue.getByRole("listitem").count(),5);
+  const firstRow=queue.getByRole("listitem").first();
+  const geometry=await firstRow.evaluate(el=>({row:el.getBoundingClientRect().width,button:el.querySelector("button").getBoundingClientRect().width,height:el.getBoundingClientRect().height,border:getComputedStyle(el).borderRadius}));
+  assert.ok(geometry.button<geometry.row/2,"Row action must not stretch across the workspace");
+  assert.ok(geometry.height<100,"Queue row must remain compact");
+  assert.equal(geometry.border,"0px");
+  const search=queue.getByRole("searchbox",{name:"Find homework submissions"});
+  await search.fill("learner B");assert.equal(await queue.getByRole("listitem").count(),1);
+  await search.fill("");assert.equal(await queue.getByRole("listitem").count(),5);
+  await p.getByRole("button",{name:"Mark sample submission",exact:true}).first().click();
+  await queue.getByRole("tab",{name:"Marked 1",exact:true}).click();
+  assert.equal(await queue.getByRole("listitem").count(),1);
+  await queue.getByRole("tab",{name:"Assignments",exact:true}).click();
+  await queue.getByRole("button",{name:"Open queue",exact:false}).first().waitFor();
+  await queue.getByRole("tab",{name:"Results",exact:true}).click();
+  await queue.getByText("Marking progress only · No scores recorded in this preview.",{exact:true}).waitFor();
+  assert.equal(await queue.getByRole("progressbar").count(),2);
+  await queue.getByRole("tab",{name:"To mark 4",exact:true}).click();
+  await queue.getByRole("combobox",{name:"Class",exact:true}).selectOption("class-5");
+  assert.equal(await queue.getByRole("listitem").count(),1);
+  await queue.getByRole("combobox",{name:"Class",exact:true}).selectOption("all");
+  assert.equal(await queue.getByRole("listitem").count(),4);
+  await back();await count("4 To mark");
   await p.getByRole("region",{name:"Sample lesson records"}).getByRole("button",{name:"2 Attendance",exact:true}).click();
   await p.getByRole("button",{name:"Complete sample attendance",exact:true}).first().click();await back();await count("1 Attendance");
   await button("Go Live").click();await button("Start sample class").click();await button("Pause sample class").click();
@@ -103,7 +128,24 @@ async function todayChecks(browser,dir,errors){
   await button("Prepare lesson").click();
   assert.match(p.url(),/occurrence=english-today/);
   await p.getByRole("heading",{name:"Plan",exact:true}).waitFor();
-  await p.close();console.log("Today and Teach: six widths and two themes; scoped preparation, queues, live, recovery, reset, curriculum saves and dated handoff.");
+  const objectives=p.getByRole("textbox",{name:"Learning objectives",exact:true});
+  const originalObjectives=await objectives.inputValue();
+  await objectives.fill("");
+  await button("Save plan").click();
+  await p.getByText("Sample plan saved · Needs review",{exact:true}).waitFor();
+  await p.getByRole("button",{name:"Today",exact:true}).click();await home();
+  await button("Plan, pending").click();
+  await p.getByRole("textbox",{name:"Learning objectives",exact:true}).fill(originalObjectives);
+  await button("Save and return").click();await home();
+  await button("Plan, complete").waitFor();
+  await p.goto(origin+"?tab=teach&panel=plans");
+  await p.getByRole("heading",{name:"Lesson Plans",exact:true}).waitFor();
+  await p.getByRole("searchbox",{name:"Find lesson plans"}).fill("Writing sentences");
+  await button("Create plan").click();
+  assert.match(p.url(),/occurrence=english-tomorrow/);
+  await button("Save plan").click();
+  await p.getByText("Sample plan saved · Needs review",{exact:true}).waitFor();
+  await p.close();console.log("Today and Teach: six widths and two themes; scoped preparation, curriculum and plan saves, readiness, notes and dated handoff.");
  }finally{await new Promise(resolve=>server.close(resolve))}
 }
 

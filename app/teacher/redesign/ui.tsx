@@ -38,3 +38,11 @@ export function DataTable({caption,columns,rows}:{caption:string;columns:string[
 export function Pagination({page,total,onChange}:{page:number;total:number;onChange:(page:number)=>void}){
  return <nav className={s.pagination} aria-label="Pagination"><ActionButton variant="outline" disabled={page<=1} aria-label="Previous page" onClick={()=>onChange(page-1)}><ChevronLeft size={18}/></ActionButton><span>Page {page} of {total}</span><ActionButton variant="outline" disabled={page>=total} aria-label="Next page" onClick={()=>onChange(page+1)}><ChevronRight size={18}/></ActionButton></nav>;
 }
+
+
+// Canonical compact collection pattern: one shared header, flat record rows,
+// concise metadata, and a single intrinsic-width action area per record.
+export type RecordRow={id:string;title:ReactNode;meta?:ReactNode;detail?:ReactNode;action?:ReactNode};
+export function RecordList({label,rows}:{label:string;rows:RecordRow[]}){
+ return <ul aria-label={label} className={s.recordList}>{rows.map(row=><li className={s.recordLine} key={row.id}><div className={s.recordText}><strong>{row.title}</strong>{row.meta&&<small>{row.meta}</small>}{row.detail&&<div>{row.detail}</div>}</div>{row.action&&<div className={s.recordAction}>{row.action}</div>}</li>)}</ul>;
+}
