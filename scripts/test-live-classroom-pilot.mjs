@@ -46,6 +46,21 @@ for(const kind of Object.keys(DEMO_RANGES)){
  assert.equal(decodeSlide(encodeSlide({title:'Demo',body},1,1)).body,body)
  assert.equal(importDeck(exportDeck('Demo',[{title:'Demo',body}])).slides[0].body,body)
 }
+import {TEACHING_TOOL_MODELS,teachingToolModel} from '../components/live-classroom/TeachingToolModels.mjs'
+for(const [kind,model] of Object.entries(TEACHING_TOOL_MODELS)){
+ for(const a of model.a)for(const b of model.b){
+  const body=encodeDemo({kind,a,b})
+  assert.ok(body,kind)
+  assert.doesNotMatch(model.summary(a,b),/Infinity|NaN|undefined/,kind)
+ }
+ assert.equal(encodeDemo({kind,a:model.a[0]-1,b:model.b[0]}),'')
+ assert.equal(encodeDemo({kind,a:model.a[1],b:model.b[1]+1}),'')
+}
+assert.equal(teachingToolModel('__proto__'),undefined)
+assert.equal(teachingToolModel('equal-groups').summary(14,4),'3 per group · 2 left over')
+assert.equal(teachingToolModel('clock-elapsed').summary(1430,35),'23:50 → 00:25 next day · 0 h 35 min')
+assert.equal(teachingToolModel('compass-bearing').summary(359),'359° · N')
+assert.equal(teachingToolModel('buoyancy').summary(950,950),'Neutral buoyancy')
 assert.equal(encodeDemo({kind:'clock',a:13,b:0}),'')
 assert.equal(encodeDemo({kind:'fraction-circle',a:5,b:4}),'')
 assert.deepEqual(changeDemo({kind:'fraction-circle',a:3,b:4},'b',2),{kind:'fraction-circle',a:2,b:2})

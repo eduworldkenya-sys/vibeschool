@@ -1,8 +1,8 @@
 'use client'
-import {BookOpen, ClipboardCheck, Library, NotebookPen, PenTool, Presentation} from 'lucide-react'
+import {BookOpen, ClipboardCheck, Library, NotebookPen, PenTool, Presentation, Shapes} from 'lucide-react'
 import styles from './TeachingKit.module.css'
 
-export type TeachingKitTool = 'plan' | 'slides' | 'resources' | 'book' | 'exercises' | 'board'
+export type TeachingKitTool = 'plan' | 'slides' | 'resources' | 'book' | 'exercises' | 'board' | 'interactive'
 type Actions = Partial<Record<TeachingKitTool, () => void>>
 const tools = [
   {id:'plan',label:'Plan',icon:NotebookPen},
@@ -11,6 +11,7 @@ const tools = [
   {id:'book',label:'Textbook',icon:BookOpen},
   {id:'exercises',label:'Exercises',icon:ClipboardCheck},
   {id:'board',label:'Whiteboard',icon:PenTool},
+  {id:'interactive',label:'Interactive tools',icon:Shapes},
 ] as const
 
 /** Delivery-neutral controls. The caller supplies existing authorized actions;
@@ -23,7 +24,7 @@ export default function TeachingKit({actions,onInClass,onGoLive,compact=false}:{
 }) {
   return <section className={styles.kit} aria-label="Teaching Kit" data-compact={compact}>
     <div className={styles.heading}><div><span className={styles.eyebrow}>LESSON MATERIALS</span><h2>Teaching Kit</h2></div></div>
-    <div className={styles.tools}>{tools.map(({id,label,icon:Icon})=>
+    <div className={styles.tools}>{tools.filter(tool=>tool.id!=='interactive'||actions.interactive).map(({id,label,icon:Icon})=>
       <button key={id} type="button" className={styles.tool} onClick={actions[id]} disabled={!actions[id]}
         aria-label={'Teaching Kit: '+label + (!actions[id]?' unavailable':'')}>
         <Icon size={21} aria-hidden="true"/><span>{label}</span>

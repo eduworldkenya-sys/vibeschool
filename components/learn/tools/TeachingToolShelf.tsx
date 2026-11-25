@@ -19,11 +19,12 @@ import { FeedbackSoundToggle, useLearningFeedback } from '@/components/learn/Lea
  * activities explicitly. The examples are not assessment attempts.
  */
 export default function TeachingToolShelf({
-  subject, topic = '', tools,
+  subject, topic = '', tools, standalone = false,
 }: {
   subject: string
   topic?: string
   tools?: readonly TeachingToolSpec[]
+  standalone?: boolean
 }) {
   const headingId = useId()
   const { play } = useLearningFeedback()
@@ -33,22 +34,22 @@ export default function TeachingToolShelf({
 
   const current = available.find(tool => tool.id === active) ?? available[0]
   const metadata = TEACHING_TOOL_CATALOG.find(tool => tool.id === current.id)!
-  return <aside className={styles.shelf} aria-labelledby={headingId}>
+  return <aside className={styles.shelf} aria-label={standalone?metadata.title:undefined} aria-labelledby={standalone?undefined:headingId}>
     <div className={styles.heading}>
-      <div>
+      {!standalone&&<div>
         <h4 id={headingId}>Explore with a learning tool</h4>
         <p>Try an example and change the values. This practice is not graded or saved.</p>
-      </div>
+      </div>}
       <FeedbackSoundToggle />
     </div>
-    <div role="group" aria-label="Choose a learning tool" className={styles.menu}>
+    {!standalone&&<div role="group" aria-label="Choose a learning tool" className={styles.menu}>
       {available.map(spec => {
         const tool = TEACHING_TOOL_CATALOG.find(item => item.id === spec.id)!
         return <button type="button" key={spec.id} aria-pressed={current.id === spec.id} onClick={() => { if (current.id !== spec.id) play('select'); setActive(spec.id) }}>{tool.title}</button>
       })}
-    </div>
+    </div>}
     <div className={styles.tool} aria-live="off">
-      <h5>{metadata.title}</h5>
+      {!standalone&&<h5>{metadata.title}</h5>}
       <p className={styles.description}>{current.prompt || metadata.description}</p>
       {metadata.subject === 'math'
         ? <MathTeachingTool key={current.id} spec={current} />
