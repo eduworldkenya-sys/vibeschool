@@ -237,3 +237,7 @@
 .teachSurface .accordion{border:0;border-radius:0;border-bottom:1px solid var(--line);padding:0}
 @media(min-width:760px){.teachFilters{grid-template-columns:repeat(4,minmax(0,1fr))}.teachSurface{padding:var(--gap-lg)}}
 @media print{.shell:has(.teachSurface){height:auto;overflow:visible;color:#111;background:#fff}.shell:has(.teachSurface) .header,.shell:has(.teachSurface) .nav,.teachSurface button,.teachSurface select,.teachSurface input,.teachSurface textarea,.teachSurface .teachLinks{display:none!important}.shell:has(.teachSurface) .workspace,.shell:has(.teachSurface) .main{display:block;height:auto;overflow:visible;padding:0}.teachSurface{color:#111;background:#fff}.teachSurface small{color:#444}.teachSurface details{display:block}.teachSurface details>div{display:block!important}.teachRecord{break-inside:avoid}}
+
+/* Teacher-only saved text uses document formatting, not generated cards. */
+.lessonProse{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.6}
+.teachSurface textarea{min-height:120px}
