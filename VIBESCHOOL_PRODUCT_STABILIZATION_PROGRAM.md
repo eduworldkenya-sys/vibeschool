@@ -207,3 +207,44 @@ Test the existing application on representative affordable Android phones, small
 
 ## 23. Additional acceptance evidence
 A stabilization record is actionable when it identifies the existing screen/action, intended outcome, current observed behavior, reproducible evidence, design inconsistency if any, root cause or investigation needed, and next repair. A repaired record links regression proof and exact release evidence. Inventory coverage and the preview's before/after comparison must be maintained as work proceeds, not filled in retrospectively with assumptions. These sections extend the audit checklist only; they do not impose new customer-facing features, approval stages, restrictions or HQ involvement.
+
+## 24. Universal action feedback, submission and recovery standard
+Every existing operation must communicate what is happening, whether the intended outcome occurred, and what the user can do next. Use one coherent feedback pattern across products; extend existing shared primitives rather than invent parallel systems. No extra approval, user restriction or mandatory confirmation is introduced by this standard.
+
+### 24.1 Action state lifecycle
+- Ready: clear action-specific label; actionable when the existing preconditions are met. Explain a genuinely unavailable action near the control, not through a silent disabled button.
+- Editing/dirty: distinguish unsaved changes from saved state when relevant. Preserve entered data, attachments and selection.
+- Validation: use concise inline field messages, preserve valid inputs, focus or identify the first invalid field, and avoid reporting success. Validate again at the authoritative boundary.
+- In progress: show prompt local feedback such as Saving…, Sending… or Submitting…, progress for long uploads where measurable, and prevent accidental duplicate execution of the same action without unnecessarily disabling unrelated controls. Allow cancellation only where it is actually supported.
+- Success: confirm the authoritative result; update the affected view, list, counts and related state. Use brief inline status, a non-blocking toast/snackbar, or the actual resulting screen as appropriate. Do not interrupt routine actions with congratulatory dialogs or require users to dismiss redundant feedback.
+- Failure: retain work, restore usable controls, communicate the actual problem in plain language, and offer a safe next action (retry, edit, reconnect, or return) where applicable. Do not swallow errors or expose secrets, SQL, stack traces or raw internal errors to customers.
+- Unknown/pending: a timeout, interrupted connection or ambiguous response does not establish failure or success. Reconcile with authoritative operation status before replaying consequential actions, distinguish queued/pending from completed, and never duplicate an already committed write.
+- Partial success: identify completed and incomplete parts truthfully; allow safe retry of the unfinished parts where supported. Do not represent a partial batch as entirely successful.
+- Recovery: preserve drafts/input and context where appropriate, use existing idempotency or duplicate-prevention mechanisms, and verify the result after retry, reconnect or reload. Announce successful recovery without repetitive messages.
+
+### 24.2 Existing operation examples
+| Operation | In progress | Confirmed outcome | Failure or unresolved state |
+| --- | --- | --- | --- |
+| Save / autosave | Saving… | Saved / last saved time if useful | Not saved — Retry; retain edits |
+| Submit assignment/exam | Submitting… | Submitted; show actual receipt or results when appropriate | Not submitted — Retry if known failed; checking status if uncertain; retain answers |
+| Send message | Sending… | Sent; Delivered/Read only when corresponding evidence exists | Not sent — Retry; preserve message and avoid duplicates |
+| Publish | Publishing… | Published; reflect actual visibility, provide view link where relevant | Couldn't publish — Retry or fix the actual error; preserve draft |
+| Upload / import | Uploading… / Importing… | Uploaded / Imported; update preview | Upload failed — Retry; preserve other successful uploads |
+| Edit / update profile | Saving… | Changes saved; update displayed profile | Changes not saved — Retry |
+| Delete / remove | Deleting… / Removing… | Deleted / Removed; update list; Undo only if real recovery is supported | Couldn't delete — Retry; keep authoritative item visible |
+| Mark / record attendance | Saving… | Marks saved / Attendance recorded | Couldn't save — Retry; retain entries |
+| Join / start / end live | Connecting… / Starting… / Ending… | Connected / Live / Ended, based on actual session state | Connection failed or reconnecting; offer valid recovery |
+| Payment / subscription | Processing… | Payment confirmed and access updated when both are verified | Payment pending, failed, or access update pending; reconcile before retrying payment |
+| Download / export / share | Preparing… | Actual file ready, link copied or share result confirmed where observable | Couldn't prepare/copy — Retry; do not claim that a share recipient received content without evidence |
+| Search / filter | Searching… if noticeable | Actual results or clear no-results state | Couldn't load results — Retry; retain query/filters |
+
+### 24.3 Feedback placement and interaction design
+- Use the control itself for immediate progress, inline messages for field-specific errors, brief toast/snackbar for non-blocking outcomes, persistent inline/banner feedback for unresolved problems or actions requiring attention, and dialogs only when a genuine decision or destructive confirmation is appropriate under existing product behavior.
+- Use consistent typography, semantic colors, icons and placement in light/dark/system themes; do not rely on color alone. Ensure screen-reader announcements, focus management, touch accessibility and non-obstructive placement above mobile navigation/keyboard as applicable.
+- Avoid stacking identical toasts, repetitive explanations, artificial delays, unnecessary redirects and success popups that block the next task. Provide a clear next action only when useful. Keep copy concise and precise: Saved, Sent, Submitted, Published, Not saved, Retry.
+- Do not use generic “Something went wrong” when a safe specific explanation is available. Keep technical diagnostics in existing logs with relevant operation correlation identifiers, and make customer messages actionable without exposing private information.
+- Optimistic UI is appropriate only for suitable reversible operations and must reconcile or visibly roll back on failure. Never claim completed publishing, payments, exam submissions, delivery or other consequential outcomes from optimistic state alone.
+- Respect the existing destination and workflow: stay on the screen after routine saves unless the intended action navigates elsewhere; preserve back/scroll context and reflect completed changes on return. Warn about unsaved work only when loss is a real risk, not after a successful save.
+
+### 24.4 Action feedback verification
+For each applicable action in the inventory, exercise ready, pending, success, actual failure, retry/recovery, slow network, interruption/timeout, rapid double-tap, and reload/reopen paths; add partial completion, offline queue, cancellation and cross-user delivery checks when supported. Verify authoritative data and downstream visibility, not merely the displayed toast. Verify that success indicators never appear on failed operations, errors do not erase legitimate input, and a retry does not duplicate writes or messages. Record evidence and defects using the existing preview inventory and engineering records. These are refinements and tests of existing operations, not a mandate to build new features or add approvals.
