@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom'
 import { Maximize, Minimize, Users, PanelTop, Pencil, HelpCircle, ClipboardList, BarChart3, MoreHorizontal, X, Video, Move, GripHorizontal, Hand, MessageSquare, NotebookPen, History, Wifi, WifiOff, BookOpen } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import styles from './LiveClassroom.module.css'
-import { adjacentSlide, buildTextRevealSlides, decodeAssessment, assessmentPrompt, decodePhotoSlide, visualSlideBody, visualSlidePayload, preparedAssessment } from './LiveSlideProtocol'
+import {encodeDemo, adjacentSlide, buildTextRevealSlides, decodeAssessment, assessmentPrompt, decodePhotoSlide, visualSlideBody, visualSlidePayload, preparedAssessment } from './LiveSlideProtocol'
 import { SlideCanvas, encodeSlide, decodeSlide, validSlide, diagramLabel, SLIDE_DIAGRAMS, SLIDE_THEMES, type LiveSlide, type SlideDiagram, type SlideTheme } from './LiveSlideCanvas'
 import { ObjectBoard, SharedObjectBoard } from './LiveObjectBoard'
 import {LiveIndependentStudy} from './LiveIndependentStudy'
@@ -33,6 +33,7 @@ import { teacherLivePlan } from '@/lib/live/lessonPlanPresentation'
 import { validLessonId } from '@/lib/teaching/liveLessonLinks'
 import LiveLessonReview from './LiveLessonReview'
 import TeachingKit from '@/components/teacher/TeachingKit'
+import {TeachingModelPicker} from './TeachingModelPicker'
 import { liveAnswerChoices, addWorkToPrivateNotes } from '@/lib/live/learnerActivity'
 import type { LessonDeliveryStep } from '@/lib/teaching/lessonPlanCodec'
 
@@ -229,7 +230,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
   const [board,setBoard]=useState('')
   const [boardPages,setBoardPages]=useState<string[]>([''])
   const [boardPage,setBoardPage]=useState(0)
-  const [panel,setPanel]=useState<'compose'|'learners'|'more'|'slides'|'library'|'resources'|'plan'|'kit'|'chat'|null>(null)
+  const [panel,setPanel]=useState<'compose'|'learners'|'more'|'slides'|'library'|'resources'|'plan'|'kit'|'chat'|'interactive'|null>(null)
   const [slides,setSlides]=useState<LiveSlide[]>([{title:'',body:''}])
   const [slideIndex,setSlideIndex]=useState(0)
   const [deletedSlide,setDeletedSlide]=useState<{slide:LiveSlide;index:number}|null>(null)
@@ -1106,7 +1107,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
           <div className={styles.boardTools}><button aria-label="Previous board page" disabled={busy||boardPage===0} onClick={()=>switchBoardPage(boardPage-1)}>‹</button><span aria-live="polite">Board {boardPage+1} / {boardPages.length}</span><button aria-label="Next board page" disabled={busy||boardPage===boardPages.length-1} onClick={()=>switchBoardPage(boardPage+1)}>›</button><button disabled={busy||boardPages.length>=30} onClick={()=>switchBoardPage(boardPages.length,true)}>+ Page</button></div>
           <ObjectBoard key={boardPage} value={board} page={boardPage+1} total={boardPages.length} onChange={changeBoard} disabled={busy} onUndo={undoBoard} onRedo={redoBoard} canUndo={!!undoBoards.length} canRedo={!!redoBoards.length}/>
           <button className={styles.primary} disabled={busy||!online||room.status!=='active'||!board.trim()} onClick={publishBoard}>Share board</button>
-        </>:teacher&&!viewedPrompt?<section className={styles.startPanel} aria-label="Start teaching"><div className={styles.startEmblem}><BookOpen size={24} aria-hidden="true"/></div><h2>Ready to teach</h2><p>Choose a prepared lesson or share something with your class.</p><div className={styles.startActions}><button type="button" className={styles.primary} onClick={()=>{setReviewId(null);setEditingBoard(false);setPanel(linkedPlan?'plan':'resources')}}>{linkedPlan?'Open lesson plan':'Open resources'}</button><button type="button" onClick={openSlides}>Prepare slides</button><button type="button" onClick={()=>setPanel('kit')}>Teaching Kit</button><button type="button" onClick={()=>chooseMode('board')}>Whiteboard</button></div>{linkedPlan&&<small>Prepared: {linkedPlan.title}</small>}</section>:viewedPrompt?<LiveStageInk key={room.id+":"+viewedPrompt.id+":"+teacher} roomId={room.id} promptId={viewedPrompt.id} currentId={prompt?.id} teacher={teacher} status={room.status} online={online} participants={participants} command={call} version={room.version}><SharedPrompt prompt={viewedPrompt} roomId={room.id} learner={!teacher} onQuote={!teacher ? quote=>{if(noteDraft.length+quote.length+4>8000){setError('Your private notes are full. Shorten them before adding this passage.');return}setNoteDraft(value=>value.trim()?value+'\n\n“'+quote+'”':'“'+quote+'”');noteDirty.current=true;setPrivateOpen(false);setClassChatOpen(false);setLearnerTool('notes')} : undefined}/></LiveStageInk>:<SharedPrompt prompt={null}/>}
+        </>:teacher&&!viewedPrompt?<section className={styles.startPanel} aria-label="Start teaching"><div className={styles.startEmblem}><BookOpen size={24} aria-hidden="true"/></div><h2>Ready to teach</h2><p>Choose a prepared lesson or share something with your class.</p><div className={styles.startActions}><button type="button" className={styles.primary} onClick={()=>{setReviewId(null);setEditingBoard(false);setPanel(linkedPlan?'plan':'resources')}}>{linkedPlan?'Open lesson plan':'Open resources'}</button><button type="button" onClick={openSlides}>Prepare slides</button><button type="button" onClick={()=>setPanel('interactive')}>Interactive tools</button><button type="button" onClick={()=>setPanel('kit')}>Teaching Kit</button><button type="button" onClick={()=>chooseMode('board')}>Whiteboard</button></div>{linkedPlan&&<small>Prepared: {linkedPlan.title}</small>}</section>:viewedPrompt?<LiveStageInk key={room.id+":"+viewedPrompt.id+":"+teacher} roomId={room.id} promptId={viewedPrompt.id} currentId={prompt?.id} teacher={teacher} status={room.status} online={online} participants={participants} command={call} version={room.version}><SharedPrompt prompt={viewedPrompt} roomId={room.id} learner={!teacher} onQuote={!teacher ? quote=>{if(noteDraft.length+quote.length+4>8000){setError('Your private notes are full. Shorten them before adding this passage.');return}setNoteDraft(value=>value.trim()?value+'\n\n“'+quote+'”':'“'+quote+'”');noteDirty.current=true;setPrivateOpen(false);setClassChatOpen(false);setLearnerTool('notes')} : undefined}/></LiveStageInk>:<SharedPrompt prompt={null}/>}
       </section>
       {((teacher&&privateTarget&&panel===null)||(!teacher&&privateOpen&&!learnerTool))&&<LivePrivateChat key={room.id+':'+(privateTarget?.studentId??'self')} roomId={room.id} teacher={teacher} recipient={privateTarget} status={room.status} command={call} onClose={()=>{setPrivateOpen(false);setPrivateTarget(null)}}/>}
       {((teacher&&panel==='chat')||(!teacher&&classChatOpen&&!learnerTool))&&<LiveClassChat key={room.id} roomId={room.id} version={room.version} teacher={teacher} status={room.status} command={call} onClose={()=>{if(teacher)setPanel(null);else setClassChatOpen(false)}}/>}
@@ -1135,7 +1136,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
       </section>}
       {teacher&&<TeacherSticker prompt={prompt} hidden={!showSticker||!!panel||(focusMode&&!focusDock)} onHide={()=>setShowSticker(false)}/>}
       {teacher&&panel&&panel!=='slides'&&panel!=='library'&&panel!=='resources'&&panel!=='chat'&&<section className={styles.sheet} aria-label={panel==='compose'?labels[mode]:panel==='learners'?'Learners':'Classroom tools'}>
-        <div className={styles.sheetTitle}><strong>{panel==='compose'?labels[mode]:panel==='learners'?'Learners':panel==='kit'?'Teaching Kit':'More tools'}</strong><button aria-label="Close tools" onClick={()=>{setPanel(null);setEndConfirm(false)}}><X size={19}/></button></div>
+        <div className={styles.sheetTitle}><strong>{panel==='compose'?labels[mode]:panel==='learners'?'Learners':panel==='kit'?'Teaching Kit':panel==='interactive'?'Interactive tools':'More tools'}</strong><button aria-label="Close tools" onClick={()=>{setPanel(null);setEndConfirm(false)}}><X size={19}/></button></div>
         {panel==='compose'&&<form onSubmit={e=>{e.preventDefault();void act('publish',null,{kind:mode,body:content,answerKey:mode==='quiz'||mode==='exercise'?key:null})}}>
           {mode==='clock'?<><label>Show time<input type="time" value={clock} onChange={e=>setClock(e.target.value)}/></label><ClockView value={clock}/></>:<label>{mode==='teach'?'Lesson content':'Question or instruction'}<textarea required maxLength={4000} value={body} onChange={e=>setBody(e.target.value)}/></label>}
           {(mode==='quiz'||mode==='exercise')&&<label>Answer (hidden until reveal)<textarea maxLength={2000} value={key} onChange={e=>setKey(e.target.value)}/></label>}
@@ -1157,7 +1158,13 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
           book:()=>setPanel('resources'),
           exercises:()=>chooseMode('exercise'),
           board:()=>chooseMode('board'),
+          interactive:()=>setPanel('interactive'),
         }}/>} 
+        {panel==='interactive'&&<TeachingModelPicker disabled={busy||!online||room.status!=='active'} onPresent={demo=>{
+          if(busy||!online||room.status!=='active'||!teacher)return
+          const encoded=encodeSlide({title:diagramLabel(demo.kind),body:encodeDemo(demo)},1,1)
+          if(encoded)void act('publish',null,{kind:'teach',body:encoded,answerKey:null})
+        }}/>}
         {panel==='more'&&<><div className={styles.controls}><button onClick={()=>chooseMode('clock')}>Clock</button><button onClick={()=>chooseMode('teach')}>Teach text</button><button onClick={()=>{setEditingBoard(false);setPanel('library')}}>My presentations</button><button onClick={()=>{setReviewId(null);setEditingBoard(false);setPanel('resources')}}>Resources</button>{linkedPlan&&<button type="button" onClick={()=>{setEditingBoard(false);setPanel('plan')}}>Lesson Plan</button>}<button onClick={()=>setShowSticker(v=>!v)}>{showSticker?'Hide preview':'Show preview'}</button><button disabled={busy||!prompt||!['quiz','exercise','poll'].includes(prompt.kind)||prompt.revealed} onClick={()=>void act('reveal')}>Reveal / close answers</button><button type="button" onClick={()=>setShareLink(new URL('/student/live?room='+encodeURIComponent(room.id),window.location.origin).href)}>Share lesson</button></div>{shareLink&&<><label>Lesson link<input readOnly value={shareLink} onFocus={e=>e.target.select()}/></label><a href={'https://wa.me/?text='+encodeURIComponent(shareLink)} target="_blank" rel="noopener noreferrer">Share on WhatsApp</a></>}{endConfirm?<div className={styles.controls}><strong>End this session?</strong><button disabled={busy} onClick={()=>void act('end')}>Confirm end</button><button onClick={()=>setEndConfirm(false)}>Cancel</button></div>:null}</>}
       </section>}
     </div>

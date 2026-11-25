@@ -416,6 +416,23 @@ try{
    const max=element.scrollHeight-element.clientHeight
    return max>0&&Math.abs(element.scrollTop/max-0.25)<0.14
  },null,{timeout:18000})
+ // An actual teacher publishes a bounded model over the authorized classroom
+ // transport. A learner can explore it and reconnect to the shared values.
+ await button(t,'Teaching Kit').click()
+ await button(t,'Teaching Kit: Interactive tools').click()
+ await t.getByRole('searchbox',{name:'Search tools'}).fill('counters')
+ await t.getByRole('slider',{name:'Group A',exact:true}).press('ArrowRight')
+ await button(t,'Present to class').click()
+ await see(l,'4 + 5 = 9 counters')
+ await button(l,'+ B').click()
+ await see(l,'4 + 6 = 10 counters')
+ await see(t,'4 + 5 = 9 counters')
+ assert.equal(await button(l,'Present to class').count(),0)
+ const modelRoom=await fixture.rpc(fixture.teacher,'get',sid,null,{},fixture.cls)
+ assert.match(modelRoom.prompt.body,/counter-groups/)
+ await l.reload();await dialog(l).waitFor()
+ await see(l,'4 + 5 = 9 counters')
+ await noPageOverflow(l)
  await button(t,'End').click()
  await button(t,'Confirm end').click()
  await see(l,'This session has ended.')

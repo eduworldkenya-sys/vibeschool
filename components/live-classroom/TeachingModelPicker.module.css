@@ -1,0 +1,10 @@
+.catalogue{min-width:0;display:grid;gap:12px}
+.filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,10rem),1fr));gap:12px}
+.field,.filters label{display:grid;gap:5px;min-width:0;font-weight:650;font-size:.875rem}
+.filters :is(input,select){box-sizing:border-box;width:100%;min-width:0;min-height:44px;padding:8px;border:1px solid #84969a;border-radius:8px;background:var(--vs-card,#fff);color:var(--vs-text,#172c3e);font:inherit}
+.count{margin:0;font-size:.9rem}
+.preview,.present{display:grid;gap:12px;min-width:0}
+.preview h2{margin:0;font-size:1.2rem}
+.present{justify-items:center}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.actions button{min-height:44px}

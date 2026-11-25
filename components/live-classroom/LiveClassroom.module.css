@@ -398,3 +398,13 @@
 .studioFooter{display:flex;gap:8px;position:sticky;bottom:0;z-index:2;background:var(--vs-surface,Canvas);padding:8px 0 max(8px,env(safe-area-inset-bottom));box-shadow:0 -4px 16px #0000000b}.studioFooter button{flex:1;min-width:0}
 .slideFields label.autoSaveLabel{display:flex;align-items:center;gap:8px}.autoSaveLabel input[type=checkbox]{width:18px;height:18px;flex:none}
 @media(max-width:420px){.studioPage .slideOptions{grid-template-columns:minmax(0,1fr)}.studioPage .presentationCanvas:not([data-mini=true]) .presentationBody h2{font-size:clamp(16px,5vw,24px)}.studioPage .presentationCanvas:not([data-mini=true]) .presentationBody p{font-size:clamp(12px,3.8vw,18px)}}
+
+.slideDiagram[data-draggable]{touch-action:none;cursor:grab}
+.slideDiagram[data-draggable]:active{cursor:grabbing}
+.demoControl{display:grid;grid-template-columns:minmax(0,1fr) 4.8rem;gap:12px;align-items:end}
+.demoControls .demoControl input{box-sizing:border-box;min-height:38px}
+.demoNumber span{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.demoNumber input{width:100%;padding:6px;border-radius:8px;border:1px solid #84969a;color:inherit;background:transparent;font:inherit}
+.demoResult{display:block;font-weight:650;text-align:center;line-height:1.4;overflow-wrap:anywhere}
+.counterActions,.counterActions>div{display:flex;gap:8px;flex-wrap:wrap}
+.counterActions button{min-width:48px;min-height:44px}
