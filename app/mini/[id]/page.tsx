@@ -1,3 +1,4 @@
+import {MiniSlideReader} from '@/components/public/MiniSlideDeck'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -32,6 +33,7 @@ export default async function PublicMiniPage({params}:Props) {
     <main id="main-content" tabIndex={-1} className={styles.explorePage}>
       <div className={styles.container}><article className={styles.reader}>
         <div className={styles.readerHeader}><Link href="/explore" className={styles.back}>← Explore</Link></div>
+        {mini.slide_deck!=null&&<MiniSlideReader key={mini.id} value={mini.slide_deck}/>}
         {mini.cover_path && <img src={miniPublicPath(mini.id)+'/cover'} alt={mini.title} className={styles.art} style={{width:'100%',objectFit:'contain'}}/>}
         <div className={styles.readerBody}>
           <h1 className={styles.readerTitle}>{mini.title}</h1>

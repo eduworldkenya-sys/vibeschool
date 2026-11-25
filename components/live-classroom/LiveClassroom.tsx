@@ -604,6 +604,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
   useEffect(()=>{if(!teacher||classId||hostMode!=='tuition')return;let cancelled=false;void call('groups').then(data=>{if(!cancelled)setGroups(data as {id:string;title:string}[])}).catch(()=>{if(!cancelled)setGroups([])});return()=>{cancelled=true}},[teacher,classId,hostMode,call])
   useEffect(()=>{
     const params=new URLSearchParams(window.location.search)
+    if(teacher&&params.get('studio')==='1')setBeforeLibrary(true)
     const requested=params.get('mode')
     if(!classId&&teacher&&(requested==='tuition'||requested==='open')&&hostModeKey.split(',').includes(requested))setHostMode(requested)
     const id=params.get('room')
@@ -715,6 +716,13 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
     finally{setBusy(false)}
   }
 
+  const initialPastHandled=useRef(false)
+  useEffect(()=>{
+    if(!teacher||loading||room||!pastAvailable||initialPastHandled.current)return
+    if(new URLSearchParams(window.location.search).get('past')!=='1')return
+    initialPastHandled.current=true
+    if(!pastOpen)void togglePastClasses()
+  },[teacher,loading,room,pastAvailable,pastOpen])
   async function togglePastClasses() {
     if (pastOpen) { setPastOpen(false); return }
     setPastOpen(true); setPastLoading(true); setPastError('')

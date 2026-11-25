@@ -1,0 +1,5 @@
+# Candidate only — #2093
+
+No release certification. Public room photos, free drawings, voice/video withheld pending media ownership and moderation. Existing shared slide engine reused. Local checkout and Cyborg preflight unavailable; verify migration ordering, exact-head checks, all consumer paths, security, accessibility, and photo/slide end-to-end publishing before merge. No production changes.
+
+Rollout compatibility: both NEXT_PUBLIC_MINI_LESSON_SLIDES_ENABLED and MINI_LESSON_SLIDES_PUBLISHING_ENABLED default off. Legacy photo queries and inserts work without slide_deck. The public flag must remain off until the additive migration, data API visibility, independent review, and signed-in smoke tests are verified; the server publishing flag is a separate explicit commissioning step. Unsupported visual-canvas controls are hidden in the public editor; live classroom defaults remain unchanged.
