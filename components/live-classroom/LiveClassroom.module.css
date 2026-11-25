@@ -408,3 +408,5 @@
 .demoResult{display:block;font-weight:650;text-align:center;line-height:1.4;overflow-wrap:anywhere}
 .counterActions,.counterActions>div{display:flex;gap:8px;flex-wrap:wrap}
 .counterActions button{min-width:48px;min-height:44px}
+
+.live .studioTabs button[aria-pressed=true]{background:#16734b;color:#fff;border-color:transparent}.live .studioTabs button{min-height:44px;border-radius:12px}.live .studioTabs{padding-bottom:12px;border-bottom:1px solid var(--teacher-border,var(--vs-border,#dce4df))}
