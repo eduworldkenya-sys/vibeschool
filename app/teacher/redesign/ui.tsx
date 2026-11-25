@@ -3,8 +3,8 @@ import {useId,type ButtonHTMLAttributes,type ReactNode,type ChangeEventHandler} 
 import {AlertCircle,CheckCircle2,Inbox,LoaderCircle,Search,ChevronLeft,ChevronRight} from "lucide-react";
 import s from "./redesign.module.css";
 
-export function ActionButton({variant="primary",className="",...props}:ButtonHTMLAttributes<HTMLButtonElement>&{variant?:"primary"|"outline"|"ghost"}) {
- return <button {...props} type={props.type??"button"} className={[variant==="ghost"?"":s[variant],className].filter(Boolean).join(" ")}/>;
+export function ActionButton({variant="primary",size="regular",busy=false,busyLabel="Working…",icon,iconOnly=false,className="",children,disabled,...props}:ButtonHTMLAttributes<HTMLButtonElement>&{variant?:"primary"|"outline"|"ghost"|"danger";size?:"compact"|"regular"|"large";busy?:boolean;busyLabel?:string;icon?:ReactNode;iconOnly?:boolean}) {
+ return <button {...props} type={props.type??"button"} disabled={disabled||busy} aria-busy={busy||undefined} data-size={size} data-icon-only={iconOnly||undefined} className={[s.actionButton,variant==="ghost"?"":variant==="danger"?s.dangerButton:s[variant],className].filter(Boolean).join(" ")}>{busy?<LoaderCircle className={s.spinner} size={17} aria-hidden="true"/>:icon}{busy?<span>{busyLabel}</span>:children}</button>;
 }
 export function SearchField({label,value,onChange,placeholder="Search"}:{label:string;value:string;onChange:(value:string)=>void;placeholder?:string}){
  return <label className={s.searchField}><Search size={18} aria-hidden="true"/><input type="search" aria-label={label} placeholder={placeholder} value={value} onChange={e=>onChange(e.target.value)}/></label>;
@@ -12,8 +12,9 @@ export function SearchField({label,value,onChange,placeholder="Search"}:{label:s
 export function SelectField({label,value,options,onChange,disabled=false}:{label:string;value:string;options:{value:string;label:string}[];onChange:(value:string)=>void;disabled?:boolean}){
  const id=useId();return <label htmlFor={id} className={s.field}>{label}<select id={id} value={value} disabled={disabled} onChange={e=>onChange(e.target.value)}>{options.map(o=><option key={o.value} value={o.value}>{o.label}</option>)}</select></label>;
 }
-export function TextField({label,value,onChange,multiline=false}:{label:string;value:string;onChange:(value:string)=>void;multiline?:boolean}){
- const id=useId();return <label htmlFor={id} className={s.field}>{label}{multiline?<textarea id={id} value={value} onChange={e=>onChange(e.target.value)}/>:<input type="text" id={id} value={value} onChange={e=>onChange(e.target.value)}/>}</label>;
+export function TextField({label,value,onChange,multiline=false,required=false,error,help,type="text",disabled=false}:{label:string;value:string;onChange:(value:string)=>void;multiline?:boolean;required?:boolean;error?:string;help?:string;type?:"text"|"number"|"email"|"password"|"date"|"time";disabled?:boolean}){
+ const id=useId();const details=error||help;const shared={id,value,required,disabled,"aria-invalid":!!error,"aria-describedby":details?id+"-help":undefined,onChange:(e:React.ChangeEvent<HTMLInputElement|HTMLTextAreaElement>)=>onChange(e.target.value)};
+ return <label htmlFor={id} className={s.field}>{label}{required?" *":""}{multiline?<textarea {...shared}/>:<input type={type} {...shared}/>} {details&&<small id={id+"-help"} className={error?s.fieldError:undefined}>{details}</small>}</label>;
 }
 export function CheckField({label,checked,onChange,disabled=false}:{label:string;checked:boolean;onChange:ChangeEventHandler<HTMLInputElement>;disabled?:boolean}){
  return <label className={s.check}><input type="checkbox" checked={checked} onChange={onChange} disabled={disabled}/>{label}</label>;
