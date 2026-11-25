@@ -4,13 +4,13 @@ import {teacherTabs,teacherTools,type TeacherTab} from "@/components/teacher/nav
 export type Panel =
  | {kind:"stage";index:number;occurrenceId?:string}
  | {kind:"live"|"studio"|"teach";occurrenceId?:string}
- | {kind:"past"|"mark"|"attendance"|"settings"|"notifications"|"tools"|"timetable"|"lab"}
+ | {kind:"past"|"mark"|"homework-mark"|"attendance"|"settings"|"notifications"|"tools"|"timetable"|"lab"}
  | {kind:"pending";label:string;href:string};
 export type Destination={tab:TeacherTab;panel:Panel|null};
 export type Opening="sheet"|"workspace"|"immersive";
 
 const tools=Object.values(teacherTools).flat();
-const kinds=["live","studio","past","mark","attendance","settings","notifications","teach","tools","timetable","lab"] as const;
+const kinds=["live","studio","past","mark","homework-mark","attendance","settings","notifications","teach","tools","timetable","lab"] as const;
 export function toolPanel(href:string,label:string):Panel {
  const index=["/teacher/scheme","/teacher/lessonplan","/teacher/lesson-notes","/teacher/resources"].indexOf(href);
  if(index>=0)return {kind:"stage",index};
@@ -28,7 +28,7 @@ export function toolPanel(href:string,label:string):Panel {
 }
 export function openingFor(panel:Panel|null):Opening {
  if(panel?.kind==="live")return "immersive";
- if(panel&&["stage","studio","teach","timetable","mark","attendance","pending","past","lab"].includes(panel.kind))return "workspace";
+ if(panel&&["stage","studio","teach","timetable","mark","homework-mark","attendance","pending","past","lab"].includes(panel.kind))return "workspace";
  return "sheet";
 }
 export function parseDestination(search:string):Destination {
