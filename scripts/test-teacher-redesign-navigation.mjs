@@ -101,3 +101,87 @@ test("component samples and Teacher Home share the same primitives",()=>{
  assert.match(lab,/<ActionButton/);
  assert.match(lab,/<SmartSearch/);
 });
+
+import {createPreviewState,previewReducer,todayView,notifications,previewDate} from "../app/teacher/redesign/preview-state.ts";
+const all={classId:"all",subjectId:"all"};
+test("Today derives counts and next dated occurrence from shared records",()=>{
+ const state=createPreviewState(),view=todayView(state,all);
+ assert.equal(view.lessons.length,4);assert.equal(view.next.id,"english-today");assert.equal(view.submissions.length,5);assert.equal(view.attendance.length,2);
+ const scoped=todayView(state,{classId:"class-5",subjectId:"english"});
+ assert.equal(scoped.lessons.length,0);assert.equal(scoped.next.id,"english-tomorrow");assert.equal(scoped.attendance.length,0);assert.equal(scoped.submissions.length,0);
+ const independent=todayView(state,{classId:"independent",subjectId:"all"});
+ assert.equal(independent.next,null);assert.equal(independent.submissions.length,0);
+ assert.equal(view.next.date,previewDate);
+});
+test("exact lesson identity round trips, and unknown IDs cannot select a foreign record",()=>{
+ for(const kind of ["stage","teach","studio","live"]){
+  const panel={kind,occurrenceId:"english-tomorrow",...(kind==="stage"?{index:2}:{})};
+  const d={tab:"today",panel};assert.deepEqual(parseDestination(destinationSearch(d)),d);
+ }
+ assert.deepEqual(parseDestination("?panel=stage:2&occurrence=other-school"),{tab:"today",panel:{kind:"stage",index:2}});
+ assert.equal(openingFor({kind:"homework-mark"}),"workspace");
+ assert.deepEqual(parseDestination("?panel=homework-mark"),{tab:"today",panel:{kind:"homework-mark"}});
+ assert.equal(toolPanel("/teacher/assessment/marking","Mark submissions").kind,"mark");
+});
+test("preparation drafts are scoped to exact occurrence and validation preserves input",()=>{
+ const initial=createPreviewState();
+ let state=previewReducer(initial,{type:"draft",id:"english-today",index:3,checked:true});
+ assert.equal(todayView(state,all).next.preparation[3],"pending");
+ state=previewReducer(state,{type:"savePreparation",id:"english-today",index:3});
+ assert.equal(todayView(state,all).next.preparation[3],"done");
+ assert.deepEqual(todayView(state,all).next.resourceIds,["resource-1"]);
+ assert.equal(state.occurrences.find(x=>x.id==="english-tomorrow").preparation[3],"pending");
+ assert.equal(initial.occurrences.find(x=>x.id==="english-today").preparation[3],"pending");
+ state=previewReducer(state,{type:"draft",id:"english-today",notes:"  ",index:2,checked:true});
+ assert.equal(previewReducer(state,{type:"savePreparation",id:"english-today",index:2}),state);
+ assert.equal(state.drafts["english-today"].notes,"  ");
+ state=previewReducer(state,{type:"draft",id:"english-today",notes:"New notes"});
+ state=previewReducer(state,{type:"savePreparation",id:"english-today",index:2});
+ assert.equal(todayView(state,all).next.notes,"New notes");assert.equal(state.drafts["english-today"].notes,undefined);
+});
+test("attendance and homework counts change only for the addressed record",()=>{
+ const original=createPreviewState(),before=todayView(original,all);
+ let state=previewReducer(original,{type:"recordAttendance",id:"english-today"});
+ state=previewReducer(state,{type:"markSubmission",id:"submission-1"});
+ let view=todayView(state,all);
+ assert.equal(view.attendance.length,before.attendance.length-1);assert.equal(view.submissions.length,before.submissions.length-1);
+ state=previewReducer(state,{type:"recordAttendance",id:"english-today"});
+ state=previewReducer(state,{type:"markSubmission",id:"submission-1"});
+ view=todayView(state,all);
+ assert.equal(view.attendance.length,1);assert.equal(view.submissions.length,4);
+ assert.equal(todayView(state,{classId:"class-5",subjectId:"all"}).submissions.length,1);
+});
+test("delivery cannot be inferred from preparation or start a future occurrence",()=>{
+ let state=createPreviewState();
+ state=previewReducer(state,{type:"finishTeaching",id:"english-today"});
+ assert.equal(todayView(state,all).next.delivery,"scheduled");
+ state=previewReducer(state,{type:"startTeaching",id:"english-tomorrow"});
+ assert.equal(state.occurrences.find(x=>x.id==="english-tomorrow").delivery,"scheduled");
+ state=previewReducer(state,{type:"startTeaching",id:"english-today"});
+ assert.equal(todayView(state,all).next.delivery,"teaching");
+ state=previewReducer(state,{type:"finishTeaching",id:"english-today"});
+ assert.equal(todayView(state,all).next.id,"english-tomorrow");
+});
+test("instant mock Live, pause/resume, end and duplicate protection",()=>{
+ let state=createPreviewState();
+ state=previewReducer(state,{type:"startSession",audience:"class-4",occurrenceId:"english-today"});
+ const id=todayView(state,all).active.id;
+ assert.equal(todayView(state,all).active.occurrenceId,"english-today");
+ assert.equal(previewReducer(state,{type:"startSession",audience:"open",occurrenceId:null}),state);
+ state=previewReducer(state,{type:"pauseSession",id});assert.equal(todayView(state,all).active.status,"paused");
+ state=previewReducer(state,{type:"resumeSession",id});assert.equal(todayView(state,all).active.status,"active");
+ state=previewReducer(state,{type:"endSession",id});assert.equal(todayView(state,all).active,null);
+ state=previewReducer(state,{type:"resumeSession",id});assert.equal(todayView(state,all).active,null);
+ state=previewReducer(state,{type:"startSession",audience:"tuition",occurrenceId:"english-today"});
+ assert.equal(todayView(state,all).active.occurrenceId,null);assert.notEqual(todayView(state,all).active.id,id);
+ assert.deepEqual(previewReducer(state,{type:"reset"}),createPreviewState());
+});
+test("notifications are derived from tasks and can be read without completing tasks",()=>{
+ let state=createPreviewState(),items=notifications(state,all);
+ assert.equal(items.length,8);assert.ok(items.every(x=>!x.read));
+ state=previewReducer(state,{type:"readNotification",id:items[0].id});
+ assert.equal(notifications(state,all).filter(x=>x.read).length,1);
+ assert.equal(todayView(state,all).submissions.length,5);
+ state=previewReducer(state,{type:"markSubmission",id:"submission-1"});
+ assert.equal(notifications(state,all).length,7);
+});
