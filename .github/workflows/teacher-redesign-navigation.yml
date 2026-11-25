@@ -8,6 +8,7 @@ on:
       - 'scripts/test-teacher-redesign-navigation.mjs'
       - 'scripts/test-teacher-redesign-browser.cjs'
       - 'scripts/fixtures/teacher-redesign-lab.tsx'
+      - 'scripts/fixtures/teacher-redesign-today.tsx'
       - 'scripts/register-typescript.mjs'
       - '.github/workflows/teacher-redesign-navigation.yml'
 permissions:

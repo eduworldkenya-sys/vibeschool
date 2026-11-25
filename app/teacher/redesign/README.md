@@ -44,3 +44,23 @@ The appearance panel supports theme, accent, compact/comfortable/detailed densit
 ## Browser verification
 
 `scripts/test-teacher-redesign-browser.cjs` mounts the real Design Lab using an isolated local fixture, not a customer-facing route or an authentication bypass. The CI browser job exercises six viewport widths, both themes, horizontal overflow, button pending state, keyboard and dialog focus, search, filters, validation, reorder, split resizing, multi-selection and command palette. These tests must actually pass before the scope can be described as verified. Signed-in navigation, production data, screen-reader evaluation, device-specific touch, and real service integration require separate evidence.
+
+## Stage 2.1 — Today and shared preview state
+
+Implementation contract: issue #2127. The redesigned Today uses `preview-state.ts` as its single local synthetic-record authority. Future workspaces must use these same record IDs and state transitions (extend the model with real existing domain shapes as the workspaces are inventoried), not independent counters. The synthetic clock is fixed at 25 November 2026, 13:50 Nairobi; records are not a school timetable. No service calls or storage writes are introduced.
+
+| Current product source / action | Preview implementation | Coverage limitation |
+| --- | --- | --- |
+| TeacherTodayV09 / pulse scope, lesson selection | School/independent scope, class and subject, dated occurrence, current/tomorrow/empty | Current authenticated school selector and existing PulseSnapshot adapter are deferred to integration. |
+| Lesson readiness / occurrence links | Five preparation indicators with done/pending/unknown; exact occurrence deep links; draft notes, preparation status, linked fixture resources/slides | Scheme, plan, notes, resource and slide editors are not complete; simple sample readiness controls only. |
+| Pulse rules / attendance and homework queues | Record-derived counts, distinct homework vs classroom assessment marking destinations, scoped task list, local read notifications | Full registers, homework marks, assessment workflows, urgency rules and attendance evidence remain subsequent workspaces. |
+| Live command / existing audience selection | One simulated active/paused session, end history, class/invited/public audience, linked occurrence only for matching class; optional prep | No actual session, audio, providers, participant synchronization, learner UI or real messaging; full Live workspace later. |
+| Teacher navigation / shortcuts | Existing registry, shared search, add/remove/reorder/reset, route history and Design Lab | Other registered workspaces still explicitly pending. |
+| Pulse loading, empty, offline, error | Explicit synthetic states and retry, local reset | No real fetch/offline caching, slow/partial/session-expired handling yet. |
+| Day / weekly insight | Today count, sample timetable, tomorrow fallback | Week planning, actual activity feed, performance/assessment insights, broader actions and nested route inventory remain outstanding. |
+
+The shared browser gate now mounts Today in addition to the Design Lab. The local test server serves only the fixture bundle and logo files; its image adapter stands in for Next Image, not application auth. Tests cover six widths and two system themes, scoped preparation, retained drafts, counts, mock Live lifecycle, retry/reset and deep links. The new tests must actually pass on the candidate SHA. Stage 2.1 is an implementation increment, not completed coverage of all Today or Teacher OS workflows. Signed-in production verification and the required Cyborg completion/lease evidence are not established by these fixtures.
+
+### Navigation visual rule — owner feedback, 25 November 2026
+
+Avoid the generic selected navigation treatment shown in the owner's screenshot: rounded pale-blue fill, thick colored side stripe, and small colored label. Use flat rows, aligned conventional icons, normal readable labels and stronger typography for the current destination; reserve the selected accent for its icon. No persistent selected pill or stripe on desktop or mobile. Hover may use a restrained neutral surface. Preserve accessible current-page semantics, keyboard focus, 44px minimum touch targets and collapsed navigation. This rule applies to the shared redesign navigation; other navigation and component styles require their own appropriate treatment, not automatic removal of all semantic colors.

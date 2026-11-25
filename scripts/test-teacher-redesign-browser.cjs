@@ -5,12 +5,84 @@ const fs=require("node:fs");
 const os=require("node:os");
 const path=require("node:path");
 const {pathToFileURL}=require("node:url");
+const http=require("node:http");
 const deps=process.env.REDESIGN_BROWSER_DEPS;
 const load=name=>deps?require(path.join(deps,"node_modules",name)):require(name);
 const {chromium}=load("playwright");
 const {build}=load("esbuild");
 const root=path.resolve(__dirname,"..");
 const families=["Buttons","Search","Filters","Forms","Navigation","Overlays","Data display","Feedback","Interactions","Verification"];
+
+async function todayChecks(browser,dir,errors){
+ await build({absWorkingDir:root,entryPoints:["scripts/fixtures/teacher-redesign-today.tsx"],outfile:path.join(dir,"today.js"),bundle:true,jsx:"automatic",loader:{".module.css":"local-css"},define:{"process.env.NODE_ENV":'"production"',"process.env.NEXT_PUBLIC_VIBE_LIVE_ENABLED":'"true"'},platform:"browser",plugins:[{name:"fixture-image",setup(builder){builder.onResolve({filter:new RegExp("^next/image$")},()=>({path:"image",namespace:"fixture"}));builder.onLoad({filter:/.*/,namespace:"fixture"},()=>({contents:'import React from "react";export default function Image(props){return React.createElement("img",props)}',loader:"js",resolveDir:root}))}}]});
+ const html='<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Teacher Today test</title><style>html,body,#root{margin:0;height:100%}*{box-sizing:border-box}</style><link rel="stylesheet" href="/today.css"><div id="root"></div><script src="/today.js"></script></html>';
+ const server=http.createServer((req,res)=>{
+  const pathname=new URL(req.url,"http://localhost").pathname;
+  if(pathname==="/teacher/redesign"){res.setHeader("Content-Type","text/html");res.end(html);return}
+  const files={"/today.js":[path.join(dir,"today.js"),"text/javascript"],"/today.css":[path.join(dir,"today.css"),"text/css"],"/brand/vibeschool-wordmark.svg":[path.join(root,"public/brand/vibeschool-wordmark.svg"),"image/svg+xml"],"/brand/vibeschool-wordmark-dark.svg":[path.join(root,"public/brand/vibeschool-wordmark-dark.svg"),"image/svg+xml"]};
+  const file=files[pathname];if(!file||!fs.existsSync(file[0])){res.statusCode=404;res.end();return}res.setHeader("Content-Type",file[1]);res.end(fs.readFileSync(file[0]));
+ });
+ await new Promise(resolve=>server.listen(0,"127.0.0.1",resolve));
+ const origin="http://127.0.0.1:"+server.address().port+"/teacher/redesign";
+ try{
+  for(const width of [320,360,390,768,1024,1440]){
+   for(const colorScheme of ["light","dark"]){
+    const p=await browser.newPage({viewport:{width,height:850},colorScheme,reducedMotion:"reduce"});
+    p.on("pageerror",e=>errors.push(e.message));
+    await p.goto(origin);await p.getByRole("heading",{name:"Today",exact:true}).waitFor();
+    assert(await p.locator("main").evaluate(el=>el.scrollWidth<=el.clientWidth+1),"Today overflow "+width+" "+colorScheme);
+    assert(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),"Page overflow "+width+" "+colorScheme);
+    const nav=p.getByRole("navigation",{name:"Redesign navigation"});
+    await nav.getByRole("button",{name:"Teach",exact:true}).click();
+    const selected=nav.getByRole("button",{name:"Teach",exact:true});
+    assert.equal(await selected.getAttribute("aria-current"),"page");
+    const style=await selected.evaluate(el=>{const s=getComputedStyle(el);return {background:s.backgroundColor,left:s.borderLeftWidth,top:s.borderTopWidth,weight:Number(s.fontWeight),radius:s.borderRadius}});
+    assert.equal(style.background,"rgba(0, 0, 0, 0)","Active navigation must remain flat");
+    assert.equal(style.left,"0px");assert.equal(style.top,"0px");assert.ok(style.weight>=650);
+    if(width>=600)assert.equal(style.radius,"0px","Sidebar must not use selected pills");
+    await p.close();
+   }
+  }
+  const p=await browser.newPage({viewport:{width:390,height:844},reducedMotion:"reduce"});
+  p.on("pageerror",e=>errors.push(e.message));
+  const button=(name)=>p.getByRole("button",{name,exact:true});
+  const home=async()=>p.getByRole("heading",{name:"Today",exact:true}).waitFor();
+  const back=async()=>{await button("Back").click();await home()};
+  const count=async(name)=>p.getByRole("region",{name:"Sample lesson records"}).getByRole("button",{name,exact:true}).waitFor();
+  await p.goto(origin);await home();
+  await count("5 To mark");await count("2 Attendance");
+  await button("Resources, pending").click();
+  assert.match(p.url(),/occurrence=english-today/);
+  await p.getByRole("checkbox",{name:"Sample preparation complete"}).check();
+  await button("Save and return").click();await home();
+  assert.equal(await p.getByRole("progressbar",{name:"Lesson preparation"}).getAttribute("aria-valuenow"),"4");
+  await button("Notes, complete").click();await p.getByRole("textbox",{name:"Teacher notes"}).fill("Retained sample draft");await back();
+  await button("Notes, complete").click();assert.equal(await p.getByRole("textbox",{name:"Teacher notes"}).inputValue(),"Retained sample draft");await button("Save and return").click();await home();
+  await p.locator("summary").filter({hasText:"Teaching context"}).click();
+  await p.getByRole("combobox",{name:"Class",exact:true}).selectOption("class-5");
+  await p.getByRole("combobox",{name:"Subject",exact:true}).selectOption("english");
+  await count("0 Lessons");await p.getByText(/Writing sentences/).waitFor();
+  await p.getByRole("combobox",{name:"Class",exact:true}).selectOption("all");
+  await p.locator("summary").filter({hasText:"Teaching context"}).click();
+  await count("4 Lessons");await count("5 To mark");
+  await p.getByRole("region",{name:"Sample lesson records"}).getByRole("button",{name:"5 To mark",exact:true}).click();
+  await p.getByRole("button",{name:"Mark sample submission",exact:true}).first().click();await back();await count("4 To mark");
+  await p.getByRole("region",{name:"Sample lesson records"}).getByRole("button",{name:"2 Attendance",exact:true}).click();
+  await p.getByRole("button",{name:"Complete sample attendance",exact:true}).first().click();await back();await count("1 Attendance");
+  await button("Go Live").click();await button("Start sample class").click();await button("Pause sample class").click();
+  await button("Resume sample class").click();await button("End sample class").click();await home();await button("Go Live").waitFor();
+  await button("Past").click();await p.getByText(/Ended \(sample\)/).waitFor();await back();
+  await button("Appearance settings").click();
+  await p.getByRole("combobox",{name:"Preview lesson state"}).selectOption("error");
+  await button("Close").click();await home();await button("Retry").click();await button("Resources, complete").waitFor();
+  await button("Appearance settings").click();await button("Reset preview").click();await button("Close").click();await home();await count("5 To mark");await count("2 Attendance");
+  await p.goto(origin+"?panel=stage%3A2&occurrence=english-tomorrow");
+  await p.getByRole("heading",{name:"Notes",exact:true}).waitFor();await p.getByText("Writing sentences",{exact:true}).waitFor();
+  await p.goto(origin+"?panel=stage%3A2&occurrence=bad");await home();
+  await p.close();console.log("Today: six widths and two themes; scoped preparation, queues, live, recovery, reset and deep links.");
+ }finally{await new Promise(resolve=>server.close(resolve))}
+}
+
 async function main(){
  const dir=fs.mkdtempSync(path.join(os.tmpdir(),"vibe-redesign-"));
  let browser;
@@ -86,6 +158,7 @@ async function main(){
   await page.keyboard.press("Escape");
   assert.equal(await page.locator("dialog[open]").count(),0);
   await page.close();
+  await todayChecks(browser,dir,errors);
   assert.deepEqual(errors,[]);
   console.log("Design Lab interactions and responsive geometry passed.");
  }finally{if(browser)await browser.close();fs.rmSync(dir,{recursive:true,force:true})}
