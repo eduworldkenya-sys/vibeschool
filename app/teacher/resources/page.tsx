@@ -423,6 +423,10 @@ export default function TeacherResourcesPage() {
       </header>
 
       <div style={{ maxWidth: 980, margin: '0 auto', padding: 16 }}>
+        <Link href="/teacher/resources/interactive-tools" style={{ display: 'block', padding: '14px 16px', marginBottom: 14, border: '1px solid var(--teacher-border, #dce7de)', borderRadius: 12, background: 'var(--teacher-surface, #fff)', color: 'var(--teacher-ink, #175b43)', textDecoration: 'none' }}>
+          <strong>Interactive tools →</strong>
+          <span style={{ display: 'block', fontSize: 12, marginTop: 4 }}>Preview teaching models and activities.</span>
+        </Link>
         <section aria-label="Find lessons" style={{ background: '#fff', border: '1px solid #dce7de', borderRadius: 12, padding: 12, marginBottom: 14 }}>
           <strong style={{ display: 'block', fontSize: 13, marginBottom: 9 }}>Find resources for</strong>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,190px),1fr))', gap: 9 }}>
