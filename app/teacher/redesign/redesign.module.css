@@ -241,3 +241,34 @@
 /* Teacher-only saved text uses document formatting, not generated cards. */
 .lessonProse{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.6}
 .teachSurface textarea{min-height:120px}
+
+/* Shared workspace and collection standards: flat surfaces, concise headings,
+   dividers between records, intrinsic actions, no repeated record cards. */
+.shell .main[data-workspace=true]{max-width:none;margin:0;background:var(--surface);padding:0}
+.fullWorkspace[data-opening=workspace]{background:var(--surface);border:0;border-radius:0;padding:var(--space);gap:0}
+.fullWorkspace[data-opening=workspace] .dialogBody{max-width:none;width:100%;margin:0;gap:var(--gap-md)}
+.workspaceHeading{display:flex;align-items:center;gap:var(--gap-sm);min-height:48px}
+.workspaceHeading h2{font-size:1.32em;font-weight:650;flex:1}
+.workspaceHeading button{flex:0 0 44px;width:44px;display:grid;place-items:center;padding:0}
+.fullWorkspace[data-opening=workspace] .dialogBody>.workspaceHeading{padding:0 0 var(--gap-sm);margin-bottom:var(--gap-xs)}
+.fullWorkspace[data-opening=workspace] .dialogBody>.actionButton{justify-self:start}
+.fullWorkspace[data-opening=workspace] .dialogBody>.panel{border:0;border-bottom:1px solid var(--line);border-radius:0;padding:var(--gap-md) 0}
+.fullWorkspace[data-opening=workspace] .teachSurface{padding:0}
+.fullWorkspace[data-opening=workspace] .teachSurface>.actionButton,.fullWorkspace[data-opening=workspace] .teachRecord>.actionButton{justify-self:start}
+.collectionSurface{display:grid;align-content:start;gap:var(--gap-md);min-width:0}
+.collectionToolbar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:var(--gap-md);padding-bottom:var(--gap-sm)}
+.collectionToolbar>div{display:grid;gap:2px}
+.collectionCount{font-size:1.1em}
+.collectionToolbar>.searchField{flex:0 1 280px;min-width:160px}
+.recordGroup{display:grid;gap:0}
+.recordGroupHeader{display:flex;align-items:center;justify-content:space-between;gap:var(--gap-sm);padding:var(--gap-sm) 0;border-bottom:1px solid var(--line)}
+.recordGroupHeader h3{font-size:1.05em;font-weight:650}
+.recordGroupHeader small{display:block}
+.recordList{margin:0;padding:0;list-style:none;display:grid;gap:0}
+.recordLine{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:var(--gap-md);padding:var(--gap-xs) 0;border-bottom:1px solid var(--line);min-height:56px}
+.recordText{display:grid;gap:2px;overflow-wrap:anywhere}
+.recordAction{display:flex;align-items:center;justify-content:flex-end;gap:var(--gap-xs);flex-wrap:wrap}
+.shell .recordAction .actionButton{font-size:.95em;border-radius:var(--radius-sm);white-space:normal;text-align:left;color:var(--selected);padding-inline:var(--gap-sm)}
+.shell .recordAction .actionButton:hover{background:var(--base)}
+@media(min-width:760px){.fullWorkspace[data-opening=workspace]{padding:20px 24px}.recordLine{min-height:58px}.collectionToolbar>.searchField{flex-basis:300px}}
+@media(max-width:359px){.collectionToolbar>.searchField{flex-basis:100%;min-width:0}.recordLine{gap:var(--gap-xs)}}
