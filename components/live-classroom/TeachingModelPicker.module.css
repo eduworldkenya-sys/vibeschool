@@ -8,3 +8,17 @@
 .present{justify-items:center}
 .actions{display:flex;gap:8px;flex-wrap:wrap}
 .actions button{min-height:44px}
+
+.toolGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;min-width:0}
+.catalogue .toolCard{appearance:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;min-width:0;min-height:100px;padding:12px 6px;border:1px solid var(--teacher-border,var(--vs-border,#dce4df));border-radius:12px;background:var(--teacher-surface,var(--vs-card,#fff));color:var(--teacher-ink,var(--vs-text,#172c3e));font:inherit;font-size:.81rem;font-weight:600;text-align:center;line-height:1.25;overflow-wrap:anywhere;cursor:pointer}
+.toolCard svg{flex:none}
+.catalogue .toolCard[aria-pressed=true]{border:2px solid #16805b;background:var(--teacher-canvas,var(--vs-soft,#edf8f1));box-shadow:inset 0 0 0 1px #16805b}
+.catalogue .toolCard:hover{border-color:#16805b}
+.catalogue :is(.toolCard,.pagination button,.addButton):focus-visible{outline:3px solid #2479ce;outline-offset:3px}
+.pagination{display:flex;justify-content:center;align-items:center;gap:12px;font-size:.8rem;font-variant-numeric:tabular-nums}
+.catalogue .pagination button{display:grid;place-items:center;min-width:44px;min-height:44px;border-radius:10px;padding:5px}
+.gridActions{display:grid;gap:8px;width:100%}
+.catalogue .gridActions button{min-height:44px}
+.catalogue .addButton{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:52px;border:0;border-radius:12px;background:#16734b;color:white;font:inherit;font-weight:700;padding:12px}
+.catalogue .addButton:disabled{opacity:.45;cursor:not-allowed}
+@media(max-width:340px){.toolGrid{gap:6px}.catalogue .toolCard{font-size:.73rem;min-height:88px;padding:8px 4px}}
