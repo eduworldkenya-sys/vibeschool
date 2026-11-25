@@ -35,5 +35,5 @@ const activities = examples.flatMap(({subject,display,label,spec}) =>
   }] : [])
 
 export function TeachingToolsLibrary({onPrepare,disabled=false}:{onPrepare?:(demo:SlideDemo)=>void;disabled?:boolean}={}) {
-  return <TeachingModelPicker activities={activities} onPresent={onPrepare} disabled={disabled} actionLabel="Add to lesson"/>
+  return <TeachingModelPicker activities={activities} onPresent={onPrepare} disabled={disabled} actionLabel="Add to lesson" layout="grid"/>
 }
