@@ -32,6 +32,14 @@ async function todayChecks(browser,dir,errors){
     await p.goto(origin);await p.getByRole("heading",{name:"Today",exact:true}).waitFor();
     assert(await p.locator("main").evaluate(el=>el.scrollWidth<=el.clientWidth+1),"Today overflow "+width+" "+colorScheme);
     assert(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),"Page overflow "+width+" "+colorScheme);
+    const nav=p.getByRole("navigation",{name:"Redesign navigation"});
+    await nav.getByRole("button",{name:"Teach",exact:true}).click();
+    const selected=nav.getByRole("button",{name:"Teach",exact:true});
+    assert.equal(await selected.getAttribute("aria-current"),"page");
+    const style=await selected.evaluate(el=>{const s=getComputedStyle(el);return {background:s.backgroundColor,left:s.borderLeftWidth,top:s.borderTopWidth,weight:Number(s.fontWeight),radius:s.borderRadius}});
+    assert.equal(style.background,"rgba(0, 0, 0, 0)","Active navigation must remain flat");
+    assert.equal(style.left,"0px");assert.equal(style.top,"0px");assert.ok(style.weight>=650);
+    if(width>=600)assert.equal(style.radius,"0px","Sidebar must not use selected pills");
     await p.close();
    }
   }
