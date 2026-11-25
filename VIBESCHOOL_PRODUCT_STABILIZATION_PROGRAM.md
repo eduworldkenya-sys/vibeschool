@@ -767,3 +767,30 @@ Owner instruction: use what users already know; do not invent new things unneces
 - During audit and review, record what exists, what works, the observed problem, what is reused, what is simplified and why any material change is needed. Compare actual task completion before and after, including whether existing users can continue without instructions. Maintain backward-compatible routes and saved work where applicable. Verify real functionality and production state, not appearance alone.
 
 Principle: familiar to the user, modern in execution. Improve what is already there. No unnecessary inventions, HQ dependencies, new approval bureaucracy or restrictions.
+
+## 43. Familiar interface, advanced intelligence and modern engineering — owner direction
+The owner clarified that familiarity-first design must not mean outdated or simplistic engineering. VibeSchool should be intelligent, modern, algorithmically sophisticated, forward-looking, professionally credible, simple, frictionless and fast. Hide unnecessary technical complexity from the user while preserving meaningful control and transparency. This complements Section 42: innovate in how existing tasks are solved, not by inventing unnecessary products, controls or workflows.
+
+### 43.1 Intelligence within existing workflows
+| Existing capability | Engineering direction |
+| --- | --- |
+| Search and discovery | Indexed retrieval, relevance ranking, contextual matching, typo tolerance where appropriate, query cancellation and fast pagination |
+| Timetable and Scheme of Work | Deterministic scheduling and constraint handling using actual dated occurrences, configured lesson allocations, curriculum and calendar; clear exception handling |
+| Teacher OS and preparation | Context-aware next action from authoritative schedule and saved work, relevant resources and resumable tasks |
+| Learn, Practice and Revision | Evidence-based learning recommendations, appropriate difficulty and mistake review where existing functionality supports them; distinguish completion from mastery |
+| Minis and VibeTutor | Relevant ranking and recommendations, fair discovery, diversity and cold-start handling using legitimate available signals; respect safety, privacy and user preferences |
+| Live Classroom and teaching tools | Low-latency state updates, efficient synchronization, resilient reconnection, responsive controls and truthful session state |
+| Data and records | Efficient filtering, aggregation, stable ordering, validated calculations and useful insights from real records |
+| Personalization | Reversible user preferences, appropriate context and sensible defaults; never infer authorization or share private data across identities |
+
+### 43.2 Modern engineering without unnecessary complexity
+- Inspect existing implementation, data models and performance before selecting algorithms. Prefer the simplest effective algorithm with measurable benefits; use advanced ranking, optimization, indexing, caching, incremental computation or AI only when justified by the task and actual evidence. No mandatory external AI dependency for routine operations.
+- Optimize the entire journey: local interaction response, efficient network requests, database indexes and query plans, pagination, selective loading, bundle size, media delivery and rendering. Avoid unnecessary full-page reloads, repeated requests, layout shifts and blocking work. Test on affordable Android devices and constrained Kenyan connections.
+- Intelligent defaults and recommendations must be explainable where consequential, editable, dismissible and scoped to authorized data. Do not silently perform consequential actions, fabricate progress, invent curriculum mappings or rank children through opaque unsupported metrics. Preserve fair access, privacy, child safety and meaningful user control. Avoid manipulative engagement algorithms.
+- Maintain future-ready modular architecture and reusable components with backward-compatible interfaces, clear contracts and focused tests. Reuse current infrastructure; do not introduce speculative platforms, duplicate services or unrelated features solely to appear futuristic.
+- Earn professional trust through accuracy, consistent behavior, reliability, accessibility, responsible data handling, polished interactions and honest status communication, not marketing claims or ornamental technology.
+
+### 43.3 Evidence and quality
+Measure the actual improvement against a baseline using relevant search quality, task completion, time and taps, rendering and interaction latency, synchronization correctness, resource consumption and recovery outcomes. Select metrics appropriate to the feature and document limitations, data sources and tradeoffs. Do not claim algorithmic superiority, performance or production readiness without evidence. Incorporate this direction into the approved implementation sequence and Master Preview. No new HQ, approval bureaucracy or unnecessary restrictions.
+
+**Design principle: familiar on the surface, advanced underneath, simple and fast in use.**
