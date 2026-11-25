@@ -1,8 +1,10 @@
+import {createPreviewState} from "./preview-state";
 import {teacherTabs,teacherTools,type TeacherTab} from "@/components/teacher/navigation";
 
 export type Panel =
- | {kind:"stage";index:number}
- | {kind:"live"|"studio"|"past"|"mark"|"attendance"|"settings"|"notifications"|"teach"|"tools"|"timetable"|"lab"}
+ | {kind:"stage";index:number;occurrenceId?:string}
+ | {kind:"live"|"studio"|"teach";occurrenceId?:string}
+ | {kind:"past"|"mark"|"attendance"|"settings"|"notifications"|"tools"|"timetable"|"lab"}
  | {kind:"pending";label:string;href:string};
 export type Destination={tab:TeacherTab;panel:Panel|null};
 export type Opening="sheet"|"workspace"|"immersive";
@@ -33,20 +35,24 @@ export function parseDestination(search:string):Destination {
  const q=new URLSearchParams(search);
  const tab=teacherTabs.find(t=>t.id===q.get("tab"))?.id??"today";
  const key=q.get("panel");
+ const rawId=q.get("occurrence");
+ const occurrenceId=createPreviewState().occurrences.find(x=>x.id===rawId)?.id;
+ const scoped=occurrenceId?{occurrenceId}:{};
  if(key?.startsWith("stage:")){
   const index=Number(key.slice(6));
-  if(Number.isInteger(index)&&index>=0&&index<5&&key==="stage:"+index)return {tab,panel:{kind:"stage",index}};
+  if(Number.isInteger(index)&&index>=0&&index<5&&key==="stage:"+index)return {tab,panel:{kind:"stage",index,...scoped}};
  }
  if(key?.startsWith("tool:")){
   const tool=tools.find(t=>t.href===key.slice(5));
   if(tool)return {tab,panel:toolPanel(tool.href,tool.label)};
  }
  const kind=kinds.find(k=>k===key);
- return {tab,panel:kind?{kind}:null};
+ return {tab,panel:kind?(kind==="live"||kind==="teach"||kind==="studio"?{kind,...scoped}:{kind}):null};
 }
 export function destinationSearch({tab,panel}:Destination):string {
  const q=new URLSearchParams();
  if(tab!=="today")q.set("tab",tab);
  if(panel)q.set("panel",panel.kind==="stage"?"stage:"+panel.index:panel.kind==="pending"?"tool:"+panel.href:panel.kind);
+ if(panel&&"occurrenceId" in panel&&panel.occurrenceId)q.set("occurrence",panel.occurrenceId);
  const value=q.toString();return value?"?"+value:"";
 }
