@@ -21,8 +21,8 @@ export function CheckField({label,checked,onChange,disabled=false}:{label:string
 export function FilterChips({label,options,value,onChange}:{label:string;options:{value:string;label:string}[];value:string;onChange:(value:string)=>void}){
  return <div className={s.chips} role="group" aria-label={label}>{options.map(o=><button type="button" key={o.value} aria-pressed={o.value===value} onClick={()=>onChange(o.value)}>{o.label}</button>)}</div>;
 }
-export function StatusPill({tone="neutral",children}:{tone?:"neutral"|"success"|"error";children:ReactNode}){
- return <span className={s.statusPill} data-tone={tone}>{tone==="success"?<CheckCircle2 size={14}/>:tone==="error"?<AlertCircle size={14}/>:null}{children}</span>;
+export function StatusPill({tone="neutral",children}:{tone?:"neutral"|"success"|"warning"|"error";children:ReactNode}){
+ return <span className={s.statusPill} data-tone={tone}>{tone==="success"?<CheckCircle2 size={14}/>:tone==="error"||tone==="warning"?<AlertCircle size={14}/>:null}{children}</span>;
 }
 export function StateView({kind,title,description,action}:{kind:"loading"|"empty"|"error"|"offline"|"success";title:string;description?:string;action?:{label:string;run:()=>void}}){
  const Icon=kind==="loading"?LoaderCircle:kind==="empty"?Inbox:kind==="success"?CheckCircle2:AlertCircle;
