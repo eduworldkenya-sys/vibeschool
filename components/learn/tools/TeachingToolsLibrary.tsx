@@ -1,5 +1,6 @@
 'use client'
 
+import type {SlideDemo} from '@/components/live-classroom/LiveSlideProtocol'
 import {TeachingModelPicker} from '@/components/live-classroom/TeachingModelPicker'
 import TeachingToolShelf from './TeachingToolShelf'
 import {resolveTeachingTools, type TeachingToolSpec} from '@/lib/learn/teachingToolCatalog'
@@ -33,6 +34,6 @@ const activities = examples.flatMap(({subject,display,label,spec}) =>
     render:()=> <TeachingToolShelf subject={subject} tools={[spec]} standalone/>,
   }] : [])
 
-export function TeachingToolsLibrary() {
-  return <TeachingModelPicker activities={activities}/>
+export function TeachingToolsLibrary({onPrepare,disabled=false}:{onPrepare?:(demo:SlideDemo)=>void;disabled?:boolean}={}) {
+  return <TeachingModelPicker activities={activities} onPresent={onPrepare} disabled={disabled} actionLabel="Add to lesson"/>
 }
