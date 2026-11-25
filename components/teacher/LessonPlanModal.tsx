@@ -16,6 +16,7 @@ import type {
 } from '@/lib/teaching/lessonPlanCodec'
 import {
   saveGeneratedLessonPlan,
+  loadScheduledLessonDuration,
   updateLessonPlanBody,
   attachSchemeToDatedLesson,
 } from '@/lib/teaching/lessonRepository'
@@ -49,7 +50,7 @@ import type { TimetableSlot } from '@/lib/types'
 import type { LessonSourceSuggestion } from '@/lib/teaching/lessonSource'
 import JumpingSchemeContent from '@/components/teacher/JumpingSchemeContent'
 import { buildJumpingDraftSections, type JumpingContentSelection } from '@/lib/teaching/jumpingDraftSections'
-import { parseLessonDurationMinutes, timeOriginalLessonSections } from '@/lib/teaching/lessonTiming'
+import { timeOriginalLessonSections } from '@/lib/teaching/lessonTiming'
 import { refreshPulse } from "@/lib/pulse/refresh";
 import {
   StartOccurrenceError,
@@ -211,12 +212,6 @@ const STATUS_BADGE = {
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-function calcDuration(start?: string, end?: string): string {
-  if (!start || !end) return '40 minutes'
-  const [sh, sm] = start.split(':').map(Number)
-  const [eh, em] = end.split(':').map(Number)
-  return ((eh * 60 + em) - (sh * 60 + sm)) + ' minutes'
-}
 
 function Skeleton({ h = 48 }: { h?: number }) {
   return (
@@ -1038,6 +1033,16 @@ export default function LessonPlanModal({
       const { data: { user } } = await supabase.auth.getUser()
       if (user == null) return
 
+      const durationMinutes = await loadScheduledLessonDuration({
+        teacher_id: user.id,
+        class_id: slot.class_id,
+        subject_id: slot.subject_id,
+        timetable_slot_id: slot.id,
+        taught_date: taughtDate,
+        day_of_week: slot.day_of_week,
+      })
+      const generationDuration = `${durationMinutes} minutes`
+
       let parsed: LessonPlanSections
       let canonicalResource: {
         resourceId: string
@@ -1051,7 +1056,7 @@ export default function LessonPlanModal({
         // Exact teacher-selected original content, composed deterministically
         // through the existing eight-section plan codec; no model rewriting.
         parsed = buildJumpingDraftSections(jumpingDraft, suggestion)
-        parsed = timeOriginalLessonSections(parsed, parseLessonDurationMinutes(calcDuration(slot.start, slot.end)))
+        parsed = timeOriginalLessonSections(parsed, durationMinutes)
         if (focus.trim()) parsed.differentiation += '\n\nTeacher focus: ' + focus.trim()
       } else if (suggestionLinked && canonicalIdentity) {
         const generation = await generateCanonicalLessonPlan(
@@ -1064,7 +1069,7 @@ export default function LessonPlanModal({
             topicTitle: suggestion?.topic ?? topic.trim(),
             curriculumStrand: suggestion?.strand,
             curriculumSubStrand: suggestion?.subStrand,
-            duration: calcDuration(slot.start, slot.end),
+            duration: generationDuration,
             languageCode: 'en',
           },
         )
@@ -1108,7 +1113,7 @@ export default function LessonPlanModal({
           subject: slot.subject,
           className: slot.class,
           studentCount: ctx.studentCount,
-          duration: calcDuration(slot.start, slot.end),
+          duration: generationDuration,
           topic: topic.trim(),
           focus: focus.trim() || undefined,
           previousTopics: ctx.previousTopics,
@@ -1229,7 +1234,7 @@ export default function LessonPlanModal({
         week_start:         weekStart,
         day_of_week:        slot.day_of_week,
         taught_date:        taughtDate,
-        duration_minutes:  parseLessonDurationMinutes(calcDuration(slot.start, slot.end)),
+        duration_minutes:  durationMinutes,
         topic:              topic.trim(),
         title:              slot.subject + ' — ' + slot.class + ' — ' + topic.trim(),
         body:               serializeLessonPlanBody(parsed),

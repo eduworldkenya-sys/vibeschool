@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase'
+import { scheduledLessonMinutes, verifyScheduledLessonMinutes } from '@/lib/teaching/lessonTiming'
 
 export type LessonPlanStatus =
   | 'draft'
@@ -53,6 +54,8 @@ export interface SavedLessonPlanIdentity {
   scheme_id: string | null
 }
 
+type ScheduledLessonAuthorityInput = Pick<SaveGeneratedLessonPlanInput['payload'], 'teacher_id' | 'class_id' | 'subject_id' | 'day_of_week' | 'timetable_slot_id' | 'taught_date'>
+
 interface TimetableWriteAuthority {
   id: string
   school_id: string
@@ -62,6 +65,8 @@ interface TimetableWriteAuthority {
   day_of_week: number
   effective_from: string
   effective_until: string | null
+  start_time: string
+  end_time: string
 }
 
 function parseIsoDate(date: string): Date | null {
@@ -95,7 +100,7 @@ function isoWeekStart(date: string): string | null {
 }
 
 async function resolveWriteAuthority(
-  payload: SaveGeneratedLessonPlanInput['payload'],
+  payload: ScheduledLessonAuthorityInput,
 ): Promise<TimetableWriteAuthority> {
   const { data: { user }, error: authError } = await supabase.auth.getUser()
   if (authError) throw authError
@@ -105,7 +110,7 @@ async function resolveWriteAuthority(
 
   const { data, error } = await supabase
     .from('timetable_slots')
-    .select('id,school_id,teacher_id,class_id,subject_id,day_of_week,effective_from,effective_until')
+    .select('id,school_id,teacher_id,class_id,subject_id,day_of_week,effective_from,effective_until,start_time,end_time')
     .eq('id', payload.timetable_slot_id)
     .maybeSingle()
 
@@ -130,6 +135,11 @@ async function resolveWriteAuthority(
   }
 
   return slot
+}
+
+export async function loadScheduledLessonDuration(input: ScheduledLessonAuthorityInput): Promise<number> {
+  const slot = await resolveWriteAuthority(input)
+  return scheduledLessonMinutes(slot.start_time, slot.end_time)
 }
 
 /**
@@ -173,8 +183,10 @@ export async function saveGeneratedLessonPlan({
     throw new Error('lessonRepository: invalid taught date.')
   }
 
+  const durationMinutes = verifyScheduledLessonMinutes(payload.duration_minutes, scheduledLessonMinutes(slot.start_time, slot.end_time))
   const authoritativePayload = {
     ...payload,
+    duration_minutes: durationMinutes,
     school_id: slot.school_id,
     teacher_id: slot.teacher_id,
     class_id: slot.class_id,
@@ -184,7 +196,7 @@ export async function saveGeneratedLessonPlan({
   }
 
   const selectColumns =
-    'id,curriculum_id,strand_id,scheme_id,school_id,teacher_id,class_id,subject_id,timetable_slot_id,taught_date,day_of_week,week_start'
+    'id,curriculum_id,strand_id,scheme_id,school_id,teacher_id,class_id,subject_id,timetable_slot_id,taught_date,day_of_week,week_start,duration_minutes'
 
   const writeResult = planId
     ? await supabase
@@ -216,7 +228,8 @@ export async function saveGeneratedLessonPlan({
     saved.timetable_slot_id === slot.id &&
     saved.taught_date === payload.taught_date &&
     saved.day_of_week === slot.day_of_week &&
-    saved.week_start === weekStart
+    saved.week_start === weekStart &&
+    saved.duration_minutes === durationMinutes
 
   if (!occurrenceMatches) {
     throw new Error('lessonRepository: persisted occurrence identity changed during save.')

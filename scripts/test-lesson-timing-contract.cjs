@@ -1,7 +1,7 @@
 const assert = require('node:assert/strict')
 const path = process.argv[2]
 if (!path) throw new Error('compiled lessonTiming module path required')
-const { allocateLessonTiming, lessonTimingRanges, timeOriginalLessonSections } = require(path)
+const { allocateLessonTiming, lessonTimingRanges, timeOriginalLessonSections, scheduledLessonMinutes, verifyScheduledLessonMinutes } = require(path)
 
 for (const total of [1,2,3,4,5,10,15,20,30,35,40,45,60,80,120]) {
   const timing = allocateLessonTiming(total)
@@ -55,4 +55,14 @@ assert.ok(shortened.development.endsWith(manuscript.development))
 assert.throws(() => timeOriginalLessonSections(manuscript, 0), /positive/)
 assert.throws(() => timeOriginalLessonSections(manuscript, NaN), /positive/)
 assert.deepEqual(manuscript.introduction, 'Ask what learners know.')
+assert.equal(scheduledLessonMinutes('08:00', '08:35'), 35)
+assert.equal(scheduledLessonMinutes('10:10:00', '10:19:00'), 9)
+assert.equal(scheduledLessonMinutes('08:00:00.000', '08:30:00.000'), 30)
+assert.equal(scheduledLessonMinutes('08:00:00', '08:30:29'), 30)
+for (const [start, end] of [[null,'08:30'],['08:00',null],['25:00','26:00'],['08:61','09:00'],['08:00','08:00'],['09:00','08:00'],['08:00:00','08:00:30'],['bad','08:30']]) {
+  assert.throws(() => scheduledLessonMinutes(start, end), /invalid duration/)
+}
+assert.equal(verifyScheduledLessonMinutes(35,35),35)
+assert.throws(() => verifyScheduledLessonMinutes(60,35), /changed during preparation/)
+assert.throws(() => verifyScheduledLessonMinutes(null,35), /changed during preparation/)
 console.log('lesson timing contract: PASS')
