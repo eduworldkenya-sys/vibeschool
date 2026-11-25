@@ -50,3 +50,54 @@ test("white-first surfaces, semantic contrast, and every accent in both themes",
  for(const key of ["base","surface","ink","muted","control","warning","success-bg","warning-bg","danger-bg","selected"])assert.equal(system[key],dark[key],key+" system dark mismatch");
  for(const accent of ["indigo","teal","emerald","neutral"])assert.deepEqual(colorTokens(".shell[data-theme=system][data-accent="+accent+"]"),colorTokens(".shell[data-theme=dark][data-accent="+accent+"]"));
 });
+
+import {matchItems,rememberSearch,moveItem,filterRecords,initialFilter,activeFilterCount,monthDays} from "../app/teacher/redesign/component-logic.ts";
+test("Design Lab is a deep-linkable dedicated workspace",()=>{
+ const d={tab:"me",panel:{kind:"lab"}};
+ assert.deepEqual(parseDestination(destinationSearch(d)),d);
+ assert.equal(openingFor(d.panel),"workspace");
+});
+test("canonical search ranks matching labels and respects all query words",()=>{
+ const items=[{id:"1",label:"Lesson plans",category:"Teach"},{id:"2",label:"Plans",category:"Teach"},{id:"3",label:"Mathematics",category:"Classes",keywords:"Lesson plans"}];
+ assert.deepEqual(matchItems(items,"plans").map(x=>x.id),["2","1","3"]);
+ assert.deepEqual(matchItems(items,"teach lesson").map(x=>x.id),["1"]);
+ assert.deepEqual(matchItems(items,"unavailable"),[]);
+ assert.deepEqual(matchItems(items,"  "),items);
+});
+test("recent searches are bounded, deduplicated and newest first",()=>{
+ assert.deepEqual(rememberSearch(["English","Maths","Science"]," english ",2),["english","Maths"]);
+ assert.deepEqual(rememberSearch(["English"]," "),["English"]);
+});
+test("filters combine class, subject and state without changing source records",()=>{
+ const rows=[{label:"B",grade:"4",subject:"English",status:"Ready"},{label:"A",grade:"4",subject:"Mathematics",status:"Draft"},{label:"C",grade:"5",subject:"English",status:"Ready"}];
+ const filter={grade:"4",subjects:["English","Mathematics"],status:"Ready",sort:"desc"};
+ assert.equal(activeFilterCount(filter),5);
+ assert.deepEqual(filterRecords(rows,filter).map(r=>r.label),["B"]);
+ assert.deepEqual(filterRecords(rows,initialFilter).map(r=>r.label),["A","B","C"]);
+ assert.deepEqual(rows.map(r=>r.label),["B","A","C"]);
+ assert.equal(activeFilterCount(initialFilter),0);
+});
+test("reorder is immutable, safe at boundaries, and works both directions",()=>{
+ const initial=["a","b","c"];
+ assert.deepEqual(moveItem(initial,0,2),["b","c","a"]);
+ assert.deepEqual(moveItem(initial,2,0),["c","a","b"]);
+ assert.deepEqual(moveItem(initial,-1,1),initial);
+ assert.deepEqual(moveItem(initial,1,9),initial);
+ assert.deepEqual(initial,["a","b","c"]);
+});
+test("calendar handles leap years and month boundaries",()=>{
+ assert.equal(monthDays(2024,1).filter(x=>x!==null).length,29);
+ assert.equal(monthDays(2025,1).filter(x=>x!==null).length,28);
+ assert.equal(monthDays(2026,10).filter(x=>x!==null).length,30);
+ assert.equal(monthDays(2026,11).at(-1),31);
+});
+test("component samples and Teacher Home share the same primitives",()=>{
+ const read=name=>readFileSync(new URL("../app/teacher/redesign/"+name,import.meta.url),"utf8");
+ const lab=read("design-lab.tsx"),home=read("page.tsx");
+ for(const label of ["Buttons","Search","Filters","Forms","Navigation","Overlays","Data display","Feedback","Interactions","Verification"])assert.ok(lab.includes('"'+label+'"'),label);
+ assert.match(home,/<DesignLab\/>/);
+ assert.match(home,/<SmartSearch mode="filtered"/);
+ assert.match(home,/<ActionButton/);
+ assert.match(lab,/<ActionButton/);
+ assert.match(lab,/<SmartSearch/);
+});
