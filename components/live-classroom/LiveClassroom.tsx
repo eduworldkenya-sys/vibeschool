@@ -1085,7 +1085,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
     if(published)setSlides(items=>{
       const index=published.number-1,item=items[index]
       if(!item||items.length!==published.total||encodeSlide(item,index+1,items.length)!==expected)return items
-      return items.map((entry,i)=>i===index?{...published,notes:entry.notes}:entry)
+      return items.map((entry,i)=>i===index?{title:published.title,body:published.body,diagram:published.diagram,theme:published.theme,layout:published.layout,font:published.font,notes:entry.notes}:entry)
     })
     return body
   }
