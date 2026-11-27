@@ -592,3 +592,7 @@
 .managerGrid .managerTile[aria-pressed=true]{outline:2px solid currentColor;outline-offset:2px}
 .managerDetail{border:1px solid currentColor;border-radius:8px;padding:10px;display:grid;gap:8px;overflow-wrap:anywhere}
 .managerDetail p{white-space:pre-wrap;margin:0}
+
+.rehearsalWorkspace{width:100%;max-width:960px;margin:0 auto;display:grid;gap:10px;min-width:0}.rehearsalCanvas{background:#e8ece9;display:grid;place-items:center;padding:12px;min-width:0}.rehearsalCanvas>.presentationCanvas{width:100%;max-width:740px}.rehearsalDetails{display:grid;gap:6px;padding:10px;border:1px solid #dce4df;border-radius:4px}.rehearsalNotes{white-space:pre-wrap;overflow-wrap:anywhere}.rehearsalWorkspace button{min-height:36px}
+
+.studioPlanCue{display:grid;gap:5px;min-width:0;font-size:12px}.studioPlanCue label{display:grid;gap:4px}.studioPlanCue select{max-width:100%;min-height:34px}.studioPlanCue details p{white-space:pre-wrap;overflow-wrap:anywhere;max-height:160px;overflow:auto}
