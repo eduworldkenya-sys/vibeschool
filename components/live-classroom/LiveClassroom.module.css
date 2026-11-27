@@ -713,3 +713,28 @@
 .commandResults strong{font-size:13px}.commandResults small{color:#596c64;font-weight:400}
 @media(max-width:900px){.executiveSearchButton kbd{display:none}}
 @media(max-width:560px){.premium .headerActions .executiveSearchButton{width:36px;padding:4px}.executiveSearchButton span{display:none}}
+
+/* Teaching-first content drawer. The learner-facing stage remains visible. */
+.premium .stage[data-content-open=true]{grid-template-columns:minmax(0,1fr) minmax(320px,42%);grid-template-rows:minmax(0,1fr)}
+.premium .stage[data-content-open=true][data-rail=true]{grid-template-columns:82px minmax(0,1fr) minmax(320px,42%)}
+.contentDrawer{grid-column:-2;grid-row:1;min-width:0;min-height:0;display:flex;flex-direction:column;background:#fff;color:#23352e;border-left:1px solid #dce4df;overflow:hidden}
+.contentDrawerHeader{display:flex;align-items:center;justify-content:space-between;padding:12px;gap:8px;border-bottom:1px solid #dce4df}
+.contentDrawerHeader strong{display:block;font-size:16px}.contentDrawerHeader small{color:#52685d;font-size:12px}
+.contentTabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px;padding:8px;border-bottom:1px solid #e2e9e4}
+.contentTabs button{min-height:36px;font-size:12px}.contentTabs button[aria-pressed=true]{background:#e0eee7;color:#105b44;border-color:#8cbba6}
+.contentDrawerBody{padding:10px;overflow:auto;min-height:0;display:flex;flex-direction:column;gap:10px}
+.contentDrawerBody label{display:grid;gap:6px;font-size:12px;font-weight:600}.contentDrawerBody input{min-width:0;width:100%;padding:8px;border:1px solid #c8d7cf;border-radius:6px}
+.contentResults{display:grid;gap:6px;max-height:26dvh;overflow:auto}.contentResults button{display:grid;justify-items:start;text-align:left;gap:3px;padding:8px;min-height:44px}
+.contentSelection{display:grid;min-width:0;gap:8px}.contentSelection small{color:#52685d}.contentActions{display:flex;align-items:center;justify-content:space-between;gap:6px;flex-wrap:wrap}.contentActions button{flex:1;min-height:40px}
+.contentNowShowing{display:flex;flex-direction:column;gap:8px;min-width:0;min-height:0;height:100%}
+.contentNowShowing header{display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap;color:#145b46}.contentNowShowing header small{font-size:11px}
+.contentCurrentCanvas{flex:1;min-height:0;min-width:0;overflow:auto;background:white;border:1px solid #dce4df;border-radius:7px;padding:8px}
+.contentCurrentCanvas .presentationCanvas{max-width:100%;min-width:0;min-height:0}
+@media(max-width:760px){
+ .premium .stage[data-content-open=true],.premium .stage[data-content-open=true][data-rail=true]{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(92px,34%) minmax(0,1fr)}
+ .premium .stage[data-content-open=true]>.executiveRail{display:none}
+ .premium .stage[data-content-open=true]>.stageContent{grid-column:1;grid-row:1;padding:5px}
+ .premium .stage[data-content-open=true]>.contentDrawer{grid-column:1;grid-row:2;border-left:0;border-top:1px solid #dce4df}
+ .contentDrawerHeader{padding:7px 10px}.contentDrawerHeader small{display:none}.contentTabs{grid-template-columns:repeat(2,minmax(0,1fr));padding:5px}
+ .contentNowShowing{gap:3px}.contentCurrentCanvas{padding:4px}
+}
