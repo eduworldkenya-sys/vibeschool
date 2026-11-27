@@ -476,7 +476,7 @@ export function MeshLiveVoice({ roomId, classId, teacher, enabled, status, learn
         {micState === 'on' ? 'Mute' : micState === 'requesting' ? 'Cancel' : micState === 'error' ? 'Retry mic' : 'Unmute'}
       </button>
       {status === 'active' && failure &&
-        <button type="button" disabled={busy} onClick={() => setRetry(value => value + 1)}>Retry audio</button>}
+        <button type="button" disabled={busy||phase==='Reconnecting…'||!navigator.onLine} onClick={() => setRetry(value => value + 1)}>Retry audio</button>}
       {status === 'active' && teacher && onFallback && (admitted || failure) &&
         <button type="button" disabled={busy} onClick={() => void controls.current?.('fallback')}>Use Daily audio</button>}
     </div>
