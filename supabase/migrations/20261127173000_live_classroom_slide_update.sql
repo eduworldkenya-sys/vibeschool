@@ -1,8 +1,7 @@
--- Test candidate ONLY. Generate a numbered Supabase migration with the CLI
--- after isolated SQL tests and review; this file is not a deployed migration.
+-- Edit the current teaching prompt through the existing Live command.
 BEGIN;
--- Candidate only: reuse canonical board validation for geometry and text.
-CREATE FUNCTION vibe_live.valid_slide_demo_candidate(d jsonb) RETURNS boolean
+-- Reuse canonical board validation for geometry and text.
+CREATE FUNCTION vibe_live.valid_slide_demo(d jsonb) RETURNS boolean
 LANGUAGE plpgsql IMMUTABLE SET search_path='' AS $demo$
 DECLARE bounds jsonb; av integer; bv integer;
 BEGIN
@@ -21,11 +20,11 @@ BEGIN
  AND (d->>'kind' NOT IN ('fraction-circle','fraction-bars') OR av<=bv);
 END;
 $demo$;
-REVOKE ALL ON FUNCTION vibe_live.valid_slide_demo_candidate(jsonb) FROM PUBLIC,anon,authenticated,service_role;
+REVOKE ALL ON FUNCTION vibe_live.valid_slide_demo(jsonb) FROM PUBLIC,anon,authenticated,service_role;
 
-CREATE FUNCTION vibe_live.valid_editable_slide_content_candidate(p_body text) RETURNS boolean
+CREATE FUNCTION vibe_live.valid_editable_slide_content(p_body text) RETURNS boolean
 LANGUAGE plpgsql IMMUTABLE SET search_path='' AS $content$
-DECLARE d jsonb; o jsonb; normalized jsonb:='[]'::jsonb; seen text[]:=ARRAY[]::text[];
+DECLARE d jsonb; o jsonb; object_id text; seen text[]:=ARRAY[]::text[];
 BEGIN
  IF p_body IS NULL OR char_length(p_body)>3878 THEN RETURN false; END IF;
  IF left(p_body,length('VSLIDEVIS1:'))='VSLIDEVIS1:' THEN
@@ -33,18 +32,24 @@ BEGIN
   d:=substr(p_body,length('VSLIDEVIS1:VBOARD1:')+1)::jsonb;
   IF jsonb_typeof(d) IS DISTINCT FROM 'object' OR jsonb_typeof(d->'objects') IS DISTINCT FROM 'array'
     OR d->'page' IS DISTINCT FROM '1'::jsonb OR d->'total' IS DISTINCT FROM '1'::jsonb THEN RETURN false; END IF;
-  IF jsonb_array_length(d->'objects')>40 THEN RETURN false; END IF;
+  IF jsonb_array_length(d->'objects')>40
+    OR NOT vibe_live.valid_object_board('VBOARD1:'||jsonb_set(d,'{objects}','[]'::jsonb)::text) THEN RETURN false; END IF;
   FOR o IN SELECT value FROM jsonb_array_elements(d->'objects') LOOP
    IF jsonb_typeof(o) IS DISTINCT FROM 'object' THEN RETURN false; END IF;
    IF o?'demo' THEN
-    IF o->>'kind' IS DISTINCT FROM 'diagram' OR o?'diagram' OR NOT vibe_live.valid_slide_demo_candidate(o->'demo') THEN RETURN false; END IF;
+    IF o->>'kind' IS DISTINCT FROM 'diagram' OR o?'diagram' OR NOT vibe_live.valid_slide_demo(o->'demo') THEN RETURN false; END IF;
     o:=(o-'demo')||jsonb_build_object('diagram','ruler');
    END IF;
-   normalized:=normalized||jsonb_build_array(o);
+   -- Validate each object with the same geometry rules. JSONB output adds
+   -- formatting spaces, so keep the document limit tied to the wire body.
+   IF NOT vibe_live.valid_object_board('VBOARD1:'||jsonb_set(d,'{objects}',jsonb_build_array(o))::text) THEN RETURN false; END IF;
+   object_id:=o->>'id';
+   IF object_id=ANY(seen) THEN RETURN false; END IF;
+   seen:=array_append(seen,object_id);
   END LOOP;
-  RETURN vibe_live.valid_object_board('VBOARD1:'||jsonb_set(d,'{objects}',normalized)::text);
+  RETURN true;
  ELSIF left(p_body,length('VSLIDEDEMO1:'))='VSLIDEDEMO1:' THEN
-  RETURN char_length(p_body)<=200 AND vibe_live.valid_slide_demo_candidate(substr(p_body,length('VSLIDEDEMO1:')+1)::jsonb);
+  RETURN char_length(p_body)<=200 AND vibe_live.valid_slide_demo(substr(p_body,length('VSLIDEDEMO1:')+1)::jsonb);
  ELSIF left(p_body,length('VSLIDEMULTIDEMO1:'))='VSLIDEMULTIDEMO1:' THEN
   IF char_length(p_body)>2000 THEN RETURN false; END IF;
   d:=substr(p_body,length('VSLIDEMULTIDEMO1:')+1)::jsonb;
@@ -54,7 +59,7 @@ BEGIN
    IF jsonb_typeof(o) IS DISTINCT FROM 'object' THEN RETURN false; END IF;
    IF NOT (o ?& array['id','demo']) OR EXISTS(SELECT 1 FROM jsonb_object_keys(o) k(key) WHERE k.key NOT IN ('id','demo'))
     OR jsonb_typeof(o->'id') IS DISTINCT FROM 'string' OR (o->>'id') !~ '^[A-Za-z0-9-]{1,40}$'
-    OR (o->>'id')=ANY(seen) OR NOT vibe_live.valid_slide_demo_candidate(o->'demo') THEN RETURN false; END IF;
+    OR (o->>'id')=ANY(seen) OR NOT vibe_live.valid_slide_demo(o->'demo') THEN RETURN false; END IF;
    seen:=array_append(seen,o->>'id');
   END LOOP;
   RETURN true;
@@ -63,9 +68,9 @@ BEGIN
 EXCEPTION WHEN invalid_text_representation OR numeric_value_out_of_range THEN RETURN false;
 END;
 $content$;
-REVOKE ALL ON FUNCTION vibe_live.valid_editable_slide_content_candidate(text) FROM PUBLIC,anon,authenticated,service_role;
+REVOKE ALL ON FUNCTION vibe_live.valid_editable_slide_content(text) FROM PUBLIC,anon,authenticated,service_role;
 
-DO $candidate$
+DO $migration$
 DECLARE
  src text := pg_get_functiondef('vibe_live.command(text,uuid,uuid,integer,jsonb)'::regprocedure);
  anchor text; replacement text;
@@ -130,8 +135,8 @@ BEGIN
        or (btrim(after_slide->>'title')='' and btrim(after_slide->>'body')='' and after_slide->>'diagram'='none')
        then raise exception 'live_invalid_slide' using errcode='22023'; end if;
     before_content:=before_slide->>'body'; after_content:=after_slide->>'body';
-    if not vibe_live.valid_editable_slide_content_candidate(before_content)
-       or not vibe_live.valid_editable_slide_content_candidate(after_content)
+    if not vibe_live.valid_editable_slide_content(before_content)
+       or not vibe_live.valid_editable_slide_content(after_content)
        then raise exception 'live_slide_format_not_supported' using errcode='22023'; end if;
    end;
    if body is distinct from prompt.body then
@@ -144,5 +149,5 @@ BEGIN
  src:=replace(src,anchor,replacement||anchor);
  EXECUTE src;
 END;
-$candidate$;
+$migration$;
 COMMIT;

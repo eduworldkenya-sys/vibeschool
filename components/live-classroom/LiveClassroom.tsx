@@ -634,15 +634,15 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
       try {
         next=await call(action,id??room?.id??null,active.current?.version??null,requestPayload) as Room
       } catch(e) {
-        // Participants/chat can advance the session version while the teacher
-        // composes. Only publishing may retry, once, against a fresh authorized
-        // room snapshot. Keep the same request ID for server idempotency.
-        if(action!=='publish'||!(e instanceof Error)||e.message!=='live_stale_version'||!room?.id)throw e
+        // Chat and attendance can advance the room version during a teacher edit.
+        // Retry once, keeping the original prompt identity and expected content.
+        if((action!=='publish'&&action!=='slide_update')||!(e instanceof Error)||e.message!=='live_stale_version'||!room?.id)throw e
         const latest=await call('get',room.id) as Room
         if(!mounted.current||generation.current!==stamp)return
         accept(latest)
         if(latest.status!=='active'||!latest.teacher)throw new Error('The lesson is no longer active.')
-        next=await call('publish',room.id,latest.version,requestPayload) as Room
+        if(action==='slide_update'&&(latest.prompt?.id!==payload.promptId||latest.prompt?.body!==payload.expectedBody))throw new Error('live_slide_conflict')
+        next=await call(action,room.id,latest.version,requestPayload) as Room
       }
       // Bind a selected saved plan before presenting the newly created
       // room as ready. Recovery/re-entry remains idempotent via the same RPC.
@@ -1078,8 +1078,9 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
   }
   async function syncCurrentSlide(expected:string,body:string):Promise<string|undefined>{
     const current=active.current,target=liveEditTarget.current
-    if(!target||!current||current.id!==target.roomId||current.prompt?.id!==target.promptId||current.prompt.body!==expected||current.status!=='active'||!current.teacher||!online||mutating.current)return undefined
-    const next=await act('slide_update',current.id,{promptId:target.promptId,expectedBody:expected,body})
+    if(!target||!current||current.id!==target.roomId||current.prompt?.id!==target.promptId||current.status!=='active'||!current.teacher||!online||mutating.current)return undefined
+    if(current.prompt.body!==expected&&current.prompt.body!==body)return undefined
+    const next=current.prompt.body===body?current:await act('slide_update',current.id,{promptId:target.promptId,expectedBody:expected,body})
     if(!next||next.id!==target.roomId||next.prompt?.id!==target.promptId||next.prompt.body!==body)return undefined
     const published=decodeSlide(body)
     if(published)setSlides(items=>{

@@ -1,8 +1,10 @@
 'use client'
 import {useRef,useState,type PointerEvent} from 'react'
 import {TeachingDiagram} from './LiveTeachingDiagram'
-import {diagramLabel} from './LiveSlideProtocol'
-import {BOARD_COLORS,BOARD_DIAGRAMS,BOARD_LIMIT,boardFromLegacy,encodeBoard,decodeBoard,type BoardDocument,type BoardObject,type BoardKind,type BoardColor} from './LiveBoardProtocol'
+import {diagramLabel,defaultDemo,DEMO_RANGES,type DemoKind} from './LiveSlideProtocol'
+import {DemoDrawing,DemoControls} from './LiveAdjustableDiagram'
+import {TeachingModelOptions} from './TeachingModelPicker'
+import {BOARD_COLORS,BOARD_DIAGRAMS,BOARD_LIMIT,boardFromLegacy,encodeBoard,decodeBoard,nextBoardDemoPosition,type BoardDocument,type BoardObject,type BoardKind,type BoardColor} from './LiveBoardProtocol'
 import styles from './LiveClassroom.module.css'
 
 function objectContent(o:BoardObject){
@@ -18,6 +20,7 @@ function objectContent(o:BoardObject){
  if(o.kind==='ellipse')return <ellipse cx={o.w/2} cy={o.h/2} rx={o.w/2} ry={o.h/2} {...common}/>
  if(o.kind==='triangle')return <path d={`M${o.w/2} 0L${o.w} ${o.h}H0Z`} {...common}/>
  if(o.kind==='text')return <text x="0" y={Math.max(11,Math.min(32,o.h))} fontSize={Math.max(11,Math.min(32,o.h))} fill={o.color} textLength={o.text&&o.text.length>4?o.w:undefined} lengthAdjust="spacingAndGlyphs">{o.text}</text>
+ if(o.kind==='diagram'&&o.demo)return <svg x="0" y="0" width={o.w} height={o.h} viewBox="0 0 320 180" preserveAspectRatio="xMidYMid meet"><DemoDrawing demo={o.demo}/></svg>
  if(o.kind==='diagram'&&o.diagram)return <svg x="0" y="0" width={o.w} height={o.h} viewBox="0 0 320 180" preserveAspectRatio="xMidYMid meet"><TeachingDiagram diagram={o.diagram} embedded/></svg>
  return null
 }
@@ -37,9 +40,10 @@ type Tool=BoardKind|'select'|'erase'|'pan'
 type Point={x:number;y:number}
 const clamp=(n:number,min:number,max:number)=>Math.max(min,Math.min(max,Math.round(n)))
 const box=(points:Point[])=>{const x=Math.min(...points.map(p=>p.x)),y=Math.min(...points.map(p=>p.y)),w=Math.max(1,...points.map(p=>p.x-x)),h=Math.max(1,...points.map(p=>p.y-y));return {x,y,w,h,points:points.flatMap(p=>[clamp((p.x-x)*1000/w,0,1000),clamp((p.y-y)*1000/h,0,1000)])}}
-export function ObjectBoard({value,page,total,onChange,disabled,onUndo,onRedo,canUndo,canRedo}:{value:string;page:number;total:number;onChange:(value:string)=>void;disabled:boolean;onUndo:()=>void;onRedo:()=>void;canUndo:boolean;canRedo:boolean}){
+export function ObjectBoard({value,page,total,onChange,disabled,onUndo,onRedo,canUndo,canRedo,allowAdjustable=false}:{value:string;page:number;total:number;onChange:(value:string)=>void;disabled:boolean;onUndo:()=>void;onRedo:()=>void;canUndo:boolean;canRedo:boolean;allowAdjustable?:boolean}){
  const doc=boardFromLegacy(value,page,total)
  const [tool,setTool]=useState<Tool>('pen'),[color,setColor]=useState<BoardColor>(BOARD_COLORS[0]),[width,setWidth]=useState(3),[selected,setSelected]=useState<string|null>(null),[message,setMessage]=useState(''),[preview,setPreview]=useState<BoardDocument|null>(null),[zoom,setZoom]=useState(1),[pan,setPan]=useState<Point>({x:0,y:0}),[text,setText]=useState(''),[diagram,setDiagram]=useState(BOARD_DIAGRAMS[0])
+ const [demoKind,setDemoKind]=useState<DemoKind>('ruler')
  const gesture=useRef<{id:number;start:Point;points:Point[];source:BoardDocument;object?:BoardObject;pan?:Point;createdId?:string}|null>(null)
  const touches=useRef(new Map<number,Point>()),pinch=useRef<{distance:number;zoom:number}|null>(null)
  const latest=useRef<BoardDocument|null>(null),svg=useRef<SVGSVGElement>(null)
@@ -52,6 +56,11 @@ export function ObjectBoard({value,page,total,onChange,disabled,onUndo,onRedo,ca
   if(disabled||kind==='text'&&!text.trim())return
   const o={...createObject(kind,{x:55,y:45}),w:kind==='diagram'?210:150,h:kind==='diagram'?118:20,...(kind==='diagram'?{diagram}:{text:text.trim()})}
   commit({...doc,objects:[...doc.objects,o]});setSelected(o.id);setTool('select');setText('')
+ }
+ function addDemo(){
+  if(disabled||!allowAdjustable)return
+  const o:BoardObject={...createObject('diagram',nextBoardDemoPosition(doc.objects)),w:150,h:85,demo:defaultDemo(demoKind)}
+  commit({...doc,objects:[...doc.objects,o]});setSelected(o.id);setTool('select')
  }
  const point=(e:PointerEvent<SVGSVGElement>):Point=>{const root=e.currentTarget,m=root.getScreenCTM();if(!m)return {x:0,y:0};const p=root.createSVGPoint();p.x=e.clientX;p.y=e.clientY;const r=p.matrixTransform(m.inverse());return {x:clamp(r.x,-320,640),y:clamp(r.y,-220,440)}}
  function start(e:PointerEvent<SVGSVGElement>){
@@ -108,6 +117,9 @@ export function ObjectBoard({value,page,total,onChange,disabled,onUndo,onRedo,ca
   <div className={styles.boardTools}><button disabled={disabled||!canUndo} onClick={onUndo}>Undo</button><button disabled={disabled||!canRedo} onClick={onRedo}>Redo</button><button onClick={()=>setZoom(v=>Math.max(1,v-.5))}>−</button><button onClick={()=>{setZoom(1);setPan({x:0,y:0})}}>{Math.round(zoom*100)}%</button><button onClick={()=>setZoom(v=>Math.min(4,v+.5))}>+</button><button disabled={disabled||!doc.objects.length} onClick={()=>{if(window.confirm('Clear this draft page? Published history remains.'))commit({...doc,objects:[]})}}>Clear</button></div>
   <div className={styles.boardTools}><input aria-label="Board text" placeholder="Text or equation" maxLength={180} value={text} disabled={disabled} onChange={e=>setText(e.target.value)}/><button disabled={disabled||!text.trim()} onClick={()=>add('text')}>Insert text</button></div>
   <div className={styles.boardTools}><select aria-label="Teaching diagram" value={diagram} disabled={disabled} onChange={e=>setDiagram(e.target.value as typeof diagram)}>{BOARD_DIAGRAMS.map(d=><option key={d} value={d}>{diagramLabel(d)}</option>)}</select><button disabled={disabled} onClick={()=>add('diagram')}>Insert diagram</button></div>
+  {allowAdjustable&&<div className={styles.boardTools}><label>Adjustable teaching tool<select aria-label="Adjustable teaching tool" value={demoKind} disabled={disabled} onChange={e=>{const k=e.target.value as DemoKind;if(Object.prototype.hasOwnProperty.call(DEMO_RANGES,k))setDemoKind(k)}}><TeachingModelOptions/></select></label><button type="button" disabled={disabled} onClick={addDemo}>Insert tool</button></div>}
+  {allowAdjustable&&selectedObject?.demo&&<DemoControls demo={selectedObject.demo} disabled={disabled||!!selectedObject.locked} onChange={demo=>patchObject({demo})}/>}
+  {selectedObject?.kind==='text'&&<label>Edit selected text<input aria-label="Edit selected text" value={selectedObject.text??''} maxLength={180} disabled={disabled||!!selectedObject.locked} onChange={e=>{if(e.target.value.trim())patchObject({text:e.target.value})}}/></label>}
   {selectedObject&&<div className={styles.boardTools}><button disabled={disabled} aria-pressed={!!selectedObject.locked} onClick={()=>patchObject({locked:!selectedObject.locked},true)}>{selectedObject.locked?'Unlock':'Lock'}</button><button disabled={disabled||selectedObject.locked} onClick={()=>patchObject({angle:(selectedObject.angle+15)%360})}>Rotate</button><button disabled={disabled||selectedObject.locked} onClick={()=>patchObject({w:Math.max(1,Math.round(selectedObject.w*.85)),h:Math.max(1,Math.round(selectedObject.h*.85))})}>Smaller</button><button disabled={disabled||selectedObject.locked} onClick={()=>patchObject({w:Math.min(640,Math.round(selectedObject.w*1.15)),h:Math.min(440,Math.round(selectedObject.h*1.15))})}>Larger</button><button disabled={disabled||selectedObject.locked} onClick={()=>layer(-1)}>Back</button><button disabled={disabled||selectedObject.locked} onClick={()=>layer(1)}>Front</button><button disabled={disabled||selectedObject.locked} onClick={()=>{const o={...selectedObject,id:crypto.randomUUID().replaceAll('-',''),x:Math.min(640,selectedObject.x+8),y:Math.min(440,selectedObject.y+8)};commit({...doc,objects:[...doc.objects,o]});setSelected(o.id)}}>Duplicate</button><button disabled={disabled||selectedObject.locked} onClick={()=>{commit({...doc,objects:doc.objects.filter(o=>o.id!==selected)});setSelected(null)}}>Delete</button></div>}
   <div className={styles.boardTools}><button onClick={()=>exportCurrent('svg')}>Export SVG</button><button onClick={()=>exportCurrent('png')}>Export PNG</button><small role="status">{message||`${Math.round(value.length/BOARD_LIMIT*100)}% page used`}</small></div>
  </div>

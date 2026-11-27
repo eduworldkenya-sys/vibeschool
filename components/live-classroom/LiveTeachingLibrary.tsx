@@ -10,7 +10,8 @@ import {TeachingToolsLibrary} from '@/components/learn/tools/TeachingToolsLibrar
 import {LiveResourcePicker} from './LiveResourcePicker'
 import {validateStudioResources} from './LiveStudioResourceValidation'
 import {StudioFilePreview,uploadStudioFile,validateStudioFiles} from './LiveStudioFiles'
-import {exportDeck,importDeck,MAX_DECK_FILE_BYTES,buildTextRevealSlides,isPhotoBody,studioMinutes,setStudioMinutes,studioResource,studioFile,setStudioFile,encodeDemo,type SlideDemo} from './LiveSlideProtocol'
+import {exportDeck,importDeck,MAX_DECK_FILE_BYTES,buildTextRevealSlides,isPhotoBody,studioMinutes,setStudioMinutes,studioResource,studioFile,setStudioFile,encodeSlide,type SlideDemo} from './LiveSlideProtocol'
+import {composeVisualSlide} from './LiveBoardProtocol'
 type Summary={id:string;title:string;revision:number;slideCount:number;updatedAt:string}
 type Version=Omit<Summary,'id'>
 type Material={id:string;title:string;revision:number;slides:LiveSlide[]}
@@ -143,12 +144,14 @@ export function TeachingLibrary({command,currentDeck,onUse,onClose}:{command:Com
  }
  function changeDeck(slides:LiveSlide[],nextIndex:number){if(lock.current)return;setEdit(m=>m?{...m,slides}:m);setIndex(nextIndex);setDirty(true)}
  function prepareDemo(demo:SlideDemo){
-  if(!edit||lock.current||edit.slides.length>=30)return
-  const body=encodeDemo(demo)
-  if(!body)return
-  const stage:LiveSlide={title:diagramLabel(demo.kind),body}
-  if(!validSlide(stage))return
-  changeDeck([...edit.slides,stage],edit.slides.length)
+  if(!edit||lock.current)return
+  const current=edit.slides[index];if(!current)return
+  if(studioFile(current)||studioResource(current)){setError('Choose a regular slide before inserting a teaching tool. The linked resource is unchanged.');return}
+  const body=composeVisualSlide(current.body,demo,()=>crypto.randomUUID().replaceAll('-',''))
+  if(!body||!encodeSlide({...current,body},index+1,edit.slides.length)){setError('This slide cannot fit another tool. Existing content is unchanged.');return}
+  setError('')
+  patch({body})
+  setTool('Content')
   setStudioTab('Slides')
  }
  function move(delta:number){if(!edit)return;const target=index+delta;if(target<0||target>=edit.slides.length)return;const next=[...edit.slides];[next[index],next[target]]=[next[target],next[index]];changeDeck(next,target)}
@@ -181,7 +184,7 @@ export function TeachingLibrary({command,currentDeck,onUse,onClose}:{command:Com
    <label>Presentation name<input value={edit.title} maxLength={120} disabled={busy} onChange={e=>{if(lock.current)return;setEdit({...edit,title:e.target.value});setDirty(true)}}/></label>
    {onClose&&<nav className={styles.studioTabs} aria-label="Preparation sections">{(["Slides","Resources","Tools","Flow","Notes"] as const).map(tab=><button type="button" key={tab} aria-pressed={studioTab===tab} onClick={()=>setStudioTab(tab)}>{tab}</button>)}</nav>}
    {onClose&&<div className={styles.studioSection} hidden={studioTab!=="Resources"}><><button type="button" disabled={busy||edit.slides.length>=30} onClick={()=>setResourceOpen(true)}>Add approved resource page</button><label>Add private photo or PDF<input aria-label="Add private photo or PDF" type="file" accept="application/pdf,image/jpeg,image/png,image/webp" disabled={busy||edit.slides.length>=30} onChange={e=>{const file=e.target.files?.[0];e.target.value='';if(file)attachFile(file)}}/><small>8 MB maximum · private until presented</small></label></></div>}
-   {onClose&&studioTab==="Tools"&&<section className={styles.studioSection} aria-label="Prepare interactive tools"><small>Adjust a model and add it to your lesson. Other activities are available for private practice.</small><TeachingToolsLibrary onPrepare={prepareDemo} disabled={busy||edit.slides.length>=30}/></section>}
+   {onClose&&studioTab==="Tools"&&<section className={styles.studioSection} aria-label="Prepare interactive tools"><small>Adjust a model and insert it into the selected slide. Other activities are available for private practice.</small><TeachingToolsLibrary onPrepare={prepareDemo} disabled={busy}/></section>}
    {onClose&&<div className={styles.studioSection} hidden={studioTab!=="Flow"}><section aria-label="Lesson flow"><strong>Lesson flow · {edit.slides.reduce((sum,s)=>sum+studioMinutes(s),0)} min planned</strong><ol>{edit.slides.map((step,i)=><li key={i}><button type="button" disabled={busy} aria-current={i===index?'step':undefined} onClick={()=>setIndex(i)}>{step.title||'Untitled stage'} · {studioMinutes(step)||'—'} min</button></li>)}</ol><label>Stage duration (minutes)<select value={studioMinutes(slide)} disabled={busy} onChange={e=>{const notes=setStudioMinutes(slide,Number(e.target.value));if(notes===null)setError('Shorten the private notes before adding a duration.');else patch({notes})}}><option value={0}>Not set</option>{Array.from({length:120},(_,i)=>i+1).map(n=><option key={n} value={n}>{n}</option>)}</select></label>{studioResource(slide)&&<small>Linked certified resource · checked before use.</small>}</section></div>}
    <div className={styles.studioSection} data-studio-editor={!!onClose} hidden={!!onClose&&studioTab!=="Slides"}>
    <div className={styles.studioCanvasArea}>{studioFile(slide)?<StudioFilePreview reference={studioFile(slide)!} title={slide.title}/>:<SlideCanvas slide={slide} number={index+1} total={edit.slides.length} ownerPhotoPreview/>}</div>

@@ -778,12 +778,13 @@ await import('./test-live-classroom-phase.mjs')
 await import('./test-live-stage-ink.mjs')
 
 
- // Isolated, non-production candidate for in-place current-slide editing.
+ // Reconstruct the current-slide migration over both classroom fixture generations.
  // Test both fixture generations so the action can coexist with stage ink.
  for(const learning of [false,true]){
   const f=await createLiveFixture({learning})
   try{
-   await f.db.exec(readFileSync(new URL('./live-slide-update-candidate.sql',import.meta.url),'utf8'))
+   if(learning)await f.db.exec(readFileSync(new URL('../supabase/migrations/20261125000200_live_breakout_discussions.sql',import.meta.url),'utf8'))
+   await f.db.exec(readFileSync(new URL('../supabase/migrations/20261127173000_live_classroom_slide_update.sql',import.meta.url),'utf8'))
    let room=await f.rpc(f.teacher,'start',null,null,{title:'Current slide editing'})
    const sid=room.id
    await f.rpc(f.a,'join',sid)
@@ -821,7 +822,7 @@ await import('./test-live-stage-ink.mjs')
    // Exercise mixed objects and the exact model range contract.
    for(const [kind,range] of Object.entries(DEMO_RANGES)){
     for(const demo of [defaultDemo(kind),{kind,a:range.a[0]-1,b:range.b[0]},{kind,a:range.a[0],b:range.b[1]+1}]){
-     const result=await f.db.query('select vibe_live.valid_slide_demo_candidate($1::jsonb) as ok',[JSON.stringify(demo)])
+     const result=await f.db.query('select vibe_live.valid_slide_demo($1::jsonb) as ok',[JSON.stringify(demo)])
      assert.equal(result.rows[0].ok,Boolean(encodeDemo(demo)),kind)
     }
    }
@@ -830,7 +831,11 @@ await import('./test-live-stage-ink.mjs')
     {id:'ruler',kind:'diagram',x:5,y:40,w:150,h:85,angle:0,color:'#182b3a',stroke:3,demo:{kind:'ruler',a:2,b:7}},
     {id:'protractor',kind:'diagram',x:160,y:40,w:150,h:85,angle:0,color:'#182b3a',stroke:3,demo:{kind:'protractor',a:angle,b:0}}
    ]}))
-   const mixed=encodeSlide({title:'Measuring angles',body:makeMixed(60)},1,2)
+   const original={title:'Measuring angles',body:makeMixed(60),notes:'Private geometry teaching notes'}
+   const materialId=f.id(996)
+   const materialPayload={id:materialId,title:'Geometry',revision:0,slides:[original]}
+   assert.equal((await f.rpc(f.teacher,'materials_save',null,null,materialPayload)).revision,1)
+   const mixed=encodeSlide(original,1,2)
    const changed=encodeSlide({title:'Measuring angles',body:makeMixed(90)},1,2)
    const invalid=encodeSlide({title:'Measuring angles',body:makeMixed(181)},1,2)
    await assert.rejects(f.rpc(f.teacher,'slide_update',sid,room.version,{promptId:pid,expectedBody:after,body:invalid}),/live_slide_format_not_supported/)
@@ -838,7 +843,14 @@ await import('./test-live-stage-ink.mjs')
    room=await f.rpc(f.teacher,'slide_update',sid,room.version,{promptId:pid,expectedBody:mixed,body:changed})
    assert.equal(room.prompt.id,pid)
    assert.equal(room.history.length,length)
-   for(const learner of [f.a,f.b])assert.equal((await f.rpc(learner,'get',sid)).prompt.body,changed)
+   for(const learner of [f.a,f.b]){
+    const view=await f.rpc(learner,'get',sid)
+    assert.equal(view.prompt.body,changed)
+    assert.ok(!JSON.stringify(view).includes(original.notes))
+   }
+   const saved=await f.rpc(f.teacher,'materials_get',null,null,{id:materialId})
+   assert.equal(saved.revision,1)
+   assert.deepEqual(saved.slides,[original],'Editing a live slide preserves the prepared presentation revision')
    const corrupted=JSON.parse(makeMixed(90).slice('VSLIDEVIS1:VBOARD1:'.length))
    corrupted.objects[2].privateNotes='must not be accepted'
    const hidden=encodeSlide({title:'Measuring angles',body:visualSlideBody('VBOARD1:'+JSON.stringify(corrupted))},1,2)
@@ -848,3 +860,23 @@ await import('./test-live-stage-ink.mjs')
    console.log('PASS: in-place current slide update preserves identity, two learners see update, stale and unauthorized changes fail, paused room denied; learning='+learning)
   }finally{await f.db.close()}
  }
+// Mixed writing and independent adjustable tools share one visual slide.
+{
+ const {composeVisualSlide,decodeBoard:readMixedBoard}=await import('../components/live-classroom/LiveBoardProtocol.ts')
+ let nextId=0
+ const id=()=> 'mixed-'+(++nextId)
+ const first=composeVisualSlide('Measure the angle.',defaultDemo('ruler'),id)
+ assert.ok(first)
+ const second=composeVisualSlide(first,defaultDemo('protractor'),id)
+ assert.ok(second)
+ const doc=readMixedBoard(visualSlidePayload(second))
+ assert.equal(doc.objects.length,3)
+ assert.equal(doc.objects[0].text,'Measure the angle.')
+ assert.equal(doc.objects[1].demo.kind,'ruler')
+ assert.equal(doc.objects[2].demo.kind,'protractor')
+ const encoded=encodeSlide({title:'Geometry',body:second},1,1)
+ assert.equal(decodeSlide(encoded).body,second)
+ assert.equal(composeVisualSlide('x'.repeat(181),defaultDemo('ruler'),id),null)
+ assert.equal(composeVisualSlide('VSLIDEUNKNOWN1:bad',defaultDemo('ruler'),id),null)
+ assert.equal(encodeBoard({...doc,objects:[{...doc.objects[1],demo:{kind:'ruler',a:-999,b:7}}]}),'')
+}
