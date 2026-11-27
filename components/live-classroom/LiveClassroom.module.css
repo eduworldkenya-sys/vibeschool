@@ -410,3 +410,49 @@
 .counterActions button{min-width:48px;min-height:44px}
 
 .live .studioTabs button[aria-pressed=true]{background:#16734b;color:#fff;border-color:transparent}.live .studioTabs button{min-height:44px;border-radius:12px}.live .studioTabs{padding-bottom:12px;border-bottom:1px solid var(--teacher-border,var(--vs-border,#dce4df))}
+
+
+/* Live Studio: focused preparation shell; shared slide rendering stays unchanged. */
+.studioPage{font-family:var(--font-jakarta),system-ui,sans-serif;margin:0;width:100%;padding:clamp(12px,2vw,28px);box-sizing:border-box}
+.studioPage>.teachingLibrary{width:min(100%,1440px);gap:16px}
+.studioPage .studioHeader{padding-bottom:12px;border-bottom:1px solid color-mix(in srgb,currentColor 14%,transparent)}
+.studioHomeNav{display:flex;gap:6px;overflow-x:auto;padding:2px 0 10px;border-bottom:1px solid color-mix(in srgb,currentColor 14%,transparent)}
+.studioPage .studioHomeNav button{flex:0 0 auto;white-space:nowrap;border-color:transparent;border-radius:8px;padding:9px 16px;font-size:14px}
+.studioHome{display:grid;gap:16px;min-width:0;align-content:start}
+.studioHome h2{font-size:1.15rem;margin:0}
+.studioHome p{margin:0}
+.studioHomeHeading{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.studioHomeHeading>div{flex:1 1 180px;min-width:0}
+.studioHomeHeading small{display:block;margin-top:4px;opacity:.75}
+.studioSearch{display:grid;gap:5px;font-size:12px;font-weight:600;width:min(100%,360px)}
+.studioSearch input{box-sizing:border-box;width:100%;padding:10px 12px;min-height:42px;border-radius:8px;border:1px solid color-mix(in srgb,currentColor 24%,transparent);font:inherit;color:inherit;background:var(--vs-surface,Canvas)}
+.studioCardGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,220px),1fr));gap:14px;min-width:0}
+.studioMaterialCard{position:relative;border:1px solid color-mix(in srgb,currentColor 16%,transparent);border-radius:10px;min-width:0;background:var(--vs-surface,Canvas)}
+.studioPage .studioMaterialOpen{width:100%;display:grid;gap:7px;text-align:left;padding:8px 8px 12px;border:0;border-radius:10px;min-width:0}
+.studioMaterialOpen strong{padding-right:32px;overflow-wrap:anywhere}
+.studioMaterialOpen small{font-weight:400;opacity:.7}
+.studioMaterialArt{aspect-ratio:16/9;display:grid;place-items:center;border-radius:6px;background:color-mix(in srgb,#087e72 10%,var(--vs-surface,Canvas));color:#087e72;font-size:34px}
+.studioCardMenu{position:absolute;right:8px;top:8px;z-index:1}
+.studioCardMenu[open]{z-index:3}
+.studioCardMenu summary{display:grid;place-items:center;list-style:none;cursor:pointer;width:36px;height:36px;border-radius:8px;background:var(--vs-surface,Canvas);color:var(--vs-text,CanvasText);border:1px solid color-mix(in srgb,currentColor 18%,transparent)}
+.studioCardMenu summary::-webkit-details-marker{display:none}
+.studioCardMenu>div{position:absolute;right:0;top:40px;width:176px;display:grid;padding:5px;gap:2px;background:var(--vs-surface,Canvas);border:1px solid color-mix(in srgb,currentColor 20%,transparent);border-radius:8px;box-shadow:0 8px 24px #0002}
+.studioPage .studioCardMenu button{min-height:38px;font-size:12px;text-align:left;border:0}
+.studioPage .studioBack{justify-self:start;border:0;min-height:40px}
+.studioCanvasArea{display:grid;place-items:center;min-width:0;background:color-mix(in srgb,currentColor 5%,var(--vs-surface,Canvas));padding:clamp(8px,2vw,20px);border-radius:8px}
+.studioThumbRail{display:flex;gap:8px;overflow-x:auto;padding:4px;min-width:0;align-items:start}
+.studioPage .studioCanvasArea .presentationCanvas:not([data-mini=true]){max-width:960px}
+.studioPage .studioCanvasArea .presentationCanvas[data-layout=portrait]:not([data-mini=true]){max-width:430px}
+@media(min-width:850px){
+ .studioPage .studioSection[data-studio-editor=true]:not([hidden]){display:grid;grid-template-columns:160px minmax(0,1fr);gap:12px;align-items:start}
+ .studioPage .studioSection[data-studio-editor=true]>.studioCanvasArea{grid-column:2;grid-row:1}
+ .studioPage .studioSection[data-studio-editor=true]>.studioThumbRail{grid-column:1;grid-row:1 / span 3;display:flex;flex-direction:column;max-height:65dvh;overflow-y:auto;overflow-x:hidden;align-self:stretch}
+ .studioPage .studioThumbRail>button{width:100%;flex:0 0 auto!important}
+ .studioPage .studioSection[data-studio-editor=true]>:not(.studioCanvasArea):not(.studioThumbRail){grid-column:2}
+}
+@media(max-width:600px){
+ .studioPage .studioHomeNav button{font-size:12px;padding:8px 11px}
+ .studioHomeHeading>div{flex-basis:100%}
+ .studioCardGrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .studioMaterialOpen strong{font-size:13px}
+}
