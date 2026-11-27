@@ -481,3 +481,17 @@
  .studioCardGrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
  .studioMaterialOpen strong{font-size:13px}
 }
+
+/* V1 compact menu and presentation navigation */
+.premium .premiumMenu{position:relative;z-index:8;overflow:visible;justify-content:space-between;padding:3px 12px}
+.premiumMenuGroup{position:relative;min-width:0}
+.premium .premiumDropdown{position:absolute;top:100%;left:0;min-width:180px;max-width:85vw;background:#fff;border:1px solid #dce4df;border-radius:6px;box-shadow:0 8px 24px #18352b20;padding:4px;display:grid;z-index:20}
+.premiumMenuGroup:last-child .premiumDropdown{left:auto;right:0}
+.premium .premiumDropdown button{justify-content:flex-start;text-align:left;white-space:normal;width:100%}
+.premiumBrand{font-weight:750;color:#08765a;font-size:17px;letter-spacing:-.4px;border-right:1px solid #dce4df;padding-right:12px;white-space:nowrap}
+.premium .dockHeader[hidden]{display:none}
+.premium .presentControls{justify-content:center;gap:8px;padding:4px 8px;background:#eef1f2}
+.premium .presentControls button{flex:0 0 auto;min-height:36px;padding:6px 12px}
+.premium .sessionRow{justify-content:space-evenly;flex:1;margin:0}
+.premium .sessionRow button,.premium .sessionRow button:first-child{flex:0 0 auto;min-height:42px;border-color:transparent;font-size:13px}
+@media(max-width:600px){.premiumBrand{display:none}.premium .premiumMenu{padding:3px 4px;gap:0}.premium .premiumMenuGroup>button{font-size:12px;padding:5px 4px;gap:2px}.premium .sessionRow button,.premium .sessionRow button:first-child{font-size:11px;min-width:0;padding:4px 6px}.premiumMenuGroup:nth-child(n+3) .premiumDropdown{left:auto;right:0}.premium .presentControls button{padding:5px 7px;font-size:12px}}
