@@ -650,13 +650,13 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
       try {
         next=await call(action,id??room?.id??null,active.current?.version??null,requestPayload) as Room
       } catch(e) {
-        // Chat and attendance can advance the room version during a teacher edit.
-        // Retry once, keeping the original prompt identity and expected content.
-        if((action!=='publish'&&action!=='slide_update')||!(e instanceof Error)||e.message!=='live_stale_version'||!room?.id)throw e
+        // Another teacher tab or attendance can advance the version before a click.
+        // Retry once against the same room, preserving any slide identity checks.
+        if((action!=='publish'&&action!=='slide_update'&&action!=='end')||!(e instanceof Error)||e.message!=='live_stale_version'||!room?.id)throw e
         const latest=await call('get',room.id) as Room
         if(!mounted.current||generation.current!==stamp)return
         accept(latest)
-        if(latest.status!=='active'||!latest.teacher)throw new Error('The lesson is no longer active.')
+        if(!latest.teacher||(action==='end'?latest.status==='ended':latest.status!=='active'))throw new Error('The lesson is no longer active.')
         if(action==='slide_update'&&(latest.prompt?.id!==payload.promptId||latest.prompt?.body!==payload.expectedBody))throw new Error('live_slide_conflict')
         next=await call(action,room.id,latest.version,requestPayload) as Room
       }
