@@ -51,7 +51,7 @@ test('history is private to currently authorized teacher, class and school',()=>
 })
 
 test('school Live offers a selected owned plan, never shares its private body',()=>{
-  assert.match(classroom,/teacher&&classId&&<section aria-label="Prepare Live Lesson"/)
+  assert.match(classroom,/teacher&&<div className=\{styles\.startLesson\}><h2>Start a lesson<\/h2>\{classId&&<section aria-label="Prepare Live Lesson"/)
   assert.match(classroom,/\.eq\('teacher_id',auth\.data\.user\.id\)\.eq\('class_id',classId\)/)
   assert.match(classroom,/\.eq\('id',planId\)\.eq\('teacher_id',user\.id\)\.eq\('class_id',classId\)/)
   assert.match(classroom,/selectedPlanId/)

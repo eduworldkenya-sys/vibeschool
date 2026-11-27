@@ -571,3 +571,24 @@
 .studioInspector .slideOptions{grid-template-columns:1fr}
 @media(max-width:1000px){.studioEditorGrid{grid-template-columns:90px minmax(0,1fr) minmax(200px,240px)}}
 @media(max-width:760px){.studioHeading{align-items:flex-start;flex-wrap:wrap}.studioMonitorTabs{display:flex;gap:6px}.studioMonitorTabs>button{flex:1;min-height:36px}.productionMonitors{grid-template-columns:minmax(0,1fr)}.productionMonitors[data-monitor=now]>.productionPreview,.productionMonitors[data-monitor=next]>.productionProgram{display:none}.studioLower{grid-template-columns:1fr}.productionRundown{max-height:34dvh}.studioTransport{flex-wrap:wrap}.studioEditorGrid{grid-template-columns:minmax(0,1fr);grid-template-rows:auto;align-items:stretch}.studioCanvas,.studioEditorGrid>.slideStrip,.studioEditorGrid>.slideToolbar,.studioEditorGrid>.studioInspector{grid-column:1;grid-row:auto}.studioCanvas{min-height:160px;padding:8px}.studioEditorGrid>.slideStrip{flex-direction:row;max-height:none;overflow-x:auto}.studioEditorGrid>.slideStrip>button{width:100px;min-width:100px}.studioEditorGrid>.studioInspector{max-height:none;overflow:visible}.studioInspectorTabs{position:static}}
+
+/* Teacher-only session roster heatmap. Color is redundant to each text label. */
+.manager{display:grid;gap:12px;padding:12px 0}
+.managerHead{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.managerHead h3{font-size:16px;margin:0}
+.managerHead>span,.managerMeta,.manager>small{font-size:11px;opacity:.85}
+.managerStats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.managerStats>div{display:grid;gap:5px;border:1px solid currentColor;border-radius:8px;padding:8px}
+.managerStats strong{font-size:22px;line-height:1}
+.managerMeta,.managerFilters{display:flex;gap:8px;flex-wrap:wrap}
+.managerFilters button,.managerDetail button{display:inline-flex;align-items:center;gap:6px;min-height:40px}
+.managerGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:8px}
+.managerGrid .managerTile{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;min-height:92px;padding:8px;border-radius:8px;border:1px solid transparent;color:inherit;min-width:0}
+.managerTile strong{overflow-wrap:anywhere;text-align:center;font-size:12px}
+.managerTile small{font-size:11px}
+.managerGrid .managerTile[data-state=joined]{background:#64748b30;border-color:#94a3b8}
+.managerGrid .managerTile[data-state=answered]{background:#22c55e26;border-color:#22c55e}
+.managerGrid .managerTile[data-state=help]{background:#eab30830;border-color:#eab308}
+.managerGrid .managerTile[aria-pressed=true]{outline:2px solid currentColor;outline-offset:2px}
+.managerDetail{border:1px solid currentColor;border-radius:8px;padding:10px;display:grid;gap:8px;overflow-wrap:anywhere}
+.managerDetail p{white-space:pre-wrap;margin:0}

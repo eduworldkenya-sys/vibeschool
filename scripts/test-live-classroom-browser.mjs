@@ -300,6 +300,9 @@ try{
  await button(l,'Raise hand').click()
  await see(l,'Hand raised — teacher notified')
  await t.getByRole('button',{name:/^Learners · /}).click()
+ await see(t,'Class heatmap')
+ await button(t,'Hands up').click()
+ await t.getByRole('button',{name:/^Learner A Hand up/}).click()
  await button(t,'Acknowledge hand').click()
  await see(l,'Teacher acknowledged your hand')
  // Teacher starts the private conversation before learner asks anything.
@@ -443,6 +446,8 @@ try{
  await button(l,'Submit').click()
  await l.getByText(/Submitted:/).waitFor()
  await t.getByRole('button',{name:/^Learners · /}).click()
+ await button(t,'Answered').click()
+ await t.getByRole('button',{name:/^Learner A Answered/}).click()
  await see(t,'B. Four')
  await t.getByRole('button',{name:'Close tools'}).click()
  // Publish a genuinely scrollable teaching document through the same
