@@ -1,4 +1,4 @@
-import {validDemo,decodeDemo,decodeMultiDemo,visualSlidePayload,visualSlideBody,type SlideDiagram,type SlideDemo} from './LiveSlideProtocol'
+import {validDemo,decodeDemo,decodeMultiDemo,visualSlidePayload,visualSlideBody,type SlideDiagram,type SlideDemo} from './LiveSlideProtocol.ts'
 export const BOARD_DIAGRAMS:readonly SlideDiagram[]=['fraction-circle','fraction-bars','number-line','ruler','protractor','coordinate-grid','counters','base-ten','clock','money','solids','handwriting','music']
 export const BOARD_LIMIT=3500
 export const BOARD_COLORS=['#182b3a','#1865c0','#bf3038','#167d58','#a06a05','#7e41b6'] as const
