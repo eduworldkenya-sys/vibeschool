@@ -529,3 +529,45 @@
 .productionRundown>button>span:nth-child(2){flex:1;overflow-wrap:anywhere}
 .productionRundown>button>small{font-size:10px;white-space:nowrap}
 @media(max-width:650px){.productionMonitors{grid-template-columns:1fr;gap:8px}.productionWorkspace{gap:8px}}
+
+/* Teacher-first studio: same canvas and draft, progressive disclosure. */
+.studioHeading{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 8px;background:#fff;border-bottom:1px solid #dce4df;min-width:0}
+.studioHeading>div:first-child{display:grid;gap:2px;min-width:0}
+.studioHeading strong{font-size:16px;font-weight:700;color:#23352e}
+.studioHeading small{font-size:12px;color:#53665b;overflow-wrap:anywhere}
+.studioActions{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.studioActions button,.studioTransport button,.studioInspectorTabs button{min-height:36px;font-size:12px;white-space:nowrap;padding:6px 10px}
+.productionWorkspace{gap:8px;max-width:1440px;margin:0 auto}
+.productionMonitors{gap:8px;min-height:0}
+.productionPreview,.productionProgram{border-radius:4px;padding:6px;gap:6px}
+.studioMonitorCanvas{display:grid;align-items:center;min-width:0;min-height:0;background:#eef1ef;overflow:hidden}
+.studioMonitorCanvas>.presentationCanvas{max-width:100%;width:100%;margin:auto}
+.studioTransport{display:flex;justify-content:center;align-items:center;gap:6px;padding:4px}
+.studioTransport .primary{min-width:140px}
+.studioLower{display:grid;grid-template-columns:minmax(0,2fr) minmax(180px,1fr);gap:8px;min-height:0}
+.productionRundown,.studioQuickPanel{border:1px solid #dce4df;background:#fff;border-radius:4px;padding:6px;align-content:start}
+.productionRundown{max-height:26dvh;overflow:auto}
+.studioSectionTitle{display:flex;justify-content:space-between;align-items:center;gap:6px;position:sticky;top:0;background:#fff;z-index:1;padding:3px}
+.studioSectionTitle button{min-height:32px;font-size:12px}
+.productionRundown>button{min-height:34px;font-size:13px}
+.studioOnAir{color:#b83434!important}
+.studioQuickPanel{display:grid;gap:4px;min-width:0}
+.studioQuickPanel>strong{font-size:13px;padding:4px}
+.studioQuickPanel button{min-height:34px;justify-content:flex-start;text-align:left;font-size:12px}
+.studioQuickPanel small{font-size:11px;color:#53665b}
+.studioMonitorTabs{display:none}
+.studioEditor{color:#23352e;max-width:1600px;width:100%;margin:0 auto}
+.studioEditorGrid{display:grid;grid-template-columns:112px minmax(0,1fr) minmax(240px,300px);grid-template-rows:minmax(240px,1fr) auto;gap:8px;align-items:start;min-width:0}
+.studioCanvas{grid-column:2;grid-row:1;align-self:stretch;display:flex;align-items:center;justify-content:center;background:#e8ece9;min-width:0;padding:12px}
+.studioCanvas>.presentationCanvas{width:100%;max-width:100%;margin:auto}
+.studioEditorGrid>.slideStrip{grid-column:1;grid-row:1 / span 2;display:flex;flex-direction:column;overflow:auto;max-height:68dvh;scroll-snap-type:none;gap:6px}
+.studioEditorGrid>.slideStrip>button{width:100%;min-width:0;max-width:none;flex:none;padding:3px}
+.studioEditorGrid>.slideToolbar{grid-column:2;grid-row:2;justify-content:center}
+.studioEditorGrid>.studioInspector{grid-column:3;grid-row:1 / span 2;max-height:68dvh;overflow:auto;background:#fff;border:1px solid #dce4df;padding:8px;border-radius:4px;align-content:start}
+.studioInspectorTabs{display:flex;gap:3px;flex-wrap:wrap;position:sticky;top:0;background:#fff;z-index:2;padding:3px 0}
+.studioInspectorTabs button{flex:1;padding:4px 6px}
+.studioInspectorSection{display:grid;gap:8px;min-width:0}
+.studioInspectorSection[hidden]{display:none}
+.studioInspector .slideOptions{grid-template-columns:1fr}
+@media(max-width:1000px){.studioEditorGrid{grid-template-columns:90px minmax(0,1fr) minmax(200px,240px)}}
+@media(max-width:760px){.studioHeading{align-items:flex-start;flex-wrap:wrap}.studioMonitorTabs{display:flex;gap:6px}.studioMonitorTabs>button{flex:1;min-height:36px}.productionMonitors{grid-template-columns:minmax(0,1fr)}.productionMonitors[data-monitor=now]>.productionPreview,.productionMonitors[data-monitor=next]>.productionProgram{display:none}.studioLower{grid-template-columns:1fr}.productionRundown{max-height:34dvh}.studioTransport{flex-wrap:wrap}.studioEditorGrid{grid-template-columns:minmax(0,1fr);grid-template-rows:auto;align-items:stretch}.studioCanvas,.studioEditorGrid>.slideStrip,.studioEditorGrid>.slideToolbar,.studioEditorGrid>.studioInspector{grid-column:1;grid-row:auto}.studioCanvas{min-height:160px;padding:8px}.studioEditorGrid>.slideStrip{flex-direction:row;max-height:none;overflow-x:auto}.studioEditorGrid>.slideStrip>button{width:100px;min-width:100px}.studioEditorGrid>.studioInspector{max-height:none;overflow:visible}.studioInspectorTabs{position:static}}
