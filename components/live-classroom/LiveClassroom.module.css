@@ -495,3 +495,10 @@
 .premium .sessionRow{justify-content:space-evenly;flex:1;margin:0}
 .premium .sessionRow button,.premium .sessionRow button:first-child{flex:0 0 auto;min-height:42px;border-color:transparent;font-size:13px}
 @media(max-width:600px){.premiumBrand{display:none}.premium .premiumMenu{padding:3px 4px;gap:0}.premium .premiumMenuGroup>button{font-size:12px;padding:5px 4px;gap:2px}.premium .sessionRow button,.premium .sessionRow button:first-child{font-size:11px;min-width:0;padding:4px 6px}.premiumMenuGroup:nth-child(n+3) .premiumDropdown{left:auto;right:0}.premium .presentControls button{padding:5px 7px;font-size:12px}}
+
+/* V1 audio is permanently mounted outside the conditional focus dock. */
+.premiumVoiceDock{flex:0 0 auto;background:#fff;border-top:1px solid #dce4df;padding:4px 12px;min-width:0}
+.premiumVoiceDock[hidden]{display:none}
+.premium .premiumVoiceDock .voiceSlot{width:100%;max-width:100%}
+.premium .premiumVoiceDock .voiceSlot>section{color:#23352e;max-height:24dvh;overflow:auto}
+@media(max-width:600px){.premiumVoiceDock{padding:3px 6px}}
