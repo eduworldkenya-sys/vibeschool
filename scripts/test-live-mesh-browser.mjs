@@ -150,6 +150,10 @@ try {
   const open = async role => {
     const context = await browser.newContext({ viewport: { width: 390, height: 760 }, permissions: ['microphone'] })
     await context.addInitScript(() => {
+      // Older WebKit/Chromium versions lack these static AbortSignal APIs.
+      // Real signaling must still work and remain bounded by a deadline.
+      Object.defineProperty(AbortSignal,'any',{value:undefined,configurable:true})
+      Object.defineProperty(AbortSignal,'timeout',{value:undefined,configurable:true})
       // Deterministic local ICE. The browser still performs real SDP, DTLS and audio transport.
       const NativePeer = window.RTCPeerConnection
       window.peerConnections = []
