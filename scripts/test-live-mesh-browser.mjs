@@ -203,6 +203,7 @@ try {
 
   const hearsAudio = page => page.waitForFunction(async () => {
     for (const peer of window.peerConnections) {
+      if(peer.connectionState==='closed')continue
       for (const row of (await peer.getStats()).values()) {
         if (row.type === 'inbound-rtp' && row.kind === 'audio' && row.audioLevel > 0.01) return true
       }
