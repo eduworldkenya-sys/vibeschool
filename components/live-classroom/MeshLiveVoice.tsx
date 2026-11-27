@@ -85,7 +85,9 @@ export function MeshLiveVoice({ roomId, classId, teacher, enabled, status, learn
   const [failure, setFailure] = useState('')
   const [retry, setRetry] = useState(0)
   const [busy, setBusy] = useState(false)
+  const [listenVolume,setListenVolume]=useState(100)
   const playerRef = useRef<HTMLAudioElement>(null)
+  useEffect(()=>{if(playerRef.current)playerRef.current.volume=listenVolume/100},[listenVolume])
   const micClick = useRef<(() => Promise<void>) | null>(null)
   const controls = useRef<((action: Control, studentId?: string) => Promise<void>) | null>(null)
   const fallback = useRef(onFallback)
@@ -456,6 +458,7 @@ export function MeshLiveVoice({ roomId, classId, teacher, enabled, status, learn
         <button type="button" disabled={busy} onClick={() => void controls.current?.('fallback')}>Use Daily audio</button>}
     </div>
     <audio ref={playerRef} autoPlay hidden />
+    {teacher&&enabled&&status==='active'&&<label className={styles.listenVolume}>Listening volume <input type="range" min={0} max={100} step={5} value={listenVolume} onChange={e=>setListenVolume(Number(e.target.value))} aria-label="Local listening volume"/><output>{listenVolume}%</output></label>}
     {soundBlocked && <button type="button" onClick={() => void playerRef.current?.play().then(
       () => setSoundBlocked(false), () => setSoundBlocked(true),
     )}>Enable sound</button>}
