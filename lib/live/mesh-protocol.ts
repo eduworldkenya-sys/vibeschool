@@ -53,3 +53,31 @@ export function gatherIce(pc:RTCPeerConnection,signal:AbortSignal):Promise<void>
     pc.addEventListener('icegatheringstatechange',check);signal.addEventListener('abort',abort,{once:true});check();
   });
 }
+
+/** A bounded request signal using widely supported AbortController APIs.
+ * Disposing after every request removes timers and parent listeners. */
+export function meshRequestSignal(parents:readonly AbortSignal[],timeoutMs:number){
+  const controller=new AbortController()
+  const abort=()=>controller.abort()
+  for(const parent of parents){
+    if(parent.aborted){abort();break}
+    parent.addEventListener('abort',abort,{once:true})
+  }
+  const timer=setTimeout(abort,timeoutMs)
+  return {signal:controller.signal,dispose:()=>{
+    clearTimeout(timer)
+    for(const parent of parents)parent.removeEventListener('abort',abort)
+  }}
+}
+
+export function meshFailureMessage(error:{code?:string;message?:string}){
+  if(error.code==='42501'&&error.message==='mesh_lease_lost')
+    return 'Audio authorization expired. Retry audio to reconnect.'
+  if(error.code==='42501')
+    return 'Direct audio is not authorized for this session. Check classroom audio availability.'
+  if(error.code==='P0001'&&error.message==='mesh_device_busy')
+    return 'Audio is active on another device or tab. Close it, then retry audio.'
+  if(error.code==='53000'&&error.message==='mesh_full')
+    return 'Classroom audio is full. Retry when a seat is free.'
+  return 'Direct audio connection failed. Check your internet connection and retry.'
+}
