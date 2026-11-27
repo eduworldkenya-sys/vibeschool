@@ -411,6 +411,31 @@
 
 .live .studioTabs button[aria-pressed=true]{background:#16734b;color:#fff;border-color:transparent}.live .studioTabs button{min-height:44px;border-radius:12px}.live .studioTabs{padding-bottom:12px;border-bottom:1px solid var(--teacher-border,var(--vs-border,#dce4df))}
 
+/* Online Teacher V1: isolated desktop workspace, compact mobile controls.
+   Keep canonical live media and stage mounted across menu changes. */
+.premium{font-family:var(--font-jakarta),system-ui,sans-serif;background:#f1f3f5;color:#23352e;gap:0;padding:0}
+.premium .liveTop{background:#fff;border-bottom:1px solid #dce4df;padding:8px 14px;min-height:56px}
+.premium .liveTitle small{color:#53665b}
+.premium .liveTop>button:last-child{width:auto;white-space:nowrap}
+.premium button{background:#fff;color:#263a30;border:1px solid #dce4df;border-radius:5px}
+.premium button[aria-pressed=true],.premium button.primary{background:#087e72;color:#fff;border-color:#087e72}
+.premium button.danger{background:#b83434;color:#fff;border-color:#b83434}
+.premiumMenu{display:flex;flex:0 0 auto;align-items:center;gap:5px;overflow-x:auto;padding:5px 12px;background:#fff;border-bottom:1px solid #dce4df;scrollbar-width:thin}
+.premium .premiumMenu button{flex:none;white-space:nowrap;border-color:transparent;min-height:38px;padding:6px 10px;font-size:13px}
+.premium .premiumMenu button:hover{background:#eaf2ed}
+.premium .stage{border-radius:0;background:#eef1f2}
+.premium .stageContent{padding:clamp(8px,1.5vw,20px)}
+.premium .dock{background:#fff;border-top:1px solid #dce4df;padding:6px 12px;gap:6px}
+.premium .dockHeader{gap:4px}
+.premium .sessionRow button{white-space:nowrap}
+.premium .toolRow,.premium .toolPicker,.premium .sheet{background:#fff;color:#23352e;border-color:#dce4df}
+.premium .sheet small,.premium .sheet button.subtle{color:#53665b}
+.premium .sheet input,.premium .sheet textarea{background:#fff;color:#23352e;border-color:#b9c9c0}
+.premium .sheet a{color:#08765a}
+.premium .workspaceStatus{color:#415b50}
+@media(min-width:850px){.premium .stage:has(>.sheet){display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,340px)}.premium .stage>.sheet{position:relative;inset:auto;max-height:100%;min-height:0;border-radius:0;box-shadow:none;align-content:start;border-width:0 0 0 1px}}
+@media(max-width:849px){.premium .sheet{max-height:80%;border-radius:12px 12px 0 0}.premium .liveTop{padding:5px 8px}.premiumMenu{padding:4px 6px}.premium .dock{padding:4px 6px;overflow-x:auto}.premium .sessionRow button{flex:none;min-width:64px}.premium .dockHeader button{white-space:nowrap}}
+
 
 /* Live Studio: focused preparation shell; shared slide rendering stays unchanged. */
 .studioPage{font-family:var(--font-jakarta),system-ui,sans-serif;margin:0;width:100%;padding:clamp(12px,2vw,28px);box-sizing:border-box}
