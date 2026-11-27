@@ -221,6 +221,17 @@ try{
   })
   await l.getByRole('button',{name:'Muted'}).waitFor()
   assert.equal(await l.evaluate(()=>window.__voiceCall.localAudio()),false)
+  // Simulate an actual browser network loss while a learner has a speaking grant.
+  await l.evaluate(()=>{window.__voiceCall.people.local.permissions.canSend=new Set(['audio']);window.__voiceCall.emit('participant-updated')})
+  await l.getByRole('button',{name:'Speak',exact:true}).click()
+  await l.context().setOffline(true)
+  await l.getByRole('alert').getByText('Network lost. Audio muted. Rejoining when connected.').waitFor()
+  assert.equal(await l.evaluate(()=>window.__voiceCall.localAudio()),false)
+  await l.context().setOffline(false)
+  await l.waitForFunction(()=>window.__joinCount>=2)
+  await l.getByRole('status').getByText('Listening').waitFor()
+  assert.equal(await l.getByRole('button',{name:'Muted'}).isDisabled(),true)
+  assert.equal(await l.evaluate(()=>window.__voiceCall.localAudio()),false)
   // Reproduce the real Android screenshot: Daily fatal error while still joining.
   // The raw provider message must stay private and the mic must remain off.
   const failedJoin=await open('teacher',false,'?solo=1&failJoin=1')

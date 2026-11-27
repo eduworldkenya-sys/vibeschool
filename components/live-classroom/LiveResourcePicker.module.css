@@ -25,3 +25,6 @@
 .diagramChoice{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;font-weight:700}
 .diagramChoice select{min-height:36px;flex:1 1 120px;min-width:110px;max-width:100%;color:inherit;background:var(--vs-surface,#fff);border:1px solid currentColor;border-radius:8px;padding:5px 8px}
 .preview article svg{display:block;max-width:100%;height:auto;margin:12px auto}
+
+.picker{container-type:inline-size}
+@container(max-width:560px){.layout{grid-template-columns:minmax(0,1fr)}.library{max-height:24dvh}.preview article{max-height:28dvh}.toolbar span{display:none}}
