@@ -61,6 +61,9 @@ function canPublishAudio(value:unknown):boolean{
 function DailyLiveVoice({roomId,classId,teacher,enabled,status,learners,onAcknowledge}:Props) {
   const meeting=useRef<DailyCall|null>(null)
   const media=useRef<Map<string,HTMLAudioElement>>(new Map())
+  const [listenVolume,setListenVolume]=useState(100)
+  const listenVolumeRef=useRef(100)
+  useEffect(()=>{listenVolumeRef.current=listenVolume;for(const audio of media.current.values())audio.volume=listenVolume/100},[listenVolume])
   const speaker=useRef<string|null>(null)
   const connectGeneration=useRef(0)
   const connectedUser=useRef<string|null>(null)
@@ -119,7 +122,7 @@ function DailyLiveVoice({roomId,classId,teacher,enabled,status,learners,onAcknow
       const oldTrack=(existing?.srcObject as MediaStream|null)?.getAudioTracks()?.[0]
       if(oldTrack===track)continue
       const audio=existing??document.createElement('audio')
-      audio.autoplay=true;audio.setAttribute('playsinline','');audio.muted=false
+      audio.autoplay=true;audio.setAttribute('playsinline','');audio.muted=false;audio.volume=listenVolumeRef.current/100
       audio.setAttribute('aria-hidden','true')
       if(!existing){audio.style.display='none';document.body.appendChild(audio);media.current.set(p.session_id,audio)}
       audio.srcObject=new MediaStream([track])
@@ -368,6 +371,7 @@ function DailyLiveVoice({roomId,classId,teacher,enabled,status,learners,onAcknow
         {micOn?<Mic size={15}/>:<MicOff size={15}/>} {micOn?'Mute':teacher?'Speak':permission?'Speak':'Muted'}
       </button>:<button type="button" disabled title={!enabled?'Audio has not been activated for this classroom.':'Join audio first to use the microphone.'} aria-label="Microphone off"><MicOff size={15}/> Mic off</button>}
     </div>
+    {teacher&&enabled&&status==='active'&&<label className={styles.listenVolume}>Listening volume <input type="range" min={0} max={100} step={5} value={listenVolume} onChange={e=>setListenVolume(Number(e.target.value))} aria-label="Local listening volume"/><output>{listenVolume}%</output></label>}
     {!enabled&&<div className={styles.detail} role="status">Audio is unavailable for this class. The microphone cannot be switched on yet.</div>}
     {phase==='listening'&&<div className={styles.detail}>
       {teacher?<>Learners on audio: {connectedIds.length}{speakingName?' · Speaking: '+speakingName:''}</>

@@ -9,3 +9,5 @@
 .requests button{min-width:90px}
 .error{display:flex;align-items:center;gap:5px;color:#ffd1d1;font-size:11px;line-height:1.3}
 @media(max-width:420px){.voice{padding:0}.summary{gap:4px;flex-wrap:nowrap}.summary strong{display:none}.summary button{padding:4px 5px!important;min-height:32px!important}.phase{flex-basis:auto;margin-right:0}.detail{font-size:10px}}
+
+.listenVolume{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px}.listenVolume input{width:100px;max-width:100%;accent-color:var(--vs-accent,#087e72)}.listenVolume output{min-width:36px;font-variant-numeric:tabular-nums}
