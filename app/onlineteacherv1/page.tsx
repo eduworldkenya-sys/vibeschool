@@ -11,6 +11,6 @@ export default function OnlineTeacherV1() {
   // live stage without remounting the classroom or navigating to another page.
   // Its canonical room recovery, permissions and end-session flow stay intact.
   return <div style={{minHeight:'100dvh',fontFamily:'var(--font-jakarta), system-ui, sans-serif'}}>
-    <LiveClassroom classId={null} teacher={true} back="/teacher/pulse" />
+    <LiveClassroom classId={null} teacher={true} back="/teacher/pulse" instantEntry />
   </div>
 }
