@@ -703,3 +703,13 @@
  .premium .studioActions button{white-space:normal;min-height:36px}
 }
 @media(prefers-reduced-motion:reduce){.premium *{scroll-behavior:auto!important;animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
+/* Discover real classroom actions without leaving the current workspace. */
+.premium .headerActions .executiveSearchButton{width:auto;min-height:40px;padding:6px 9px;color:#405a4e}
+.executiveSearchButton kbd{font:inherit;font-size:10px;color:#596c64;background:#eef2ef;border:1px solid #dce5de;border-radius:4px;padding:2px 4px}
+.commandSearch{margin:14px 0 10px;font-size:12px;font-weight:600}
+.commandResults{display:grid;gap:4px;max-height:min(45dvh,340px);overflow:auto;padding:3px;margin:4px -3px}
+.premium .commandResults button{display:grid;justify-content:stretch;justify-items:start;text-align:left;min-height:48px;padding:9px 12px;gap:2px}
+.commandResults strong{font-size:13px}.commandResults small{color:#596c64;font-weight:400}
+@media(max-width:900px){.executiveSearchButton kbd{display:none}}
+@media(max-width:560px){.premium .headerActions .executiveSearchButton{width:36px;padding:4px}.executiveSearchButton span{display:none}}

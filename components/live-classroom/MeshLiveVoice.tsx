@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Hand, Headphones, Mic, MicOff } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { MicController } from '@/lib/live/mesh-mic.mjs'
-import { audioSdp, gatherIce, validateMeshState, type MeshPeer, type MeshState } from '@/lib/live/mesh-protocol'
+import { audioSdp, gatherIce, validateMeshState, meshRequestSignal, meshFailureMessage, type MeshPeer, type MeshState } from '@/lib/live/mesh-protocol'
 import styles from './LiveVoice.module.css'
 
 type Props = {
@@ -33,7 +33,7 @@ type Peer = {
 
 const POLL_MS = 2000
 const SIGNAL_TIMEOUT_MS = 10000
-const ROOM_FULL = 'Classroom audio is full. Retry when a seat is free.'
+class MeshRequestError extends Error {}
 
 // The host broadcasts one mix to all listeners and a host-only track back to
 // the current speaker. No learner connects to or receives ICE data from peers.
@@ -129,20 +129,20 @@ export function MeshLiveVoice({ roomId, classId, teacher, enabled, status, learn
     let learnerSender: RTCRtpSender | undefined
 
     const request = async (action: Action, edge?: Peer, sdp?: string, detached = false) => {
-      const timeout = AbortSignal.timeout(SIGNAL_TIMEOUT_MS)
-      const signal = detached ? timeout : AbortSignal.any([timeout, lifetime.signal, ...(edge ? [edge.controller.signal] : [])])
+      const bounded=meshRequestSignal(detached?[]:[lifetime.signal,...(edge?[edge.controller.signal]:[])],SIGNAL_TIMEOUT_MS)
+      try {
       const { data, error } = await supabase.rpc('vibe_live_mesh', {
         p_room: roomId, p_class: classId, p_action: action, p_client: client,
         p_epoch: edge?.epoch ?? null, p_sdp: sdp ?? null, p_target: teacher ? edge?.studentId ?? null : null,
-      }).abortSignal(signal)
+      }).abortSignal(bounded.signal)
       if (error) {
         // During a rolling deploy the app can reach PostgREST before the
         // migration is visible in its schema cache.
         if (action === 'join' && ['P0002', 'PGRST202'].includes(error.code)) return null
-        if (action === 'join' && error.code === '53000' && error.message === 'mesh_full') throw Error(ROOM_FULL)
-        throw Error('Voice access or connection unavailable')
+        throw new MeshRequestError(meshFailureMessage(error))
       }
       return validateMeshState(data, teacher)
+      } finally {bounded.dispose()}
     }
 
     const closePeer = (edge: Peer) => {
@@ -388,7 +388,7 @@ export function MeshLiveVoice({ roomId, classId, teacher, enabled, status, learn
         setAdmitted(true)
         if (version === moderationVersion || state.fallback) apply(state)
       } catch (error) {
-        stop(error instanceof Error && error.message === ROOM_FULL ? ROOM_FULL : 'Direct audio unavailable.', true)
+        stop(error instanceof MeshRequestError ? error.message : 'Direct audio connection failed. Check your internet connection and retry.', true)
       }
       if (!lifetime.signal.aborted) timer = setTimeout(() => void tick(), POLL_MS)
     }

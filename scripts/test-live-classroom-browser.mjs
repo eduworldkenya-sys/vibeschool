@@ -15,7 +15,7 @@ const liveUpdateEnabled=process.env.TEST_LIVE_SLIDE_UPDATE==='1'
 if(liveUpdateEnabled)await fixture.db.exec(readFileSync(new URL('../supabase/migrations/20261127173000_live_classroom_slide_update.sql',import.meta.url),'utf8'))
 const identity={teacher:fixture.teacher,learner:fixture.a,'learner-b':fixture.b,outsider:fixture.outsider}
 const result=await build({
-  stdin:{contents:"import React from 'react'; import {createRoot} from 'react-dom/client'; import LiveClassroom from './components/live-classroom/LiveClassroom'; const role=location.pathname.slice(1); createRoot(document.getElementById('root')).render(<LiveClassroom classId={role==='teacher'?'"+fixture.cls+"':null} teacher={role==='teacher'} back='/'/>);",loader:'tsx',resolveDir:process.cwd()},
+  stdin:{contents:"import React from 'react'; import {createRoot} from 'react-dom/client'; import LiveClassroom from './components/live-classroom/LiveClassroom'; const role=location.pathname.slice(1); createRoot(document.getElementById('root')).render(<LiveClassroom classId={role==='teacher'?'"+fixture.cls+"':null} teacher={role==='teacher'} instantEntry={new URLSearchParams(location.search).get('executive')==='1'} back='/'/>);",loader:'tsx',resolveDir:process.cwd()},
   bundle:true,write:false,outdir:'out',entryNames:'app',jsx:'automatic',platform:'browser',
   nodePaths:[testModules],define:{'process.env.NODE_ENV':'"production"','process.env.NEXT_PUBLIC_VIBE_LIVE_DAILY_ENABLED':'"true"','process.env.NEXT_PUBLIC_VIBE_LIVE_VOICE_ENABLED':'"false"','process.env.NEXT_PUBLIC_VIBE_LIVE_SLIDE_UPDATE_ENABLED':JSON.stringify(liveUpdateEnabled?'true':'false')},
   plugins:[{name:'loopback-fixture',setup(b){
@@ -139,6 +139,39 @@ try{
  await t.getByRole('button',{name:'Microphone off'}).waitFor()
  assert.equal(await t.getByRole('button',{name:'Microphone off'}).isDisabled(),true,'Voice feature gate must keep the mic unavailable')
  await assertStageUsesViewport(t,0.68)
+ // Exercise the standalone Executive shell against the same real room.
+ const executiveId=new URL(t.url()).searchParams.get('resumeRoom')
+ assert.ok(executiveId)
+ const executive=await open('teacher',1024,768,'?resumeRoom='+executiveId+'&executive=1'),e=executive.page
+ await dialog(e).waitFor()
+ const modes=e.getByRole('group',{name:'Teaching workspace'})
+ await modes.getByRole('button',{name:'Produce',exact:true}).click()
+ await e.getByLabel('Live Production Studio',{exact:true}).waitFor()
+ await button(e,'Find a teaching action').click()
+ const palette=e.getByRole('dialog',{name:'Find a teaching action'})
+ await palette.waitFor()
+ await palette.getByRole('textbox',{name:'Search tools'}).fill('not-a-real-tool')
+ await palette.getByText('No matching actions. Try another search.',{exact:true}).waitFor()
+ await palette.getByRole('textbox',{name:'Search tools'}).fill('invite')
+ await palette.getByRole('textbox',{name:'Search tools'}).press('Enter')
+ const invite=e.getByRole('dialog',{name:'Invite learners'})
+ await invite.waitFor()
+ assert.ok((await invite.getByRole('textbox',{name:'Lesson link'}).inputValue()).includes(executiveId))
+ await invite.getByRole('button',{name:'Close dialog'}).click()
+ await e.getByLabel('Live Production Studio',{exact:true}).waitFor()
+ await e.keyboard.press('Control+k')
+ await palette.waitFor()
+ await e.keyboard.press('Escape')
+ await palette.waitFor({state:'hidden'})
+ await button(e,'End class').click()
+ const confirm=e.getByRole('dialog',{name:'End class?'})
+ await confirm.waitFor()
+ await confirm.getByRole('button',{name:'Keep teaching'}).click()
+ await e.getByLabel('Live Production Studio',{exact:true}).waitFor()
+ assert.equal((await fixture.rpc(fixture.teacher,'get',executiveId)).status,'active')
+ await noPageOverflow(e)
+ await executive.context.close()
+ await t.bringToFront()
  assert.equal(await button(t,'Slides').count(),0,'Optional tools should be closed until requested')
  await button(t,'Tools').click()
  await button(t,'Slides').click()
