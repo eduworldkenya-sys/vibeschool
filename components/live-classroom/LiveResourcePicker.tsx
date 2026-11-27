@@ -25,7 +25,7 @@ type SchemeLink = { scheme_lesson_id: string | null; resource_id: string | null;
 type ReleasedRoot = { id: string; title: string; subject: string | null; grade: string | null }
 
 export function LiveResourcePicker({
-  classId, lessonPlanId, schemeLessonId, canPresent, onPresent, onClose, onPrepare,
+  classId, lessonPlanId, schemeLessonId, canPresent, onPresent, onClose, onPrepare, dualActions=false, canPrepare=true, linkedOnly=false,
 }: {
   classId: string | null
   lessonPlanId: string | null
@@ -34,6 +34,9 @@ export function LiveResourcePicker({
   onPresent: (body: string) => void
   onClose: () => void
   onPrepare?: (slide: LiveSlide) => void
+  dualActions?: boolean
+  canPrepare?: boolean
+  linkedOnly?: boolean
 }) {
   const [items, setItems] = useState<ResourceChoice[]>([])
   const [query, setQuery] = useState('')
@@ -189,9 +192,10 @@ export function LiveResourcePicker({
 
   const filtered = useMemo(() => {
     const needle = query.trim().toLocaleLowerCase()
-    return needle ? items.filter(item => [item.title, item.subject ?? '', item.grade ?? '', item.schemeTopic ?? '', item.planTopic ?? '']
-      .some(value => value.toLocaleLowerCase().includes(needle))) : items
-  }, [items, query])
+    const available=linkedOnly?items.filter(item=>item.lessonPlanId||schemeLessonId&&item.schemeLessonId===schemeLessonId):items
+    return needle ? available.filter(item => [item.title, item.subject ?? '', item.grade ?? '', item.schemeTopic ?? '', item.planTopic ?? '']
+      .some(value => value.toLocaleLowerCase().includes(needle))) : available
+  }, [items, query, linkedOnly, schemeLessonId])
 
   async function open(item: ResourceChoice) {
     const id = ++request.current
@@ -283,11 +287,11 @@ export function LiveResourcePicker({
     }
   }
 
-  function presentCurrent() {
-    if (!selected || !canPresent) return
+  function presentCurrent(prepare=!!onPrepare) {
+    if (!selected || (prepare ? (!canPrepare||(!dualActions&&!canPresent)) : !canPresent)) return
     const raw = selected.pages[page]
     if (!raw) return
-    if (onPrepare) {
+    if (prepare && onPrepare) {
       // Reusable preparations may only include released public learner content.
       // Class-scoped sources remain in their original authorized classroom.
       if (selected.item.source !== 'certified' || !selected.version) return
@@ -311,7 +315,7 @@ export function LiveResourcePicker({
     <div className={styles.toolbar}>
       <strong>Resources</strong>
       <span>Certified learning materials{classId ? ' and shared class resources' : ''}</span>
-      <button type="button" onClick={onClose}>{onPrepare?'Back to preparation':'Return to lesson'}</button>
+      {!dualActions&&<button type="button" onClick={onClose}>{onPrepare?'Back to preparation':'Return to lesson'}</button>}
     </div>
     {error && <p role="alert" className={styles.error}>{error}</p>}
     {schemeWarning && <p role="status" className={styles.warning}>{schemeWarning}</p>}
@@ -343,9 +347,9 @@ export function LiveResourcePicker({
             <div className={styles.actions}>
               <button type="button" disabled={page === 0} onClick={() => setPage(n => n - 1)}>Previous</button>
               <button type="button" disabled={page === selected.pages.length - 1} onClick={() => setPage(n => n + 1)}>Next</button>
-              <button type="button" className={styles.primary} disabled={!canPresent} onClick={presentCurrent}>{onPrepare?'Add to lesson':'Present this page'}</button>
+              {dualActions?<><button type="button" disabled={!canPrepare||selected.item.source!=='certified'||!selected.version} onClick={()=>presentCurrent(true)}>Add to lesson</button><button type="button" className={styles.primary} disabled={!canPresent} onClick={()=>presentCurrent(false)}>Show to class</button></>:<button type="button" className={styles.primary} disabled={!canPresent} onClick={()=>presentCurrent()}>{onPrepare?'Add to lesson':'Present this page'}</button>}
             </div>
-            <small>{onPrepare?'Adds a private, reusable copy of this certified page, with its source version in teacher notes. Nothing is shared until you teach.':'Presentation creates a learner-visible snapshot in Live history. Private drafts and teacher notes are not available here.'}</small>
+            <small>{dualActions?(selected.item.source==='class'?'Class-scoped material can be shown here but cannot be added to a reusable deck.':'Add privately to your lesson, or show this page to the class now.'):onPrepare?'Adds a private, reusable copy of this certified page, with its source version in teacher notes. Nothing is shared until you teach.':'Presentation creates a learner-visible snapshot in Live history. Private drafts and teacher notes are not available here.'}</small>
           </> :
           <p>{onPrepare?'Select a certified resource to add a page to your preparation.':'Select a resource to preview its readable pages. Only an explicit Present action shares a page.'}</p>}
       </div>
