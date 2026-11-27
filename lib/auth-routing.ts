@@ -7,6 +7,7 @@ export const AUTH_DASHBOARDS: Record<string, string> = {
 
 export const PROTECTED_ROLE_PREFIXES: Record<string, string> = {
   '/teacher': 'teacher',
+  '/onlineteacherv1': 'teacher',
   '/parent': 'parent',
   '/student': 'student',
   '/admin': 'admin',
