@@ -232,6 +232,31 @@ try {
     return Array.from(stats.values()).some(row => row.type === 'inbound-rtp' && row.kind === 'audio' && row.audioLevel < 0.001)
   })
 
+  // Network loss ends capture, then reacquires a fresh lease without a speaking grant.
+  await serial(() => rpc(a, 'help', room.id))
+  await host.getByRole('button', { name: 'Allow Learner A to speak' }).click()
+  await learner.getByRole('button', { name: 'Unmute' }).click()
+  await learner.getByRole('button', { name: 'Mute', exact: true }).waitFor()
+  await learner.context().setOffline(true)
+  await learner.waitForFunction(() => window.micTracks.every(track => track.readyState === 'ended'))
+  await learner.context().setOffline(false)
+  await learner.getByRole('status').getByText('Connected').waitFor({timeout:60000})
+  assert.equal(await learner.getByRole('button', {name:'Unmute'}).isDisabled(),true,'Reconnected learner must request a new speaking turn')
+  assert.ok(await learner.evaluate(() => window.micTracks.every(track=>track.readyState==='ended')))
+  await host.getByText('Learners on audio: '+learnerCount).waitFor({timeout:60000})
+  await host.getByRole('button',{name:'Unmute'}).click()
+  await hearsAudio(learner)
+  // A host drop also closes capture and rejoins without turning on any microphone.
+  await host.context().setOffline(true)
+  await host.waitForFunction(()=>window.micTracks.every(track=>track.readyState==='ended'))
+  await host.context().setOffline(false)
+  await host.getByText('Learners on audio: '+learnerCount).waitFor({timeout:60000})
+  assert.equal(await learner.getByRole('button',{name:'Unmute'}).isDisabled(),true)
+  assert.ok(await host.evaluate(()=>window.micTracks.every(track=>track.readyState==='ended')))
+  await host.getByRole('button',{name:'Unmute'}).click()
+  await hearsAudio(learner)
+  await host.getByRole('button',{name:'Mute',exact:true}).click()
+
   if (openClassrooms) {
     assert.equal(await host.getByRole('button', { name: 'Use Daily audio' }).count(), 0)
   } else {
