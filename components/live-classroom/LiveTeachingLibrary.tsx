@@ -31,7 +31,8 @@ export function TeachingLibrary({command,currentDeck,onUse,onClose}:{command:Com
  const [libraryTab,setLibraryTab]=useState<'Presentations'|'Resources'|'Tools'|'History'>('Presentations')
  const [search,setSearch]=useState('')
  const entryTab=useRef<'Slides'|'Resources'>('Slides')
- useEffect(()=>{setStudioTab(entryTab.current);entryTab.current='Slides';setTool(null)},[edit?.id])
+ const dragSlide=useRef<number|null>(null)
+ useEffect(()=>{setStudioTab(entryTab.current);entryTab.current='Slides';setTool('Content')},[edit?.id])
  const [rehearsing,setRehearsing]=useState(false)
  const [resourceOpen,setResourceOpen]=useState(false)
  const [history,setHistory]=useState<{id:string;versions:Version[]}|null>(null)
@@ -51,17 +52,19 @@ export function TeachingLibrary({command,currentDeck,onUse,onClose}:{command:Com
   finally{lock.current=false;if(alive.current)setBusy(false)}
  }
  function mayReplace(){return !lock.current&&(!dirty||window.confirm('Discard changes that have not reached the server?'))}
- function create(fromCurrent=false){
+ function create(fromCurrent=false,target:'Slides'|'Resources'='Slides'){
   if(!mayReplace())return
+  entryTab.current=target
   const slides=fromCurrent&&currentDeck?currentDeck.map(s=>({...s})):[blank()]
   setEdit({id:crypto.randomUUID(),title:fromCurrent?(slides[0]?.title||'Untitled presentation'):'Untitled presentation',revision:0,slides});setIndex(0);setDirty(true);setSaveProblem('')
  }
- function open(item:Summary,use=false,copy=false){
+ function open(item:Summary,use=false,copy=false,target:'Slides'|'Resources'='Slides'){
   if(!mayReplace())return
   void run(async()=>{const result=await command('materials_get',null,null,{id:item.id})
    if(!isMaterial(result))throw Error('Invalid presentation response')
    if(!alive.current)return
    if(use){if(onClose){await validateStudioResources(result.slides);await validateStudioFiles(result.slides)}if(alive.current)onUse(result);return}
+   entryTab.current=target
    setEdit(copy?{...result,id:crypto.randomUUID(),title:result.title.slice(0,113)+' (copy)',revision:0}:result);setIndex(0);setDirty(copy);setSaveProblem('')
   })
  }
@@ -166,7 +169,7 @@ export function TeachingLibrary({command,currentDeck,onUse,onClose}:{command:Com
     {!items.length?<p>No saved presentations yet.</p>:!items.some(item=>item.title.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase()))?<p>No matching presentations.</p>:null}
     <button type="button" className={styles.studioBack} disabled={busy} onClick={()=>void run(refresh)}>Refresh library</button>
   </section>}
-  {onClose&&!edit&&libraryTab==='Resources'&&<section className={styles.studioHome}><h2>Teaching resources</h2><p>Choose a presentation to attach textbook pages, photos or PDFs.</p><button className={styles.primary} disabled={busy} onClick={()=>{entryTab.current='Resources';create()}}>+ New presentation</button>{items.map(item=><button key={item.id} disabled={busy} onClick={()=>{entryTab.current='Resources';open(item)}}>{item.title}</button>)}</section>}
+  {onClose&&!edit&&libraryTab==='Resources'&&<section className={styles.studioHome}><h2>Teaching resources</h2><p>Choose a presentation to attach textbook pages, photos or PDFs.</p><button className={styles.primary} disabled={busy} onClick={()=>create(false,'Resources')}>+ New presentation</button>{items.map(item=><button key={item.id} disabled={busy} onClick={()=>open(item,false,false,'Resources')}>{item.title}</button>)}</section>}
   {onClose&&!edit&&libraryTab==='Tools'&&<section className={styles.studioHome}><h2>Teaching tools</h2><TeachingToolsLibrary/></section>}
   {onClose&&!edit&&libraryTab==='History'&&<section className={styles.studioHome}><h2>Presentation versions</h2>{items.length?items.map(item=><button key={item.id} disabled={busy} onClick={()=>openHistory(item)}>{item.title} · Version {item.revision}</button>):<p>No saved presentations yet.</p>}</section>}
   {!onClose&&<details className={styles.studioLibraryMenu} open={!edit||undefined}><summary>{edit?"My presentations":"Create or open a presentation"}</summary><div className={styles.controls}><button type="button" disabled={busy} onClick={()=>create()}>New presentation</button>{currentDeck&&<button type="button" disabled={busy} onClick={()=>create(true)}>Save current deck</button>}<button type="button" disabled={busy} onClick={()=>fileInput.current?.click()}>Import presentation</button><input ref={fileInput} type="file" accept=".json,application/json,.pdf,application/pdf,.pptx,application/vnd.openxmlformats-officedocument.presentationml.presentation" hidden onChange={e=>{const file=e.target.files?.[0];e.target.value='';if(file)loadFile(file)}}/><button type="button" disabled={busy} onClick={()=>void run(refresh)}>Refresh</button></div>
@@ -183,7 +186,7 @@ export function TeachingLibrary({command,currentDeck,onUse,onClose}:{command:Com
    <div className={styles.studioSection} data-studio-editor={!!onClose} hidden={!!onClose&&studioTab!=="Slides"}>
    <div className={styles.studioCanvasArea}>{studioFile(slide)?<StudioFilePreview reference={studioFile(slide)!} title={slide.title}/>:<SlideCanvas slide={slide} number={index+1} total={edit.slides.length} ownerPhotoPreview/>}</div>
    <div className={styles.slideToolbar}><button type="button" aria-label="Previous slide" disabled={busy||index===0} onClick={()=>setIndex(i=>i-1)}>‹</button><span>Slide {index+1} of {edit.slides.length}</span><button type="button" aria-label="Next slide" disabled={busy||index===edit.slides.length-1} onClick={()=>setIndex(i=>i+1)}>›</button><button disabled={busy||edit.slides.length>=30} onClick={()=>{setEdit({...edit,slides:[...edit.slides,blank()]});setIndex(edit.slides.length);setDirty(true)}}>+ Slide</button><button disabled={busy||edit.slides.length<=1} onClick={()=>{setEdit({...edit,slides:edit.slides.filter((_,i)=>i!==index)});setIndex(i=>Math.max(0,i-1));setDirty(true)}}>Delete slide</button></div>
-   <nav aria-label="Presentation thumbnails" className={styles.studioThumbRail}>{edit.slides.map((item,i)=><button type="button" key={i} disabled={busy} aria-pressed={i===index} aria-label={'Slide '+(i+1)+': '+item.title} style={{flex:'0 0 110px',border:i===index?'2px solid #087e72':'1px solid #92b5a8',padding:3,background:'#fff'}} onClick={()=>setIndex(i)}><SlideCanvas slide={item} number={i+1} total={edit.slides.length} mini ownerPhotoPreview/></button>)}</nav>
+   <nav aria-label="Presentation thumbnails" className={styles.studioThumbRail}>{edit.slides.map((item,i)=><button type="button" key={i} disabled={busy} aria-pressed={i===index} aria-label={'Slide '+(i+1)+': '+item.title} style={{flex:'0 0 110px',border:i===index?'2px solid #087e72':'1px solid #92b5a8',padding:3,background:'#fff'}} draggable={!busy} onDragStart={e=>{dragSlide.current=i;e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',String(i))}} onDragEnd={()=>{dragSlide.current=null}} onDragOver={e=>{if(dragSlide.current!==null&&!busy){e.preventDefault();e.dataTransfer.dropEffect='move'}}} onDrop={e=>{e.preventDefault();const from=dragSlide.current;dragSlide.current=null;if(from===null||from===i||busy||from<0||from>=edit.slides.length)return;const reordered=[...edit.slides];const [moved]=reordered.splice(from,1);reordered.splice(i,0,moved);changeDeck(reordered,i)}} onClick={()=>setIndex(i)}><SlideCanvas slide={item} number={i+1} total={edit.slides.length} mini ownerPhotoPreview/></button>)}</nav>
    <div className={styles.studioTools}><button type="button" aria-pressed={tool==="Content"} onClick={()=>setTool(tool==="Content"?null:"Content")}>Text / objects / quiz</button>{onClose&&<button type="button" onClick={()=>setStudioTab("Resources")}>Photo / PDF</button>}<button type="button" aria-pressed={tool==="Theme"} onClick={()=>setTool(tool==="Theme"?null:"Theme")}>Theme</button></div>
    <details className={styles.studioLibraryMenu}><summary>Slide actions</summary><div className={styles.slideToolbar}><button type="button" disabled={busy||index===0} onClick={()=>move(-1)}>Move left</button><button type="button" disabled={busy||index===edit.slides.length-1} onClick={()=>move(1)}>Move right</button><button type="button" disabled={busy||edit.slides.length>=30} onClick={()=>changeDeck([...edit.slides.slice(0,index+1),{...slide},...edit.slides.slice(index+1)],index+1)}>Duplicate slide</button><button type="button" disabled={busy||buildTextRevealSlides(slide,31-edit.slides.length).length===0} onClick={()=>{const steps=buildTextRevealSlides(slide,31-edit.slides.length);if(steps.length&&window.confirm('Replace this slide with '+steps.length+' progressive teaching steps?'))changeDeck([...edit.slides.slice(0,index),...steps,...edit.slides.slice(index+1)],index)}}>Build reveal steps</button></div></details>
    <div className={styles.studioSection} hidden={!!onClose&&tool!=="Content"}>
