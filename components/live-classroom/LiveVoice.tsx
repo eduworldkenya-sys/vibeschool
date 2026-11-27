@@ -69,6 +69,8 @@ function DailyLiveVoice({roomId,classId,teacher,enabled,status,learners,onAcknow
   const connectedUser=useRef<string|null>(null)
   const renewTimer=useRef<ReturnType<typeof setTimeout>|null>(null)
   const connecting=useRef(false)
+  const recoveryWanted=useRef(false)
+  const reconnectAction=useRef<(()=>Promise<void>)|null>(null)
   const micPreference=useRef(false) // explicit teacher decision, persists only across authorized renewals
   const alive=useRef(false)
   const currentStatus=useRef(status)
@@ -92,7 +94,7 @@ function DailyLiveVoice({roomId,classId,teacher,enabled,status,learners,onAcknow
     if(renewTimer.current){clearTimeout(renewTimer.current);renewTimer.current=null}
     const existing=meeting.current;meeting.current=null;speaker.current=null
     clearAudio();setPhase('idle');setMicOn(false);setPermission(false);setActiveSpeaker(null)
-    if (existing){try{if(!existing.isDestroyed())await existing.destroy()}catch{/* already closed */}}
+    if (existing){try{if(!existing.isDestroyed()){existing.setLocalAudio(false);await existing.destroy()}}catch{/* already closed */}}
   },[clearAudio])
   // The voice connection is intentionally independent of classroom history,
   // whiteboard and slide state. Unmount or expired authorization stops tracks.
@@ -140,7 +142,8 @@ function DailyLiveVoice({roomId,classId,teacher,enabled,status,learners,onAcknow
     }
   },[teacher])
   const connect=async()=>{
-    if(!enabled||!alive.current||meeting.current||connecting.current||currentStatus.current!=='active')return
+    if(!enabled||!alive.current||meeting.current||connecting.current||currentStatus.current!=='active'||!navigator.onLine)return
+    recoveryWanted.current=false
     connecting.current=true
     const generation=++connectGeneration.current
     setPhase('connecting');setError('')
@@ -249,6 +252,26 @@ function DailyLiveVoice({roomId,classId,teacher,enabled,status,learners,onAcknow
       }
     } finally {connecting.current=false}
   }
+  reconnectAction.current=connect
+  useEffect(()=>{
+    if(!enabled||status!=='active')return
+    let timer:ReturnType<typeof setTimeout>|undefined
+    let disposed=false
+    const resume=()=>{
+      if(disposed||!recoveryWanted.current||!navigator.onLine||currentStatus.current!=='active')return
+      if(connecting.current){timer=setTimeout(resume,500);return}
+      void reconnectAction.current?.()
+    }
+    const offline=()=>{
+      clearTimeout(timer)
+      if(!meeting.current&&!connecting.current&&!recoveryWanted.current)return
+      recoveryWanted.current=true
+      void stop().then(()=>{if(!disposed&&recoveryWanted.current){setPhase('failed');setError('Network lost. Audio muted. Rejoining when connected.');if(navigator.onLine)resume()}})
+    }
+    const online=()=>{clearTimeout(timer);resume()}
+    window.addEventListener('offline',offline);window.addEventListener('online',online)
+    return()=>{disposed=true;recoveryWanted.current=false;clearTimeout(timer);window.removeEventListener('offline',offline);window.removeEventListener('online',online)}
+  },[roomId,enabled,status,stop])
   const toggleMic=async()=>{
     const call=meeting.current
     if(!call || (!teacher&&!permission))return
