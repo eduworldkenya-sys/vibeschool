@@ -817,8 +817,34 @@ await import('./test-live-stage-ink.mjs')
    await assert.rejects(f.rpc(f.teacher,'slide_update',sid,room.version,payload),/live_slide_conflict/)
    const unchanged=await f.rpc(f.teacher,'slide_update',sid,room.version,{promptId:pid,expectedBody:after,body:after})
    assert.equal(unchanged.version,room.version)
+
+   // Exercise mixed objects and the exact model range contract.
+   for(const [kind,range] of Object.entries(DEMO_RANGES)){
+    for(const demo of [defaultDemo(kind),{kind,a:range.a[0]-1,b:range.b[0]},{kind,a:range.a[0],b:range.b[1]+1}]){
+     const result=await f.db.query('select vibe_live.valid_slide_demo_candidate($1::jsonb) as ok',[JSON.stringify(demo)])
+     assert.equal(result.rows[0].ok,Boolean(encodeDemo(demo)),kind)
+    }
+   }
+   const makeMixed=(angle)=>visualSlideBody('VBOARD1:'+JSON.stringify({background:'plain',page:1,total:1,objects:[
+    {id:'writing',kind:'text',x:10,y:10,w:280,h:20,angle:0,color:'#182b3a',stroke:3,text:'Measure the angle.'},
+    {id:'ruler',kind:'diagram',x:5,y:40,w:150,h:85,angle:0,color:'#182b3a',stroke:3,demo:{kind:'ruler',a:2,b:7}},
+    {id:'protractor',kind:'diagram',x:160,y:40,w:150,h:85,angle:0,color:'#182b3a',stroke:3,demo:{kind:'protractor',a:angle,b:0}}
+   ]}))
+   const mixed=encodeSlide({title:'Measuring angles',body:makeMixed(60)},1,2)
+   const changed=encodeSlide({title:'Measuring angles',body:makeMixed(90)},1,2)
+   const invalid=encodeSlide({title:'Measuring angles',body:makeMixed(181)},1,2)
+   await assert.rejects(f.rpc(f.teacher,'slide_update',sid,room.version,{promptId:pid,expectedBody:after,body:invalid}),/live_slide_format_not_supported/)
+   room=await f.rpc(f.teacher,'slide_update',sid,room.version,{promptId:pid,expectedBody:after,body:mixed})
+   room=await f.rpc(f.teacher,'slide_update',sid,room.version,{promptId:pid,expectedBody:mixed,body:changed})
+   assert.equal(room.prompt.id,pid)
+   assert.equal(room.history.length,length)
+   for(const learner of [f.a,f.b])assert.equal((await f.rpc(learner,'get',sid)).prompt.body,changed)
+   const corrupted=JSON.parse(makeMixed(90).slice('VSLIDEVIS1:VBOARD1:'.length))
+   corrupted.objects[2].privateNotes='must not be accepted'
+   const hidden=encodeSlide({title:'Measuring angles',body:visualSlideBody('VBOARD1:'+JSON.stringify(corrupted))},1,2)
+   await assert.rejects(f.rpc(f.teacher,'slide_update',sid,room.version,{promptId:pid,expectedBody:changed,body:hidden}),/live_slide_format_not_supported/)
    room=await f.rpc(f.teacher,'pause',sid,room.version)
-   await assert.rejects(f.rpc(f.teacher,'slide_update',sid,room.version,{promptId:pid,expectedBody:after,body:before}),/live_paused/)
+   await assert.rejects(f.rpc(f.teacher,'slide_update',sid,room.version,{promptId:pid,expectedBody:changed,body:before}),/live_paused/)
    console.log('PASS: in-place current slide update preserves identity, two learners see update, stale and unauthorized changes fail, paused room denied; learning='+learning)
   }finally{await f.db.close()}
  }
