@@ -776,3 +776,49 @@ await import('./test-live-workbook-contract.mjs')
 await import('./test-live-classroom-phase.mjs')
 
 await import('./test-live-stage-ink.mjs')
+
+
+ // Isolated, non-production candidate for in-place current-slide editing.
+ // Test both fixture generations so the action can coexist with stage ink.
+ for(const learning of [false,true]){
+  const f=await createLiveFixture({learning})
+  try{
+   await f.db.exec(readFileSync(new URL('./live-slide-update-candidate.sql',import.meta.url),'utf8'))
+   let room=await f.rpc(f.teacher,'start',null,null,{title:'Current slide editing'})
+   const sid=room.id
+   await f.rpc(f.a,'join',sid)
+   await f.rpc(f.b,'join',sid)
+   room=await f.rpc(f.teacher,'get',sid)
+   const before=encodeSlide({title:'Measuring angles',body:'Measure angle ABC.'},1,2)
+   const after=encodeSlide({title:'Measuring angles',body:'Angle ABC is 60 degrees.'},1,2)
+   room=await f.rpc(f.teacher,'publish',sid,room.version,{kind:'teach',body:before})
+   const pid=room.prompt.id, version=room.version, length=room.history.length
+   const payload={promptId:pid,expectedBody:before,body:after}
+   await assert.rejects(f.rpc(f.a,'slide_update',sid,version,{...payload,host:true}),/live_teacher_required|live_not_authorized/)
+   await assert.rejects(f.rpc(f.outsider,'slide_update',sid,version,payload),/live_not_authorized|live_teacher_required/)
+   await assert.rejects(f.rpc(f.teacher,'slide_update',sid,version-1,payload),/live_stale_version/)
+   await assert.rejects(f.rpc(f.teacher,'slide_update',sid,version,{...payload,promptId:f.id(999)}),/live_slide_conflict/)
+   await assert.rejects(f.rpc(f.teacher,'slide_update',sid,version,{...payload,expectedBody:'stale'}),/live_slide_conflict/)
+   await assert.rejects(f.rpc(f.teacher,'slide_update',sid,version,{...payload,body:'VSLIDE1:{bad'}),/live_invalid_slide/)
+   await assert.rejects(f.rpc(f.teacher,'slide_update',sid,version,{...payload,body:encodeSlide({title:'Different page',body:'test'},2,2)}),/live_invalid_slide/)
+   const notes=JSON.parse(after.slice(8));notes.notes='private'
+   await assert.rejects(f.rpc(f.teacher,'slide_update',sid,version,{...payload,body:'VSLIDE1:'+JSON.stringify(notes)}),/live_invalid_slide/)
+   room=await f.rpc(f.teacher,'slide_update',sid,version,payload)
+   assert.equal(room.prompt.id,pid)
+   assert.equal(room.prompt.body,after)
+   assert.equal(room.version,version+1)
+   assert.equal(room.history.length,length)
+   for(const learner of [f.a,f.b]){
+    const view=await f.rpc(learner,'get',sid)
+    assert.equal(view.prompt.id,pid)
+    assert.equal(view.prompt.body,after)
+    assert.equal(view.history.length,length)
+   }
+   await assert.rejects(f.rpc(f.teacher,'slide_update',sid,room.version,payload),/live_slide_conflict/)
+   const unchanged=await f.rpc(f.teacher,'slide_update',sid,room.version,{promptId:pid,expectedBody:after,body:after})
+   assert.equal(unchanged.version,room.version)
+   room=await f.rpc(f.teacher,'pause',sid,room.version)
+   await assert.rejects(f.rpc(f.teacher,'slide_update',sid,room.version,{promptId:pid,expectedBody:after,body:before}),/live_paused/)
+   console.log('PASS: in-place current slide update preserves identity, two learners see update, stale and unauthorized changes fail, paused room denied; learning='+learning)
+  }finally{await f.db.close()}
+ }
