@@ -125,6 +125,8 @@ export function MeshLiveVoice({ roomId, classId, teacher, enabled, status, learn
     let suppressedSpeaker: string | null = null
     let moderationVersion = 0
     let timer: ReturnType<typeof setTimeout> | undefined
+    let reconnectTimer: ReturnType<typeof setTimeout> | undefined
+    let networkInterrupted = !navigator.onLine
     let lease: ReturnType<typeof setTimeout> | undefined
     let learnerSender: RTCRtpSender | undefined
 
@@ -423,6 +425,24 @@ export function MeshLiveVoice({ roomId, classId, teacher, enabled, status, learn
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_OUT' || (userId && session?.user.id !== userId)) stop('Signed out', false, false)
     })
+    const onOffline=()=>{
+      networkInterrupted=true
+      clearTimeout(reconnectTimer)
+      // Stop capture immediately. Rejoining must create a fresh client and
+      // fresh speaking grant; never resume the previously captured track.
+      stop('Network lost. Audio muted. Reconnecting when online.',true)
+    }
+    const onOnline=()=>{
+      if(!networkInterrupted)return
+      clearTimeout(reconnectTimer)
+      setPhase('Reconnecting…')
+      // A failed offline leave may retain the old server lease for 16s.
+      // Wait beyond that window instead of competing with the prior client.
+      reconnectTimer=setTimeout(()=>{if(navigator.onLine)setRetry(value=>value+1)},17000)
+    }
+    window.addEventListener('offline',onOffline)
+    window.addEventListener('online',onOnline)
+    if(networkInterrupted)onOffline()
     void supabase.auth.getSession().then(({ data }) => {
       if (lifetime.signal.aborted) return
       if (!data.session) return stop('Sign in to join voice', false, false)
@@ -438,6 +458,9 @@ export function MeshLiveVoice({ roomId, classId, teacher, enabled, status, learn
       micClick.current = null
       subscription.unsubscribe()
       window.removeEventListener('pagehide', pageHide)
+      window.removeEventListener('offline',onOffline)
+      window.removeEventListener('online',onOnline)
+      clearTimeout(reconnectTimer)
       stop('Audio off')
     }
   }, [roomId, classId, teacher, enabled, status, retry])
