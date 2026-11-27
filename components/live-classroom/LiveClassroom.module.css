@@ -514,3 +514,24 @@
 .premium .inkRail select{width:100%;min-width:0;font:inherit;background:white;color:#23352e;border:1px solid #dce4df;border-radius:4px;padding:5px}
 .premium .inkRail small{font-size:10px;overflow-wrap:anywhere}
 @media(max-width:600px){.premium .inkWorkspace{flex-direction:column}.premium .inkRail{flex:0 0 auto;flex-direction:row;flex-wrap:wrap;max-height:24dvh;width:100%;align-items:center}.premium .inkRail label{flex-direction:row}.premium .inkRail select{width:auto}}
+
+/* Teacher-only session roster heatmap. Color is redundant to each text label. */
+.manager{display:grid;gap:12px;padding:12px 0}
+.managerHead{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.managerHead h3{font-size:16px;margin:0}
+.managerHead>span,.managerMeta,.manager>small{font-size:11px;opacity:.85}
+.managerStats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.managerStats>div{display:grid;gap:5px;border:1px solid currentColor;border-radius:8px;padding:8px}
+.managerStats strong{font-size:22px;line-height:1}
+.managerMeta,.managerFilters{display:flex;gap:8px;flex-wrap:wrap}
+.managerFilters button,.managerDetail button{display:inline-flex;align-items:center;gap:6px;min-height:40px}
+.managerGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:8px}
+.managerGrid .managerTile{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;min-height:92px;padding:8px;border-radius:8px;border:1px solid transparent;color:inherit;min-width:0}
+.managerTile strong{overflow-wrap:anywhere;text-align:center;font-size:12px}
+.managerTile small{font-size:11px}
+.managerGrid .managerTile[data-state=joined]{background:#64748b30;border-color:#94a3b8}
+.managerGrid .managerTile[data-state=answered]{background:#22c55e26;border-color:#22c55e}
+.managerGrid .managerTile[data-state=help]{background:#eab30830;border-color:#eab308}
+.managerGrid .managerTile[aria-pressed=true]{outline:2px solid currentColor;outline-offset:2px}
+.managerDetail{border:1px solid currentColor;border-radius:8px;padding:10px;display:grid;gap:8px;overflow-wrap:anywhere}
+.managerDetail p{white-space:pre-wrap;margin:0}
