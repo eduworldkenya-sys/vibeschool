@@ -803,6 +803,9 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
      room?.presentedPromptId,room?.presentedScrollRatio,viewedPrompt?.id])
   const immersive=!!room&&room.status!=='ended'
   const draftLoading=teacher&&!!room&&draftBinding?.roomId!==room.id&&!draftWarning
+  // Report the saved state of the *current* draft, not a previous snapshot.
+  const currentDraftFingerprint=stableDraftFingerprint({board,boardPages:boardPages.map((p,i)=>i===boardPage?board:p),boardPage,slides,slideIndex,mode,body,key:'',clock,composers:Object.fromEntries(Object.entries(composerDrafts.current).map(([m,d])=>[m,{...d,key:''}]))})
+  const currentWorkspaceStatus=workspaceStatus==='Draft saved'&&currentDraftFingerprint!==workspaceSaved.current?'Draft changes pending…':workspaceStatus
   useEffect(()=>{
     setSelfPaced(false);setReviewId(null);setDraftBinding(null);draftKey.current=null;setWorkspaceRevision(null);setWorkspaceStatus('');workspaceSaved.current='';workspaceSaving.current=null;setConflictDraft(null);composerDrafts.current={};pendingPublish.current=null;setDraftWarning(false);setMode('teach');setClock('10:30');boardInitialized.current=false;setBoardPages(['']);setBoardPage(0);setPanel(null);setFocusMode(false);setEditingBoard(false);setShowSticker(true);setEndConfirm(false);setBoard('');setUndoBoards([]);setRedoBoards([]);boardUndoByPage.current={};setFocusDock(false);setSlides([{title:'',body:''}]);setSlideIndex(0);setDeletedSlide(null);setBody('');setKey('')
   },[room?.id])
@@ -1101,7 +1104,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
     {error&&<div role="alert" className={styles.liveAlert}>{error} <button onClick={()=>void refresh()}>Retry</button></div>}
     {draftWarning&&teacher&&<div role="status" className={styles.liveAlert}>Local recovery unavailable. Shared pages are saved on the server.</div>}
     {teacher&&linkedPlanError&&<div role="alert" className={styles.liveAlert}>{linkedPlanError}</div>}
-    {teacher&&workspaceStatus&&<span className={styles.srOnly} role="status">{workspaceStatus}</span>}
+    {teacher&&currentWorkspaceStatus&&<span className={styles.srOnly} role="status">{currentWorkspaceStatus}</span>}
     {teacher&&workspaceStatus&&(workspaceRevision===null||!!conflictDraft)&&<div className={styles.workspaceStatus} role="alert">{workspaceStatus}{workspaceRevision===null&&draftBinding&&<button type="button" onClick={()=>{setDraftBinding(null);setWorkspaceRetry(n=>n+1)}}>Retry draft sync</button>}{conflictDraft&&<><button type="button" onClick={()=>{restoreDraft(conflictDraft);setConflictDraft(null)}}>Restore local copy</button><button type="button" onClick={()=>setConflictDraft(null)}>Keep server copy</button></>}</div>}
     {(history.length>1||reviewId!==null)&&<LessonNavigation items={history} reviewId={reviewId} onReview={id=>{
       setEditingBoard(false);setPanel(null);setReviewId(id)
@@ -1151,7 +1154,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
             <PrivateSlideFields key={room.id+':private:'+slideIndex} slide={slide} disabled={busy} onChange={notes=>editSlide({notes})}/>
             <div className={styles.slideToolbar}><button type="button" disabled={busy||slideIndex===0} onClick={()=>moveSlide(-1)}>Move left</button><button type="button" disabled={busy||slideIndex===slides.length-1} onClick={()=>moveSlide(1)}>Move right</button><button type="button" disabled={busy||slides.length>=30} onClick={()=>addSlide(true)}>Duplicate</button><button type="button" disabled={busy||slides.length<=1} onClick={deleteSlide}>Delete</button>{deletedSlide&&<button type="button" disabled={busy||slides.length>=30} onClick={undoSlideDelete}>Undo delete</button>}</div>
             {!slideText&&<small role="status">Add content or shorten text to fit the shared slide limit.</small>}
-            <small>{workspaceStatus||'Draft'} · published slides remain in lesson history.</small>
+            <small>{currentWorkspaceStatus||'Draft'} · published slides remain in lesson history.</small>
           </div>
         </div>:editingBoard&&teacher?<>
           <div className={styles.boardTools}><button aria-label="Previous board page" disabled={busy||boardPage===0} onClick={()=>switchBoardPage(boardPage-1)}>‹</button><span aria-live="polite">Board {boardPage+1} / {boardPages.length}</span><button aria-label="Next board page" disabled={busy||boardPage===boardPages.length-1} onClick={()=>switchBoardPage(boardPage+1)}>›</button><button disabled={busy||boardPages.length>=30} onClick={()=>switchBoardPage(boardPages.length,true)}>+ Page</button></div>
