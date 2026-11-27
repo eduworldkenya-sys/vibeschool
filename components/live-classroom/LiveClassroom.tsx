@@ -13,6 +13,7 @@ import {LiveSelfPacedReview} from './LiveSelfPacedReview'
 import {copyPhotoDeck,shareSlidePhotos} from './LivePhotoDeckReuse'
 import {PrivateSlideFields} from './LivePreparedAssessment'
 import {SlideBodyEditor} from './LiveSlideBodyEditor'
+import {LiveCurrentSlideEditor,canEditCurrentSlide} from './LiveCurrentSlideEditor'
 import { TeachingLibrary } from './LiveTeachingLibrary'
 import {validateStudioResources} from './LiveStudioResourceValidation'
 import {studioResource,studioFile} from './LiveSlideProtocol'
@@ -230,7 +231,8 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
   const [board,setBoard]=useState('')
   const [boardPages,setBoardPages]=useState<string[]>([''])
   const [boardPage,setBoardPage]=useState(0)
-  const [panel,setPanel]=useState<'compose'|'learners'|'more'|'slides'|'library'|'resources'|'plan'|'kit'|'chat'|'interactive'|'invite'|null>(null)
+  const [panel,setPanel]=useState<'compose'|'learners'|'more'|'slides'|'library'|'resources'|'plan'|'kit'|'chat'|'interactive'|'invite'|'live-slide'|null>(null)
+  const liveEditTarget=useRef<{roomId:string;promptId:string}|null>(null)
   const [slides,setSlides]=useState<LiveSlide[]>([{title:'',body:''}])
   const [slideIndex,setSlideIndex]=useState(0)
   const [deletedSlide,setDeletedSlide]=useState<{slide:LiveSlide;index:number}|null>(null)
@@ -616,7 +618,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
   useEffect(()=>{setShareLink('')},[room?.id])
   useEffect(()=>{if(room?.id)setPastOpen(false)},[room?.id])
   useEffect(()=>{setAnswer('');setAnswerFor(room?.prompt?.id??'')},[room?.prompt?.id])
-  async function act(action:string,id:string|null=null,payload:Record<string,unknown>={}) {
+  async function act(action:string,id:string|null=null,payload:Record<string,unknown>={}):Promise<Room|undefined> {
     if(mutating.current) return
     const stamp=++generation.current // discard any earlier poll; never discard the user's click
     mutating.current=true;lock.current=true;setBusy(true);setError('')
@@ -690,6 +692,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
           }).catch(()=>{if(mounted.current)setError('Class ended; audio closure needs verification.')})
         }
       }
+      return next
     } catch(e) {
       if(mounted.current&&generation.current===stamp){
         if(e instanceof Error&&e.message==='LIVE_ACCESS_REVOKED'){revoke()}
@@ -698,6 +701,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
     } finally {
       if(generation.current===stamp){mutating.current=false;lock.current=false;if(mounted.current){setBusy(false);setLoading(false)}}
     }
+    return undefined
   }
   async function requestAdmission(sessionId:string){
     if(busy||!online)return
@@ -1043,6 +1047,9 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
   function openSlides(){setDockHidden(true);setToolPickerOpen(false);setReviewId(null);setEditingBoard(false);setEndConfirm(false);setPanel('slides')}
   function openCurrentSlide(){
     if(!liveSlide||draftLoading||busy||conflictDraft)return
+    if(process.env.NEXT_PUBLIC_VIBE_LIVE_SLIDE_UPDATE_ENABLED==='true'&&teacher&&room?.status==='active'&&prompt&&canEditCurrentSlide(prompt.body)){
+      liveEditTarget.current={roomId:room.id,promptId:prompt.id};openSlides();setPanel('live-slide');return
+    }
     const index=liveSlide.number-1
     const candidate=slides[index]
     const canonical=candidate&&slides.length===liveSlide.total?decodeSlide(encodeSlide(candidate,liveSlide.number,slides.length)):null
@@ -1065,6 +1072,19 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
       setSlides(restored);setDeletedSlide(null)
     }
     setSlideIndex(index);openSlides()
+  }
+  async function syncCurrentSlide(expected:string,body:string):Promise<string|undefined>{
+    const current=active.current,target=liveEditTarget.current
+    if(!target||!current||current.id!==target.roomId||current.prompt?.id!==target.promptId||current.prompt.body!==expected||current.status!=='active'||!current.teacher||!online||mutating.current)return undefined
+    const next=await act('slide_update',current.id,{promptId:target.promptId,expectedBody:expected,body})
+    if(!next||next.id!==target.roomId||next.prompt?.id!==target.promptId||next.prompt.body!==body)return undefined
+    const published=decodeSlide(body)
+    if(published)setSlides(items=>{
+      const index=published.number-1,item=items[index]
+      if(!item||items.length!==published.total||encodeSlide(item,index+1,items.length)!==expected)return items
+      return items.map((entry,i)=>i===index?{...published,notes:entry.notes}:entry)
+    })
+    return body
   }
   function useMaterial(material:{title:string;slides:LiveSlide[]}){
     if(room&&room.status!=='ended'){if(!window.confirm('Replace the current draft deck? Shared lesson history remains.'))return;setSlides(material.slides);setSlideIndex(0);setDeletedSlide(null);openSlides()}
@@ -1114,7 +1134,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
           if(!teacher&&['ArrowUp','ArrowDown','PageUp','PageDown','Home','End',' '].includes(event.key))
             setFollowingTeacher(false)
         }}>
-        {teacher&&panel==='resources'?<div className={styles.resourceWorkspace}><LiveResourcePicker classId={room.mode==='school'?classId:null} lessonPlanId={room.mode==='school'?linkedPlan?.id??null:null} schemeLessonId={room.mode==='school'?linkedPlan?.schemeId??null:null} canPresent={!busy&&online&&room.status==='active'} onPresent={body=>void act('publish',null,{kind:'teach',body,answerKey:null})} onClose={()=>setPanel(null)}/><LiveClassFiles roomId={room.id} teacher status={room.status} onPresentFile={reference=>{if(!busy&&online&&room.status==='active')void act('publish',null,{kind:'teach',body:reference,answerKey:null})}}/></div>:teacher&&panel==='library'?<div className={styles.slideWorkspace}><div className={styles.slideToolbar}><strong>My Presentations</strong><button onClick={openSlides}>Back to slides</button></div><TeachingLibrary command={call} currentDeck={slides} onUse={useMaterial}/></div>:teacher&&panel==='slides'&&slide?<div className={styles.slideWorkspace}>
+        {teacher&&panel==='resources'?<div className={styles.resourceWorkspace}><LiveResourcePicker classId={room.mode==='school'?classId:null} lessonPlanId={room.mode==='school'?linkedPlan?.id??null:null} schemeLessonId={room.mode==='school'?linkedPlan?.schemeId??null:null} canPresent={!busy&&online&&room.status==='active'} onPresent={body=>void act('publish',null,{kind:'teach',body,answerKey:null})} onClose={()=>setPanel(null)}/><LiveClassFiles roomId={room.id} teacher status={room.status} onPresentFile={reference=>{if(!busy&&online&&room.status==='active')void act('publish',null,{kind:'teach',body:reference,answerKey:null})}}/></div>:teacher&&panel==='library'?<div className={styles.slideWorkspace}><div className={styles.slideToolbar}><strong>My Presentations</strong><button onClick={openSlides}>Back to slides</button></div><TeachingLibrary command={call} currentDeck={slides} onUse={useMaterial}/></div>:teacher&&panel==='live-slide'?<>{liveEditTarget.current?.roomId===room.id&&liveEditTarget.current?.promptId===prompt?.id&&prompt&&canEditCurrentSlide(prompt.body)?<LiveCurrentSlideEditor key={room.id+':'+prompt.id} body={prompt.body} roomId={room.id} active={online&&room.status==='active'} busy={busy} onSync={syncCurrentSlide} onClose={()=>setPanel(null)}/>:<section><p>The displayed slide changed. Reopen the current slide to edit.</p><button type="button" onClick={()=>setPanel(null)}>Close</button></section>}</>:teacher&&panel==='slides'&&slide?<div className={styles.slideWorkspace}>
           <div className={styles.slideToolbar}><strong>Slide editor</strong><span>{slideIndex+1} / {slides.length}</span><button type="button" onClick={()=>setPanel('library')}>My presentations</button><button type="button" onClick={()=>setPanel(null)}>Close</button></div>
           <SlideCanvas slide={slide} number={slideIndex+1} total={slides.length} roomId={room.id} ownerPhotoPreview/>
           <div className={styles.slideStrip} aria-label="Slide thumbnails">{slides.map((item,i)=><button type="button" key={i} aria-label={'Slide '+(i+1)+(item.title.trim()?': '+item.title:'')} aria-pressed={i===slideIndex} disabled={busy} onClick={()=>setSlideIndex(i)}><SlideCanvas slide={item} number={i+1} total={slides.length} mini roomId={room.id} ownerPhotoPreview/></button>)}<button type="button" aria-label="Add slide" disabled={slides.length>=30||busy} onClick={()=>addSlide()}>+ Add</button></div>
