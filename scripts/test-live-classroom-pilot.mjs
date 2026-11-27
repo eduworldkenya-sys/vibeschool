@@ -776,3 +776,24 @@ await import('./test-live-workbook-contract.mjs')
 await import('./test-live-classroom-phase.mjs')
 
 await import('./test-live-stage-ink.mjs')
+
+// Mixed writing and independent adjustable tools share one visual slide.
+{
+ const {composeVisualSlide,decodeBoard:readMixedBoard}=await import('../components/live-classroom/LiveBoardProtocol.ts')
+ let nextId=0
+ const id=()=> 'mixed-'+(++nextId)
+ const first=composeVisualSlide('Measure the angle.',defaultDemo('ruler'),id)
+ assert.ok(first)
+ const second=composeVisualSlide(first,defaultDemo('protractor'),id)
+ assert.ok(second)
+ const doc=readMixedBoard(visualSlidePayload(second))
+ assert.equal(doc.objects.length,3)
+ assert.equal(doc.objects[0].text,'Measure the angle.')
+ assert.equal(doc.objects[1].demo.kind,'ruler')
+ assert.equal(doc.objects[2].demo.kind,'protractor')
+ const encoded=encodeSlide({title:'Geometry',body:second},1,1)
+ assert.equal(decodeSlide(encoded).body,second)
+ assert.equal(composeVisualSlide('x'.repeat(181),defaultDemo('ruler'),id),null)
+ assert.equal(composeVisualSlide('VSLIDEUNKNOWN1:bad',defaultDemo('ruler'),id),null)
+ assert.equal(encodeBoard({...doc,objects:[{...doc.objects[1],demo:{kind:'ruler',a:-999,b:7}}]}),'')
+}
