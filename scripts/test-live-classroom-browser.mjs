@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import {createRequire} from 'node:module'
 import {createServer} from 'node:http'
+import {readFileSync} from 'node:fs'
 import {createLiveFixture} from './live-classroom-test-fixture.mjs'
 
 // Same committed SQL and React classroom as the pilot. Test-only identity
@@ -10,11 +11,13 @@ const testModules='/tmp/live-test/node_modules'
 const {build}=require(testModules+'/esbuild')
 const {chromium}=require(testModules+'/playwright')
 const fixture=await createLiveFixture({learning:true})
+const liveUpdateEnabled=process.env.TEST_LIVE_SLIDE_UPDATE==='1'
+if(liveUpdateEnabled)await fixture.db.exec(readFileSync(new URL('./live-slide-update-candidate.sql',import.meta.url),'utf8'))
 const identity={teacher:fixture.teacher,learner:fixture.a,'learner-b':fixture.b,outsider:fixture.outsider}
 const result=await build({
   stdin:{contents:"import React from 'react'; import {createRoot} from 'react-dom/client'; import LiveClassroom from './components/live-classroom/LiveClassroom'; const role=location.pathname.slice(1); createRoot(document.getElementById('root')).render(<LiveClassroom classId={role==='teacher'?'"+fixture.cls+"':null} teacher={role==='teacher'} back='/'/>);",loader:'tsx',resolveDir:process.cwd()},
   bundle:true,write:false,outdir:'out',entryNames:'app',jsx:'automatic',platform:'browser',
-  nodePaths:[testModules],define:{'process.env.NODE_ENV':'"production"','process.env.NEXT_PUBLIC_VIBE_LIVE_DAILY_ENABLED':'"true"','process.env.NEXT_PUBLIC_VIBE_LIVE_VOICE_ENABLED':'"false"'},
+  nodePaths:[testModules],define:{'process.env.NODE_ENV':'"production"','process.env.NEXT_PUBLIC_VIBE_LIVE_DAILY_ENABLED':'"true"','process.env.NEXT_PUBLIC_VIBE_LIVE_VOICE_ENABLED':'"false"','process.env.NEXT_PUBLIC_VIBE_LIVE_SLIDE_UPDATE_ENABLED':JSON.stringify(liveUpdateEnabled?'true':'false')},
   plugins:[{name:'loopback-fixture',setup(b){
     b.onResolve({filter:/^(@\/lib\/supabase|next\/link)$/},args=>({path:args.path,namespace:'fixture'}))
     b.onLoad({filter:/.*/,namespace:'fixture'},args=>({loader:'jsx',resolveDir:process.cwd(),contents:args.path==='next/link'?
@@ -176,6 +179,26 @@ try{
  await l.bringToFront()
  await l.waitForFunction(()=>document.querySelector('[aria-label="Shared presentation annotations"]')?.querySelectorAll('polyline').length===2)
  await t.bringToFront()
+ if(liveUpdateEnabled){
+  const sid=new URL(t.url()).searchParams.get('resumeRoom')
+  assert.ok(sid)
+  const prior=await fixture.rpc(fixture.teacher,'get',sid)
+  await button(t,'Edit current slide').click()
+  await t.getByLabel('Edit presented slide').waitFor()
+  assert.equal(await t.getByLabel('Title',{exact:true}).inputValue(),'Equivalent fractions')
+  await t.getByLabel('Content',{exact:true}).fill('Two quarters equal one half. Revised.')
+  await t.getByText('Shared with class',{exact:true}).waitFor()
+  await l.bringToFront()
+  await see(l,'Two quarters equal one half. Revised.')
+  const after=await fixture.rpc(fixture.teacher,'get',sid)
+  assert.equal(after.prompt.id,prior.prompt.id)
+  assert.equal(after.history.length,prior.history.length)
+  await t.bringToFront()
+  await button(t,'Done').click()
+  await teacherTool(t,'Slides')
+  assert.equal(await t.getByLabel('Content',{exact:true}).inputValue(),'Two quarters equal one half. Revised.')
+  assert.equal(await t.getByRole('button',{name:/^Slide \d+:/}).count(),1)
+ }else{
  await button(t,'Edit current slide').click()
  assert.equal(await t.getByLabel('Title',{exact:true}).inputValue(),'Equivalent fractions')
  assert.equal(await t.getByRole('button',{name:/^Slide \d+:/}).count(),1,'Editing must not add a slide')
@@ -185,6 +208,7 @@ try{
  await see(l,'Two quarters equal one half. Revised.')
  await button(t,'Edit current slide').click()
  assert.equal(await t.getByLabel('Content',{exact:true}).inputValue(),'Two quarters equal one half. Revised.')
+ }
  await t.getByRole('button',{name:'Add slide'}).click()
  await t.getByLabel('Title',{exact:true}).fill('Three quarters')
  await t.getByLabel('Content',{exact:true}).fill('Three of four equal parts.')
