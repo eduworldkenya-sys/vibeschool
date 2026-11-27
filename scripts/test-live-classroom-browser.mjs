@@ -309,7 +309,7 @@ try{
  await t.getByLabel('Question or instruction').waitFor({state:'hidden'})
  const serverAfterQuiz=await fixture.rpc(fixture.a,'get',sid,null,{},fixture.cls)
  assert.equal(serverAfterQuiz.prompt?.body,'How many quarters make one half?','Teacher quiz must persist after concurrent chat changes the room version')
- assert.equal(serverAfterQuiz.history?.length,7,'Successful quiz must extend the ordered lesson history')
+ assert.equal(serverAfterQuiz.history?.length,8,'Successful quiz must extend the ordered lesson history, including the revised slide snapshot')
  await l.bringToFront()
  await see(l,'How many quarters make one half?')
  assert.equal(await l.getByText('Two quarters',{exact:true}).count(),0)
