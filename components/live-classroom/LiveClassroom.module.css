@@ -495,3 +495,15 @@
 .premium .sessionRow{justify-content:space-evenly;flex:1;margin:0}
 .premium .sessionRow button,.premium .sessionRow button:first-child{flex:0 0 auto;min-height:42px;border-color:transparent;font-size:13px}
 @media(max-width:600px){.premiumBrand{display:none}.premium .premiumMenu{padding:3px 4px;gap:0}.premium .premiumMenuGroup>button{font-size:12px;padding:5px 4px;gap:2px}.premium .sessionRow button,.premium .sessionRow button:first-child{font-size:11px;min-width:0;padding:4px 6px}.premiumMenuGroup:nth-child(n+3) .premiumDropdown{left:auto;right:0}.premium .presentControls button{padding:5px 7px;font-size:12px}}
+
+/* Annotation rail retains the existing ink coordinate surface and RPC authority. */
+.inkWorkspace,.inkLearnerWorkspace{display:flex;flex-direction:column;gap:6px;min-width:0;flex:1 0 auto}
+.inkRail{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.inkRail label{display:flex;align-items:center;gap:4px;font-size:12px}
+.premium .inkWorkspace{flex-direction:row;align-items:stretch;gap:8px}
+.premium .inkRail{flex:0 0 112px;min-width:0;flex-direction:column;flex-wrap:nowrap;align-items:stretch;background:#fff;border:1px solid #dce4df;border-radius:6px;padding:5px;align-self:flex-start;max-height:65dvh;overflow:auto}
+.premium .inkRail button{font-size:11px;min-height:38px;white-space:normal;justify-content:flex-start;padding:5px;gap:4px}
+.premium .inkRail label{flex-direction:column;align-items:stretch;color:#43564c}
+.premium .inkRail select{width:100%;min-width:0;font:inherit;background:white;color:#23352e;border:1px solid #dce4df;border-radius:4px;padding:5px}
+.premium .inkRail small{font-size:10px;overflow-wrap:anywhere}
+@media(max-width:600px){.premium .inkWorkspace{flex-direction:column}.premium .inkRail{flex:0 0 auto;flex-direction:row;flex-wrap:wrap;max-height:24dvh;width:100%;align-items:center}.premium .inkRail label{flex-direction:row}.premium .inkRail select{width:auto}}
