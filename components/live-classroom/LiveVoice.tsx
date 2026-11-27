@@ -94,7 +94,7 @@ function DailyLiveVoice({roomId,classId,teacher,enabled,status,learners,onAcknow
     if(renewTimer.current){clearTimeout(renewTimer.current);renewTimer.current=null}
     const existing=meeting.current;meeting.current=null;speaker.current=null
     clearAudio();setPhase('idle');setMicOn(false);setPermission(false);setActiveSpeaker(null)
-    if (existing){try{if(!existing.isDestroyed()){existing.setLocalAudio(false);await existing.destroy()}}catch{/* already closed */}}
+    if(existing&&!existing.isDestroyed()){try{existing.setLocalAudio(false)}catch{/* still destroy */}try{await existing.destroy()}catch{/* already closed */}}
   },[clearAudio])
   // The voice connection is intentionally independent of classroom history,
   // whiteboard and slide state. Unmount or expired authorization stops tracks.
@@ -102,7 +102,7 @@ function DailyLiveVoice({roomId,classId,teacher,enabled,status,learners,onAcknow
   useEffect(()=>{if(status!=='active')void stop()},[status,stop])
   useEffect(()=>{
     const {data:{subscription}}=supabase.auth.onAuthStateChange((event,session)=>{
-      if (event==='SIGNED_OUT' || (connectedUser.current && session?.user.id!==connectedUser.current))void stop()
+      if (event==='SIGNED_OUT' || (connectedUser.current && session?.user.id!==connectedUser.current)){recoveryWanted.current=false;void stop()}
     })
     return()=>subscription.unsubscribe()
   },[stop])
