@@ -64,6 +64,11 @@ export function boardRevealCount(full:string,shared:string):number|null{
  return revealBoard(full,s.objects.length)===encodeBoard(s)?s.objects.length:null
 }
 
+export function nextBoardDemoPosition(objects:readonly BoardObject[]):{x:number;y:number}{
+ const index=objects.filter(object=>object.demo).length
+ return {x:5+(index%2)*155,y:35+(Math.floor(index/2)%2)*90}
+}
+
 /** Convert a selected slide without replacing existing content. Unsupported
  * resources and oversized slides remain unchanged. Adjustable objects are
  * used in visual slides, not the legacy board RPC. */
@@ -73,8 +78,7 @@ export function composeVisualSlide(body:string,extra:SlideDemo|undefined,makeId:
  if(!doc)return null
  const objects=[...doc.objects]
  const add=(demo:SlideDemo)=>{
-  const i=objects.filter(o=>o.demo).length
-  objects.push({id:makeId(),kind:'diagram',x:5+(i%2)*155,y:35+(Math.floor(i/2)%2)*90,w:150,h:85,angle:0,color:BOARD_COLORS[0],stroke:3,demo})
+  objects.push({id:makeId(),kind:'diagram',...nextBoardDemoPosition(objects),w:150,h:85,angle:0,color:BOARD_COLORS[0],stroke:3,demo})
  }
  if(visual===null){
   if(single)add(single)

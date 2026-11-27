@@ -10,7 +10,7 @@ import {DemoControls} from './LiveAdjustableDiagram'
 import {TeachingModelOptions} from './TeachingModelPicker'
 import styles from './LiveClassroom.module.css'
 
-type Props={slide:LiveSlide;disabled:boolean;allowVisual?:boolean;onChange:(body:string)=>void;roomId?:string;roomStatus?:'active'|'paused'|'ended'}
+type Props={slide:LiveSlide;disabled:boolean;allowVisual?:boolean;allowActivities?:boolean;onChange:(body:string)=>void;roomId?:string;roomStatus?:'active'|'paused'|'ended'}
 function VisualEditor({slide,disabled,onChange}:Props){
  const [undo,setUndo]=useState<string[]>([]),[redo,setRedo]=useState<string[]>([]),[error,setError]=useState('')
  const value=visualSlidePayload(slide.body)??''
@@ -41,7 +41,7 @@ function VisualEditor({slide,disabled,onChange}:Props){
   {error&&<p role="alert">{error}</p>}
  </section>
 }
-export function SlideBodyEditor({slide,disabled,onChange,roomId,roomStatus,allowVisual=true}:Props){
+export function SlideBodyEditor({slide,disabled,onChange,roomId,roomStatus,allowVisual=true,allowActivities=true}:Props){
  const [photoOpen,setPhotoOpen]=useState(false)
  const photos=decodePhotoSlide(slide.body)
  const [activityOpen,setActivityOpen]=useState(false)
@@ -62,5 +62,5 @@ export function SlideBodyEditor({slide,disabled,onChange,roomId,roomStatus,allow
  if(demo)return <section aria-label="Adjustable teaching diagram"><DemoControls demo={demo} disabled={disabled} onChange={d=>onChange(encodeDemo(d))}/><button type="button" disabled={disabled} onClick={()=>onChange(encodeMultiDemo([{id:crypto.randomUUID(),demo}]))}>Add more diagrams</button>{allowVisual&&<button type="button" disabled={disabled} onClick={()=>convert()}>Add writing or objects on interactive canvas</button>}{composeError&&<p role="alert">{composeError}</p>}<button type="button" disabled={disabled} onClick={()=>{if(window.confirm('Replace this demonstration with text?'))onChange('')}}>Switch to text</button></section>
  if(visualSlidePayload(slide.body)!==null)return <VisualEditor slide={slide} disabled={disabled} onChange={onChange}/>
 
- return <><label>Content<textarea aria-label="Content" value={slide.body} maxLength={3878} disabled={disabled} onChange={e=>onChange(e.target.value)}/></label>{allowVisual&&<button type="button" disabled={disabled} onClick={()=>convert()}>Use interactive canvas</button>}<button type="button" disabled={disabled} onClick={()=>{if(!slide.body.trim()||window.confirm('Replace existing content with a quiz or poll?'))setActivityOpen(true)}}>Add quiz or poll</button>{roomId&&roomStatus==='active'&&<button type="button" disabled={disabled} onClick={()=>{if(!slide.body.trim()||window.confirm('Replace the content with photo objects?'))setPhotoOpen(true)}}>Add photo objects</button>}<label>Adjustable demonstration<select disabled={disabled} value="" onChange={e=>{const kind=e.target.value as DemoKind;if(!kind||!Object.prototype.hasOwnProperty.call(DEMO_RANGES,kind))return;if(allowVisual){convert(defaultDemo(kind));return}if(slide.body.trim()&&!window.confirm('Replace existing content with the demonstration?'))return;onChange(encodeDemo(defaultDemo(kind)))}}><option value="">Choose demonstration</option><TeachingModelOptions/></select></label>{composeError&&<p role="alert">{composeError}</p>}</>
+ return <><label>Content<textarea aria-label="Content" value={slide.body} maxLength={3878} disabled={disabled} onChange={e=>onChange(e.target.value)}/></label>{allowVisual&&<button type="button" disabled={disabled} onClick={()=>convert()}>Use interactive canvas</button>}{allowActivities&&<button type="button" disabled={disabled} onClick={()=>{if(!slide.body.trim()||window.confirm('Replace existing content with a quiz or poll?'))setActivityOpen(true)}}>Add quiz or poll</button>}{roomId&&roomStatus==='active'&&<button type="button" disabled={disabled} onClick={()=>{if(!slide.body.trim()||window.confirm('Replace the content with photo objects?'))setPhotoOpen(true)}}>Add photo objects</button>}<label>Adjustable demonstration<select disabled={disabled} value="" onChange={e=>{const kind=e.target.value as DemoKind;if(!kind||!Object.prototype.hasOwnProperty.call(DEMO_RANGES,kind))return;if(allowVisual){convert(defaultDemo(kind));return}if(slide.body.trim()&&!window.confirm('Replace existing content with the demonstration?'))return;onChange(encodeDemo(defaultDemo(kind)))}}><option value="">Choose demonstration</option><TeachingModelOptions/></select></label>{composeError&&<p role="alert">{composeError}</p>}</>
 }

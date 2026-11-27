@@ -93,6 +93,11 @@ jobs:
       - name: Exercise real classroom UI with disposable in-memory SQL fixtures
         timeout-minutes: 8
         run: node scripts/test-live-classroom-browser.mjs
+      - name: Exercise opt-in in-place slide sync in real teacher and learner browsers
+        timeout-minutes: 8
+        env:
+          TEST_LIVE_SLIDE_UPDATE: '1'
+        run: node scripts/test-live-classroom-browser.mjs
       - name: Verify voice consent, grants, revocations and token renewal in Chromium
         timeout-minutes: 4
         run: node scripts/test-live-voice-browser.mjs

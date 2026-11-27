@@ -4,7 +4,7 @@ import {TeachingDiagram} from './LiveTeachingDiagram'
 import {diagramLabel,defaultDemo,DEMO_RANGES,type DemoKind} from './LiveSlideProtocol'
 import {DemoDrawing,DemoControls} from './LiveAdjustableDiagram'
 import {TeachingModelOptions} from './TeachingModelPicker'
-import {BOARD_COLORS,BOARD_DIAGRAMS,BOARD_LIMIT,boardFromLegacy,encodeBoard,decodeBoard,type BoardDocument,type BoardObject,type BoardKind,type BoardColor} from './LiveBoardProtocol'
+import {BOARD_COLORS,BOARD_DIAGRAMS,BOARD_LIMIT,boardFromLegacy,encodeBoard,decodeBoard,nextBoardDemoPosition,type BoardDocument,type BoardObject,type BoardKind,type BoardColor} from './LiveBoardProtocol'
 import styles from './LiveClassroom.module.css'
 
 function objectContent(o:BoardObject){
@@ -59,7 +59,7 @@ export function ObjectBoard({value,page,total,onChange,disabled,onUndo,onRedo,ca
  }
  function addDemo(){
   if(disabled||!allowAdjustable)return
-  const o:BoardObject={...createObject('diagram',{x:50,y:45}),w:150,h:85,demo:defaultDemo(demoKind)}
+  const o:BoardObject={...createObject('diagram',nextBoardDemoPosition(doc.objects)),w:150,h:85,demo:defaultDemo(demoKind)}
   commit({...doc,objects:[...doc.objects,o]});setSelected(o.id);setTool('select')
  }
  const point=(e:PointerEvent<SVGSVGElement>):Point=>{const root=e.currentTarget,m=root.getScreenCTM();if(!m)return {x:0,y:0};const p=root.createSVGPoint();p.x=e.clientX;p.y=e.clientY;const r=p.matrixTransform(m.inverse());return {x:clamp(r.x,-320,640),y:clamp(r.y,-220,440)}}

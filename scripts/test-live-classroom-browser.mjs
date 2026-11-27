@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import {createRequire} from 'node:module'
 import {createServer} from 'node:http'
+import {readFileSync} from 'node:fs'
 import {createLiveFixture} from './live-classroom-test-fixture.mjs'
 
 // Same committed SQL and React classroom as the pilot. Test-only identity
@@ -10,11 +11,13 @@ const testModules='/tmp/live-test/node_modules'
 const {build}=require(testModules+'/esbuild')
 const {chromium}=require(testModules+'/playwright')
 const fixture=await createLiveFixture({learning:true})
+const liveUpdateEnabled=process.env.TEST_LIVE_SLIDE_UPDATE==='1'
+if(liveUpdateEnabled)await fixture.db.exec(readFileSync(new URL('../supabase/migrations/20261127173000_live_classroom_slide_update.sql',import.meta.url),'utf8'))
 const identity={teacher:fixture.teacher,learner:fixture.a,'learner-b':fixture.b,outsider:fixture.outsider}
 const result=await build({
   stdin:{contents:"import React from 'react'; import {createRoot} from 'react-dom/client'; import LiveClassroom from './components/live-classroom/LiveClassroom'; const role=location.pathname.slice(1); createRoot(document.getElementById('root')).render(<LiveClassroom classId={role==='teacher'?'"+fixture.cls+"':null} teacher={role==='teacher'} back='/'/>);",loader:'tsx',resolveDir:process.cwd()},
   bundle:true,write:false,outdir:'out',entryNames:'app',jsx:'automatic',platform:'browser',
-  nodePaths:[testModules],define:{'process.env.NODE_ENV':'"production"','process.env.NEXT_PUBLIC_VIBE_LIVE_DAILY_ENABLED':'"true"','process.env.NEXT_PUBLIC_VIBE_LIVE_VOICE_ENABLED':'"false"'},
+  nodePaths:[testModules],define:{'process.env.NODE_ENV':'"production"','process.env.NEXT_PUBLIC_VIBE_LIVE_DAILY_ENABLED':'"true"','process.env.NEXT_PUBLIC_VIBE_LIVE_VOICE_ENABLED':'"false"','process.env.NEXT_PUBLIC_VIBE_LIVE_SLIDE_UPDATE_ENABLED':JSON.stringify(liveUpdateEnabled?'true':'false')},
   plugins:[{name:'loopback-fixture',setup(b){
     b.onResolve({filter:/^(@\/lib\/supabase|next\/link)$/},args=>({path:args.path,namespace:'fixture'}))
     b.onLoad({filter:/.*/,namespace:'fixture'},args=>({loader:'jsx',resolveDir:process.cwd(),contents:args.path==='next/link'?
@@ -176,6 +179,26 @@ try{
  await l.bringToFront()
  await l.waitForFunction(()=>document.querySelector('[aria-label="Shared presentation annotations"]')?.querySelectorAll('polyline').length===2)
  await t.bringToFront()
+ if(liveUpdateEnabled){
+  const sid=new URL(t.url()).searchParams.get('resumeRoom')
+  assert.ok(sid)
+  const prior=await fixture.rpc(fixture.teacher,'get',sid)
+  await button(t,'Edit current slide').click()
+  await t.getByLabel('Edit presented slide').waitFor()
+  assert.equal(await t.getByLabel('Title',{exact:true}).inputValue(),'Equivalent fractions')
+  await t.getByLabel('Content',{exact:true}).fill('Two quarters equal one half. Revised.')
+  await t.getByText('Shared with class',{exact:true}).waitFor()
+  await l.bringToFront()
+  await see(l,'Two quarters equal one half. Revised.')
+  const after=await fixture.rpc(fixture.teacher,'get',sid)
+  assert.equal(after.prompt.id,prior.prompt.id)
+  assert.equal(after.history.length,prior.history.length)
+  await t.bringToFront()
+  await button(t,'Done').click()
+  await teacherTool(t,'Slides')
+  assert.equal(await t.getByLabel('Content',{exact:true}).inputValue(),'Two quarters equal one half. Revised.')
+  assert.equal(await t.getByRole('button',{name:/^Slide \d+:/}).count(),1)
+ }else{
  await button(t,'Edit current slide').click()
  assert.equal(await t.getByLabel('Title',{exact:true}).inputValue(),'Equivalent fractions')
  assert.equal(await t.getByRole('button',{name:/^Slide \d+:/}).count(),1,'Editing must not add a slide')
@@ -185,6 +208,7 @@ try{
  await see(l,'Two quarters equal one half. Revised.')
  await button(t,'Edit current slide').click()
  assert.equal(await t.getByLabel('Content',{exact:true}).inputValue(),'Two quarters equal one half. Revised.')
+ }
  await t.getByRole('button',{name:'Add slide'}).click()
  await t.getByLabel('Title',{exact:true}).fill('Three quarters')
  await t.getByLabel('Content',{exact:true}).fill('Three of four equal parts.')
@@ -192,9 +216,14 @@ try{
  await see(l,'Three quarters')
  await button(t,'Previous slide').click();await see(l,'Equivalent fractions')
  await button(t,'Next slide').click();await see(l,'Three quarters')
- await t.getByRole('status').filter({hasText:'Draft saved'}).waitFor({state:'attached'})
+ await t.getByRole('status').filter({hasText:/^Draft saved$/}).waitFor({state:'attached'})
  const sid=new URL(t.url()).searchParams.get('resumeRoom')
  assert.ok(sid)
+ const saved=await fixture.rpc(fixture.teacher,'workspace_get',sid)
+ assert.equal(saved.draft.slideIndex,1,'Server must save the latest selected slide')
+ assert.equal(saved.draft.slides.length,2,'Server must save both slides')
+ assert.equal(saved.draft.slides[0].body,'Two quarters equal one half. Revised.')
+ assert.equal(saved.draft.slides[1].title,'Three quarters')
  const recovered=await open('teacher',360,780,'?resumeRoom='+sid)
  await dialog(recovered.page).waitFor()
  await assertStageUsesViewport(recovered.page,0.62)
@@ -203,6 +232,37 @@ try{
  assert.equal(await recovered.page.getByLabel('Title',{exact:true}).inputValue(),'Three quarters')
  await noPageOverflow(recovered.page)
  await recovered.context.close()
+ if(liveUpdateEnabled){
+  await t.bringToFront()
+  const beforeMixed=await fixture.rpc(fixture.teacher,'get',sid)
+  await button(t,'Edit current slide').click()
+  const editor=t.getByLabel('Edit presented slide')
+  await editor.getByLabel('Adjustable demonstration').selectOption('ruler')
+  const canvas=editor.getByLabel('Visual slide editor')
+  await canvas.getByLabel('Adjustable teaching tool').selectOption('protractor')
+  await canvas.getByRole('button',{name:'Insert tool',exact:true}).click()
+  await canvas.getByRole('slider',{name:'Angle (degrees)',exact:true}).press('ArrowRight')
+  await editor.getByText('Shared with class',{exact:true}).waitFor()
+  await l.bringToFront()
+  const stage=l.getByLabel('Shared lesson',{exact:true})
+  await stage.getByText('Three of four equal parts.',{exact:true}).waitFor()
+  await stage.locator('svg[aria-label^="Ruler:"]').waitFor()
+  await stage.locator('svg[aria-label^="Protractor:"]').waitFor()
+  await l.reload()
+  await dialog(l).waitFor()
+  await stage.locator('svg[aria-label^="Protractor:"]').waitFor()
+  await noPageOverflow(l)
+  const learnerMixed=await fixture.rpc(fixture.a,'get',sid,null,{},fixture.cls)
+  assert.equal(learnerMixed.prompt.id,beforeMixed.prompt.id)
+  assert.equal(learnerMixed.history.length,beforeMixed.history.length)
+  const projected=JSON.parse(learnerMixed.prompt.body.slice('VSLIDE1:'.length))
+  const mixed=JSON.parse(projected.body.slice('VSLIDEVIS1:VBOARD1:'.length))
+  assert.deepEqual(mixed.objects.map(object=>object.demo?.kind??object.kind),['text','ruler','protractor'])
+  assert.equal(mixed.objects[2].demo.a,61)
+  assert.equal(await stage.getByRole('slider').count(),0,'Published mixed tools are read-only for learners')
+  await t.bringToFront()
+  await editor.getByRole('button',{name:'Done',exact:true}).click()
+ }
  // Resources must display an existing certified payload through the actual
  // Live publish/history path, not through a separate learner data channel.
  await teacherTool(t,'Resources')
@@ -305,11 +365,14 @@ try{
  await teacherTool(t,'Quiz')
  await t.getByLabel('Question or instruction').fill('How many quarters make one half?')
  await t.getByLabel('Answer (hidden until reveal)').fill('Two quarters')
+ const beforeQuiz=await fixture.rpc(fixture.a,'get',sid,null,{},fixture.cls)
  await button(t,'Share with class').click()
  await t.getByLabel('Question or instruction').waitFor({state:'hidden'})
  const serverAfterQuiz=await fixture.rpc(fixture.a,'get',sid,null,{},fixture.cls)
  assert.equal(serverAfterQuiz.prompt?.body,'How many quarters make one half?','Teacher quiz must persist after concurrent chat changes the room version')
- assert.equal(serverAfterQuiz.history?.length,8,'Successful quiz must extend the ordered lesson history, including the revised slide snapshot')
+ assert.equal(serverAfterQuiz.history.length,beforeQuiz.history.length+1,'The quiz adds one history item in either slide-editing mode')
+ assert.equal(serverAfterQuiz.history.at(-1)?.id,serverAfterQuiz.prompt.id)
+ assert.ok(serverAfterQuiz.history.some(item=>item.body.includes('Two quarters equal one half. Revised.')),'The revised slide remains available in lesson history')
  await l.bringToFront()
  await see(l,'How many quarters make one half?')
  assert.equal(await l.getByText('Two quarters',{exact:true}).count(),0)
