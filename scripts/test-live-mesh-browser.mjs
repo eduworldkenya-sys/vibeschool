@@ -232,6 +232,17 @@ try {
     return Array.from(stats.values()).some(row => row.type === 'inbound-rtp' && row.kind === 'audio' && row.audioLevel < 0.001)
   })
 
+  // A connected learner can recover without reopening the class or mic.
+  await learner.evaluate(() => {
+    const peer = window.peerConnections[0]
+    peer.close()
+    peer.dispatchEvent(new Event('connectionstatechange'))
+  })
+  await learner.waitForFunction(() => window.peerConnections.length === 2 &&
+    window.peerConnections[1].connectionState === 'connected')
+  assert.equal(await learner.getByRole('button', { name: 'Unmute' }).isDisabled(), true)
+  assert.equal(await learner.evaluate(() => window.micTracks.length), 1)
+
   if (openClassrooms) {
     assert.equal(await host.getByRole('button', { name: 'Use Daily audio' }).count(), 0)
   } else {
