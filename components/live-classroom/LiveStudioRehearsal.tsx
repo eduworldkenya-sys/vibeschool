@@ -42,7 +42,7 @@ export function LiveStudioRehearsal({slides,initialIndex,onClose,onSave,onPrepar
  const {notes:privateNotes,...publicSlide}=slide
  function navigate(next:number){setIndex(next);setChoice(null)}
  return <section className={styles.slideFields} aria-label="Private slide rehearsal">
-  <div className={styles.slideToolbar}><strong>Private rehearsal</strong><button type="button" onClick={()=>onClose(index)}>Edit this slide</button></div>
+  <div className={styles.slideToolbar}><strong>Private rehearsal</strong><button type="button" onClick={()=>onClose(initialIndex)}>Back to preparation</button><button type="button" onClick={()=>onClose(index)}>Edit this slide</button></div>
   <div className={styles.controls}>
    <button type="button" disabled={saveDisabled} onClick={onSave}>Save presentation</button>
    <button type="button" className={styles.primary} disabled={saveDisabled} onClick={onPrepare}>{prepareLabel}</button>
