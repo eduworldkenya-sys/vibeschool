@@ -22,11 +22,13 @@ const result=await build({
     b.onResolve({filter:/^(@\/lib\/supabase|next\/link)$/},args=>({path:args.path,namespace:'fixture'}))
     b.onLoad({filter:/.*/,namespace:'fixture'},args=>({loader:'jsx',resolveDir:process.cwd(),contents:args.path==='next/link'?
       "import React from 'react'; export default function Link({children,...props}) {return <a {...props}>{children}</a>}" :
-      "const role=location.pathname.slice(1); const ids="+JSON.stringify(identity)+"; export const supabase={from:(name)=>{const root={id:'00000000-0000-4000-8000-000000000060',title:'Live fraction reading',subject:'Mathematics',grade:'Grade 4',asset_kind:'learner_notes',status:'active',visibility:'public'};const version={id:'00000000-0000-4000-8000-000000000061',resource_id:root.id,version:1,payload:{content_text:'One quarter means one of four equal parts.'},lifecycle_status:'certified',rights_status:'cleared',certified_at:'2026-11-21T08:00:00Z'};const scheme={id:'00000000-0000-4000-8000-000000000062',topic:'Fractions',teacher_id:ids.teacher,class_id:'00000000-0000-4000-8000-000000000010'};const link={scheme_lesson_id:scheme.id,resource_id:root.id,resource_version_id:version.id,target_type:'scheme_lesson'};const forbiddenNotes={...root,id:'00000000-0000-4000-8000-000000000063',title:'Private marking scheme',asset_kind:'teacher_notes'};const forbiddenCPA={...root,id:'00000000-0000-4000-8000-000000000064',title:'CPA lesson',grade:'Professional Studies'};const rows=name==='learning_resources'?[root,forbiddenNotes,forbiddenCPA]:name==='learning_resource_versions'?(globalThis.__testResourceWithdrawn?[]:[version]):name==='scheme_of_work'?[scheme]:name==='teaching_resource_links'?[link]:[];const filters=[];const matching=()=>rows.filter(row=>filters.every(fn=>fn(row)));const q={select:()=>q,eq:(key,val)=>{filters.push(row=>row[key]===val);return q},in:(key,values)=>{filters.push(row=>values.includes(row[key]));return q},not:(key,op,val)=>{if(op==='is'&&val===null)filters.push(row=>row[key]!==null&&row[key]!==undefined);return q},is:(key,val)=>{filters.push(row=>row[key]===val);return q},order:()=>q,limit:()=>q,maybeSingle:async()=>({data:matching()[0]??null,error:null}),then:(resolve,reject)=>Promise.resolve({data:matching(),error:null}).then(resolve,reject)};return q},auth:{getUser:async()=>({data:{user:{id:ids[role]}},error:null}),getSession:async()=>({data:{session:null},error:null}),onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}})},rpc:async(name,params)=>{try { const r=await fetch('/rpc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,params})});return await r.json()} catch(e){return {data:null,error:{message:'Connection interrupted'}}}}};"}))
+      "const role=location.pathname.slice(1); const ids="+JSON.stringify(identity)+"; export const supabase={from:(name)=>{const root={id:'00000000-0000-4000-8000-000000000060',title:'Live fraction reading',subject:'Mathematics',grade:'Grade 4',asset_kind:'learner_notes',status:'active',visibility:'public'};const version={id:'00000000-0000-4000-8000-000000000061',resource_id:root.id,version:1,payload:{content_text:'One quarter means one of four equal parts.'},lifecycle_status:'certified',rights_status:'cleared',certified_at:'2026-11-21T08:00:00Z'};const scheme={id:'00000000-0000-4000-8000-000000000062',topic:'Fractions',teacher_id:ids.teacher,class_id:'00000000-0000-4000-8000-000000000010'};const link={scheme_lesson_id:scheme.id,resource_id:root.id,resource_version_id:version.id,target_type:'scheme_lesson'};const forbiddenNotes={...root,id:'00000000-0000-4000-8000-000000000063',title:'Private marking scheme',asset_kind:'teacher_notes'};const forbiddenCPA={...root,id:'00000000-0000-4000-8000-000000000064',title:'CPA lesson',grade:'Professional Studies'};const rows=name==='learning_resources'?[root,forbiddenNotes,forbiddenCPA]:name==='learning_resource_versions'?(globalThis.__testResourceWithdrawn?[]:[version]):name==='scheme_of_work'?[scheme]:name==='teaching_resource_links'?[link]:[];const filters=[];const matching=()=>rows.filter(row=>filters.every(fn=>fn(row)));const q={select:()=>q,eq:(key,val)=>{filters.push(row=>row[key]===val);return q},in:(key,values)=>{filters.push(row=>values.includes(row[key]));return q},not:(key,op,val)=>{if(op==='is'&&val===null)filters.push(row=>row[key]!==null&&row[key]!==undefined);return q},is:(key,val)=>{filters.push(row=>row[key]===val);return q},order:()=>q,limit:()=>q,maybeSingle:async()=>({data:matching()[0]??null,error:null}),then:(resolve,reject)=>Promise.resolve({data:matching(),error:null}).then(resolve,reject)};return q},auth:{getUser:async()=>({data:{user:{id:ids[role]}},error:null}),getSession:async()=>({data:{session:null},error:null}),onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}})},rpc:async(name,params)=>{if(name==='vibetutor_my_lessons'&&globalThis.__testScheduleReadFailure)return {data:null,error:{message:'Schedule temporarily unavailable'}};try { const r=await fetch('/rpc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,params})});return await r.json()} catch(e){return {data:null,error:{message:'Connection interrupted'}}}}}; export const getSupabaseClient=()=>supabase;"}))
   }}]
 })
 const assets=new Map(result.outputFiles.map(f=>['/'+f.path.split('/').at(-1),f.contents]))
 assert.ok(assets.has('/app.js')&&assets.has('/app.css'),'Actual UI and CSS bundle must exist')
+const bookedAt=Date.now()
+const scheduleFixture={id:'00000000-0000-4000-8000-000000000099',invitation_id:'00000000-0000-4000-8000-000000000098',title:'Fixture scheduled tuition',starts_at:new Date(bookedAt).toISOString(),ends_at:new Date(bookedAt+3600000).toISOString(),status:'scheduled'}
 let queue=Promise.resolve()
 const server=createServer(async(req,res)=>{
   const path=new URL(req.url,'http://127.0.0.1').pathname
@@ -43,6 +45,7 @@ const server=createServer(async(req,res)=>{
   const job=async()=>{
     try{
       const {name,params:p}=JSON.parse(body)
+      if(name==='vibetutor_my_lessons')return {data:userRole==='teacher'?[scheduleFixture]:[],error:null}
       if(name!=='vibe_live_command')throw Error('Unexpected RPC')
       const data=await fixture.rpc(identity[userRole],p.p_action,p.p_session_id,p.p_version,p.p_payload,p.p_class_id)
       return {data,error:null}
@@ -606,6 +609,22 @@ try{
  await see(l,'Equivalent fractions')
  const standalone=await open('teacher',1024,768,'?executive=1&standalone=1')
  const st=standalone.page
+ const calendar=st.getByRole('region',{name:'My teaching schedule'})
+ await calendar.getByRole('link',{name:/Fixture scheduled tuition/}).waitFor()
+ assert.equal(await calendar.getByRole('link',{name:/Fixture scheduled tuition/}).getAttribute('href'),'/tuition/lessons/'+scheduleFixture.id)
+ await calendar.getByRole('button',{name:'Next week'}).click()
+ assert.equal(await calendar.getByRole('link',{name:/Fixture scheduled tuition/}).count(),0,'Next week uses actual dated records')
+ await calendar.getByRole('button',{name:'Today',exact:true}).click()
+ await calendar.getByRole('link',{name:/Fixture scheduled tuition/}).waitFor()
+ await st.evaluate(()=>{globalThis.__testScheduleReadFailure=true})
+ await calendar.getByRole('button',{name:'Refresh',exact:true}).click()
+ await calendar.getByRole('alert').waitFor()
+ assert.equal(await calendar.getByText('No lessons',{exact:true}).count(),0,'Read errors cannot look like availability')
+ await st.evaluate(()=>{globalThis.__testScheduleReadFailure=false})
+ await calendar.getByRole('button',{name:'Retry schedule'}).click()
+ await calendar.getByRole('link',{name:/Fixture scheduled tuition/}).waitFor()
+ await st.setViewportSize({width:360,height:780});await noPageOverflow(st)
+ await st.setViewportSize({width:1024,height:768})
  await button(st,'Prepare lesson').click()
  await st.getByRole('heading',{name:'My presentations'}).waitFor()
  await st.getByRole('button',{name:/Prepared fractions/}).first().click()
