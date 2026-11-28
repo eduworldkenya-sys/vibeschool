@@ -8,7 +8,7 @@ import styles from './LiveClassroom.module.css'
 import ClassroomManager from './ClassroomManager'
 import OnlineTeacherWorkspace from '@/components/timetable/OnlineTeacherWorkspace'
 import EndedTeacherWorkspace from './EndedTeacherWorkspace'
-import {encodeDemo, adjacentSlide, buildTextRevealSlides, decodeAssessment, assessmentPrompt, decodePhotoSlide, visualSlideBody, visualSlidePayload, preparedAssessment } from './LiveSlideProtocol'
+import {encodeDemo, adjacentSlide, buildTextRevealSlides, decodeAssessment, assessmentPrompt, decodePhotoSlide, visualSlideBody, visualSlidePayload, preparedAssessment, presenterNotes, studioMinutes } from './LiveSlideProtocol'
 import { ExecutiveDialog } from './ExecutiveDialog'
 import { ExecutiveCommandPalette } from './ExecutiveCommandPalette'
 import { LiveContentDrawer, type ContentTab } from './LiveContentDrawer'
@@ -1124,7 +1124,20 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
     if((saved?.body||saved?.key)&&!window.confirm('Replace the unsent activity draft?'))return
     chooseMode(activity.kind);setBody(question);const draft=liveSlide&&slides[liveSlide.number-1];setKey(draft&&draft.body===liveSlide?.body?preparedAssessment(draft)?.answer??'':'')
   }
-  const lastPresentedSlide=[...history].reverse().map(p=>p.kind==='teach'?decodeSlide(p.body):null).find(p=>p!==null)
+  const lastSlidePrompt=[...history].reverse().find(item=>item.kind==='teach'&&decodeSlide(item.body))
+  const lastPresentedSlide=lastSlidePrompt?decodeSlide(lastSlidePrompt.body):null
+  const presenterSlide=matchedSlide&&matchedSlide.total===slides.length?slides[matchedSlide.number-1]:null
+  const presenterMatches=presenterSlide&&matchedSlide&&encodeSlide(presenterSlide,matchedSlide.number,slides.length)===encodeSlide(matchedSlide,matchedSlide.number,matchedSlide.total)
+  const liveNotes=presenterMatches?presenterNotes(presenterSlide.notes):''
+  const plannedMinutes=presenterMatches?studioMinutes(presenterSlide):0
+  const upcomingSlide=nextLiveSlide===null?null:slides[nextLiveSlide]
+  const currentAssessment=liveSlide?decodeAssessment(liveSlide.body):null
+
+  function startPreparedActivity(){
+    if(!currentAssessment||!canNavigateSlides)return
+    const answerKey=presenterMatches?preparedAssessment(presenterSlide)?.answer??null:null
+    void act('publish',null,{kind:currentAssessment.kind,body:assessmentPrompt(currentAssessment),answerKey})
+  }
   const resumeAfterActivity=lastPresentedSlide?adjacentSlide(slides,lastPresentedSlide,1):null
   function reuseQuestion(item:Prompt){
     if(!teacher||busy||draftLoading||room?.status!=='active'||!['quiz','exercise','poll'].includes(item.kind))return
@@ -1384,9 +1397,17 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
       {viewedPrompt.id===prompt?.id&&<button type="button" onClick={()=>setPanel('learners')}>Responses</button>}
       {viewedPrompt.id===prompt?.id&&viewedPrompt.revealed&&resumeAfterActivity!==null&&<button type="button" disabled={!canNavigateSlides} onClick={()=>presentSlide(resumeAfterActivity)}>Continue slides</button>}
     </div>}
+    {teacher&&panel===null&&!contentTab&&reviewId===null&&prompt?.kind==='board'&&lastSlidePrompt&&lastPresentedSlide&&(!focusMode||focusDock)&&<div className={styles.presentControls}>
+      <button type="button" disabled={!canNavigateSlides} onClick={()=>void act('publish',null,{kind:'teach',body:lastSlidePrompt.body,answerKey:null})}>Return to slide {lastPresentedSlide.number}</button>
+    </div>}
+    {teacher&&instantEntry&&panel===null&&!contentTab&&!editingBoard&&reviewId===null&&liveSlide&&(!focusMode||focusDock)&&<section className={styles.deliveryGuidance} aria-label="Private teaching guidance">
+      <span>Slide {liveSlide.number} of {liveSlide.total}{plannedMinutes>0?` · ${plannedMinutes} min planned`:''}</span>
+      {upcomingSlide&&<span>Up next: {upcomingSlide.title||'Untitled slide'}{studioMinutes(upcomingSlide)>0?` · ${studioMinutes(upcomingSlide)} min`:''}</span>}
+      {liveNotes&&<details><summary>Private teacher notes</summary><p>{liveNotes}</p></details>}
+    </section>}
     {teacher&&panel===null&&!editingBoard&&reviewId===null&&liveSlide&&(!focusMode||focusDock)&&<div className={styles.presentControls}>
       <button type="button" disabled={!canNavigateSlides||previousLiveSlide===null} onClick={()=>{if(previousLiveSlide!==null)presentSlide(previousLiveSlide)}}>Previous slide</button>
-      <span>{liveSlide.number} / {liveSlide.total}</span><button type="button" disabled={busy||draftLoading||!!conflictDraft} onClick={openCurrentSlide}>Edit current slide</button>{decodeAssessment(liveSlide.body)&&<button type="button" disabled={!canNavigateSlides} onClick={launchSlideAssessment}>Launch {decodeAssessment(liveSlide.body)?.kind}</button>}
+      <span>{liveSlide.number} / {liveSlide.total}</span><button type="button" disabled={busy||draftLoading||!!conflictDraft} onClick={openCurrentSlide}>Edit current slide</button>{currentAssessment&&<>{instantEntry&&<button type="button" className={styles.primary} disabled={!canNavigateSlides} onClick={startPreparedActivity}>Start {currentAssessment.kind}</button>}<button type="button" disabled={!canNavigateSlides} onClick={launchSlideAssessment}>{instantEntry?'Edit':'Launch'} {currentAssessment.kind}</button></>}
       {revealMatch&&visibleObjects!==null&&objectTotal>0&&<><button type="button" disabled={!canNavigateSlides||visibleObjects===0} onClick={()=>presentSlide(liveSlide.number-1,visibleObjects-1)}>Hide last object</button><button type="button" disabled={!canNavigateSlides||visibleObjects>=objectTotal} onClick={()=>presentSlide(liveSlide.number-1,visibleObjects+1)}>Reveal next object</button><small>{visibleObjects}/{objectTotal} objects</small></>}
       <button type="button" disabled={!canNavigateSlides||nextLiveSlide===null} onClick={()=>{if(nextLiveSlide!==null)presentSlide(nextLiveSlide)}}>Next slide</button>
       {canNavigateSlides&&nextLiveSlide!==null&&nextLiveSlide>liveSlide.number&&<small role="status">Blank or invalid draft slides will be skipped.</small>}
