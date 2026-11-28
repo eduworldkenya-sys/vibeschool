@@ -1552,7 +1552,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
         {(preparedTitle||!currentClass)&&<button type="button" className={styles.primary} disabled={busy||!online} onClick={()=>{
           if(currentClass&&!window.confirm(`End “${currentClass.title}” for everyone and start “${preparedTitle}”?`))return
           void act('start',null,{title:preparedTitle||'Untitled lesson',mode:'tuition',groupId:null},currentClass?.id)
-        }}>{busy?'Connecting…':preparedTitle?`Go Live · ${preparedTitle}`:'Go Live'}</button>}
+        }}>{busy?'Connecting…':preparedTitle?`Start ${preparedTitle}`:'Go Live'}</button>}
       </div>
       {preparedTitle&&<p>Ready for next lesson: {preparedTitle} <button type="button" disabled={busy} onClick={()=>setRehearsalOpen(true)}>Rehearse privately</button> <button type="button" disabled={busy} onClick={()=>{preparedDeck.current=null;setPreparedTitle('')}}>Remove from this session</button></p>}
       <small>Invited classroom · Microphone starts muted</small>
