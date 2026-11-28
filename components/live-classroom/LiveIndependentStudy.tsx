@@ -8,7 +8,7 @@ type Summary={id:string;title:string;slideCount:number;completed?:number;assigne
 type Material={id:string;title:string;revision:number;slideCount:number}
 type Feedback={kind:'quiz'|'poll';selected:number;correct?:boolean;correctOption?:number;explanation?:string}
 type Study={id:string;title:string;slides:LiveSlide[];page:number;visited:number[];answers:Record<string,Feedback>}
-type Props={classId:string|null;teacher:boolean;mode?:'school'|'tuition'|'homeschool'|'open';groupId?:string|null;roomId?:string}
+type Props={classId:string|null;teacher:boolean;mode?:'school'|'tuition'|'homeschool'|'open';groupId?:string|null;roomId?:string;showUnavailable?:boolean}
 async function command(action:string,classId:string|null,id:string|null=null,payload:Record<string,unknown>={}):Promise<unknown>{
  const {data,error}=await supabase.rpc('vibe_live_study_command',{p_action:action,p_class:classId,p_id:id,p_payload:payload})
  if(error)throw Error(error.message)
@@ -19,15 +19,17 @@ function parseStudy(data:unknown):Study{
  if(!v||typeof v.id!=='string'||typeof v.title!=='string'||!Array.isArray(v.slides)||v.slides.length<1||v.slides.length>30||!v.slides.every(s=>validSlide(s)&&s.notes===undefined)||!Number.isInteger(v.page)||v.page<0||v.page>=v.slides.length||!Array.isArray(v.visited)||!v.visited.every(i=>Number.isInteger(i)&&i>=0&&i<v.slides.length)||!v.answers||typeof v.answers!=='object')throw Error('Invalid independent lesson response.')
  return v
 }
-export function LiveIndependentStudy({classId,teacher,mode,groupId,roomId}:Props){
+export function LiveIndependentStudy({classId,teacher,mode,groupId,roomId,showUnavailable=false}:Props){
  const [open,setOpen]=useState(false),[items,setItems]=useState<Summary[]>([]),[materials,setMaterials]=useState<Material[]>([]),[study,setStudy]=useState<Study|null>(null),[selected,setSelected]=useState(''),[option,setOption]=useState<number|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[available,setAvailable]=useState(false)
+ const [availabilityState,setAvailabilityState]=useState<'loading'|'ready'|'error'>('loading')
+ const [retry,setRetry]=useState(0)
  const lock=useRef(false),generation=useRef(0),request=useRef<{signature:string;id:string}|null>(null)
  const list=useCallback(async()=>{
   const data=await command(teacher?'list_owner':'list',classId)
   if(!Array.isArray(data))throw Error('Invalid assigned presentations list.')
   return data as Summary[]
  },[teacher,classId])
- useEffect(()=>{let alive=true;setAvailable(false);setOpen(false);setStudy(null);setError('');generation.current++;void list().then(data=>{if(alive){setItems(data);setAvailable(true)}}).catch(()=>{/* Migration not installed or this identity is ineligible. No unsafe fallback. */});return()=>{alive=false;generation.current++}},[list])
+ useEffect(()=>{let alive=true;setAvailable(false);setAvailabilityState('loading');setOpen(false);setStudy(null);setError('');generation.current++;void list().then(data=>{if(alive){setItems(data);setAvailable(true);setAvailabilityState('ready')}}).catch(()=>{if(alive)setAvailabilityState('error')});return()=>{alive=false;generation.current++}},[list,retry])
  async function run(job:(current:()=>boolean)=>Promise<void>){
   if(lock.current)return
   lock.current=true;setBusy(true);setError('');const stamp=generation.current
@@ -54,7 +56,7 @@ export function LiveIndependentStudy({classId,teacher,mode,groupId,roomId}:Props
  function load(id:string){void run(async current=>{const value=parseStudy(await command('get',classId,id));if(current()){setStudy(value);setOption(null)}})}
  function advance(page:number,complete:boolean){if(!study)return;void run(async current=>{const value=parseStudy(await command('advance',classId,study.id,{page,complete}));if(current()){setStudy(value);setOption(null);await refresh(current)}})}
  function submit(){if(!study||option===null)return;void run(async current=>{const value=parseStudy(await command('answer',classId,study.id,{page:study.page,option}));if(current())setStudy(value)})}
- if(!available)return null
+ if(!available)return showUnavailable?<section aria-label="Assigned presentations">{availabilityState==='loading'?<p role="status">Checking follow-up availability…</p>:<><p role="alert">Follow-up assignments are unavailable for this lesson right now.</p><button type="button" onClick={()=>setRetry(n=>n+1)}>Retry follow-up</button></>}</section>:null
  const activity=study?decodeAssessment(study.slides[study.page].body):null,feedback=study?.answers[String(study.page)]
  return <section className={styles.panel} aria-label={teacher?'Assigned presentations':'Independent learning'}>
  <button type="button" disabled={busy} aria-expanded={open} onClick={toggle}>{open?'Close independent learning':teacher?'Assign presentations':'Independent learning'}</button>
