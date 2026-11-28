@@ -712,6 +712,7 @@ try{
  // even though both the model and this prepared deck are encoded as 1/1.
  await st.getByRole('navigation',{name:'Classroom tool rail'}).getByRole('button',{name:'Tools',exact:true}).click()
  await st.getByRole('searchbox',{name:'Search tools'}).fill('counters')
+ await st.getByRole('slider',{name:'Group A',exact:true}).press('ArrowRight')
  await button(st,'Present to class').click()
  await st.getByText('4 + 5 = 9 counters',{exact:true}).first().waitFor()
  await st.getByRole('button',{name:'Return to slide 1',exact:true}).waitFor()
