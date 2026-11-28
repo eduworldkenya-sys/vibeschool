@@ -4,7 +4,7 @@ import {createLiveFixture} from './live-classroom-test-fixture.mjs'
 const f=await createLiveFixture()
 const {db,rpc,teacher,a,b,outsider,otherTeacher,cls,id}=f
 try{
- await db.exec(readFileSync(new URL('../supabase/migrations/20261124150000_live_workbook.sql',import.meta.url),'utf8'))
+ await db.exec(readFileSync(new URL('../supabase/migrations/20261127152007_20261124150000_live_workbook.sql',import.meta.url),'utf8'))
  let room=await rpc(teacher,'start',null,null,{title:'Workbook test'},cls)
  const sid=room.id
  await assert.rejects(rpc(a,'workbook_list',sid,null,{promptId:id(888)}),/live_join_required/)

@@ -3,7 +3,7 @@ import {readFileSync} from 'node:fs'
 import assert from 'node:assert/strict'
 const f=await createLiveFixture()
 try{
- await f.db.exec(readFileSync(new URL('../supabase/migrations/20261125000200_live_breakout_discussions.sql',import.meta.url),'utf8'))
+ await f.db.exec(readFileSync(new URL('../supabase/migrations/20261127152049_20261125000200_live_breakout_discussions.sql',import.meta.url),'utf8'))
  for(const [profile,student,name] of [[9,35,'Learner C'],[11,36,'Learner D']]){
   await f.db.query('insert into public.profiles(id,account_status) values ($1,$2)',[f.id(profile),'active'])
   await f.db.query('insert into public.students(id,profile_id,name) values ($1,$2,$3)',[f.id(student),f.id(profile),name])

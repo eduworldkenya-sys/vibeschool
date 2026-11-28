@@ -4,7 +4,7 @@ import {createLiveFixture} from './live-classroom-test-fixture.mjs'
 const f=await createLiveFixture()
 const {db,rpc,teacher,a,b,outsider,cls}=f
 try{
- await db.exec(readFileSync(new URL('../supabase/migrations/20261124151000_live_classroom_phase.sql',import.meta.url),'utf8'))
+ await db.exec(readFileSync(new URL('../supabase/migrations/20261127152023_20261124151000_live_classroom_phase.sql',import.meta.url),'utf8'))
  let room=await rpc(teacher,'start',null,null,{title:'Teaching flow'},cls)
  const sid=room.id
  assert.equal(room.teachingPhase,'teaching')

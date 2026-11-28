@@ -4,7 +4,7 @@ import {createLiveFixture} from './live-classroom-test-fixture.mjs'
 const f=await createLiveFixture()
 const {db,rpc,teacher,a,b,outsider,otherTeacher,cls,id}=f
 try{
- for(const name of ['20261124150000_live_workbook.sql','20261124151000_live_classroom_phase.sql','20261124152000_live_stage_ink.sql'])await db.exec(readFileSync(new URL('../supabase/migrations/'+name,import.meta.url),'utf8'))
+ for(const name of ['20261127152007_20261124150000_live_workbook.sql','20261127152023_20261124151000_live_classroom_phase.sql','20261127152029_20261124152000_live_stage_ink.sql'])await db.exec(readFileSync(new URL('../supabase/migrations/'+name,import.meta.url),'utf8'))
  let room=await rpc(teacher,'start',null,null,{title:'Annotate together'},cls)
  const sid=room.id
  await rpc(a,'join',sid);await rpc(b,'join',sid)

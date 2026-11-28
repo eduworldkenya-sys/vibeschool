@@ -787,8 +787,8 @@ await import('./test-live-stage-ink.mjs')
  for(const learning of [false,true]){
   const f=await createLiveFixture({learning})
   try{
-   if(learning)await f.db.exec(readFileSync(new URL('../supabase/migrations/20261125000200_live_breakout_discussions.sql',import.meta.url),'utf8'))
-   await f.db.exec(readFileSync(new URL('../supabase/migrations/20261127173000_live_classroom_slide_update.sql',import.meta.url),'utf8'))
+   if(learning)await f.db.exec(readFileSync(new URL('../supabase/migrations/20261127152049_20261125000200_live_breakout_discussions.sql',import.meta.url),'utf8'))
+   await f.db.exec(readFileSync(new URL('../supabase/migrations/20261127193512_20261127173000_live_classroom_slide_update.sql',import.meta.url),'utf8'))
    let room=await f.rpc(f.teacher,'start',null,null,{title:'Current slide editing'})
    const sid=room.id
    await f.rpc(f.a,'join',sid)
