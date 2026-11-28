@@ -96,6 +96,6 @@ test('a plan reuses the existing private presentation and classroom draft',()=>{
   assert.match(attachment,/GRANT EXECUTE ON FUNCTION public\.vibe_live_plan_presentation\(uuid, uuid, boolean\) TO authenticated/)
   assert.match(classroom,/call\('materials_get',null,null,\{id:attachment\.data\}\)/)
   assert.match(classroom,/preparedDeck\.current=\{title:material\.title,slides:material\.slides\}/)
-  assert.match(classroom,/else if\(preparedDeck\.current\)\{setSlides\(preparedDeck\.current\.slides\);setSlideIndex\(0\);if\(instantEntry\)setPanel\('slides'\)\}/)
+  assert.match(classroom,/preparedRoomId\.current===roomId/)
   assert.match(classroom,/onUse=\{attachingPlan\?attachPlanPresentation:useMaterial\}/)
 })
