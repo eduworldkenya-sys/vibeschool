@@ -29,6 +29,8 @@ const assets=new Map(result.outputFiles.map(f=>['/'+f.path.split('/').at(-1),f.c
 assert.ok(assets.has('/app.js')&&assets.has('/app.css'),'Actual UI and CSS bundle must exist')
 const bookedAt=Date.now()
 const scheduleFixture={id:'00000000-0000-4000-8000-000000000099',invitation_id:'00000000-0000-4000-8000-000000000098',title:'Fixture scheduled tuition',starts_at:new Date(bookedAt).toISOString(),ends_at:new Date(bookedAt+3600000).toISOString(),status:'scheduled'}
+const bookingRows=[scheduleFixture]
+let bookingPayload
 let queue=Promise.resolve()
 const server=createServer(async(req,res)=>{
   const path=new URL(req.url,'http://127.0.0.1').pathname
@@ -45,7 +47,15 @@ const server=createServer(async(req,res)=>{
   const job=async()=>{
     try{
       const {name,params:p}=JSON.parse(body)
-      if(name==='vibetutor_my_lessons')return {data:userRole==='teacher'?[scheduleFixture]:[],error:null}
+      if(name==='vibetutor_my_lessons')return {data:userRole==='teacher'?bookingRows:[],error:null}
+      if(name==='vibetutor_my_student_invites')return {data:userRole==='teacher'?[{id:scheduleFixture.invitation_id,student:'Fixture learner',status:'accepted'},{id:'pending-fixture',student:'Pending learner',status:'pending_guardian'}]:[],error:null}
+      if(name==='vibetutor_schedule_lesson'){
+        if(userRole!=='teacher'||p.p_invitation!==scheduleFixture.invitation_id)throw Error('Accepted tutor connection required')
+        bookingPayload=p
+        const id='00000000-0000-4000-8000-000000000100'
+        bookingRows.push({id,invitation_id:p.p_invitation,title:p.p_title,starts_at:p.p_start,ends_at:p.p_end,status:'scheduled'})
+        return {data:id,error:null}
+      }
       if(name!=='vibe_live_command')throw Error('Unexpected RPC')
       const data=await fixture.rpc(identity[userRole],p.p_action,p.p_session_id,p.p_version,p.p_payload,p.p_class_id)
       return {data,error:null}
@@ -624,6 +634,20 @@ try{
  await st.evaluate(()=>{globalThis.__testScheduleReadFailure=false})
  await calendar.getByRole('button',{name:'Retry schedule'}).click()
  await calendar.getByRole('link',{name:/Fixture scheduled tuition/}).waitFor()
+ await calendar.getByRole('button',{name:'Schedule lesson',exact:true}).click()
+ const form=calendar.getByRole('form',{name:'Schedule a private lesson'})
+ await form.waitFor()
+ assert.deepEqual(await calendar.getByLabel('Connected learner').locator('option').allTextContents(),['Fixture learner'])
+ await form.getByLabel('Lesson topic').fill('New 40 minute lesson')
+ const scheduledDate=new Date(Date.now()+86400000*8).toISOString().slice(0,10)
+ await form.getByLabel('Date and time (EAT)').fill(scheduledDate+'T14:00')
+ await form.getByLabel('Duration (minutes)').fill('40')
+ await form.getByRole('button',{name:'Schedule lesson',exact:true}).click()
+ await form.getByRole('status').getByText('Lesson scheduled for both accounts.').waitFor()
+ assert.equal(bookingPayload.p_invitation,scheduleFixture.invitation_id)
+ assert.equal(bookingPayload.p_start,scheduledDate+'T11:00:00.000Z')
+ assert.equal(Date.parse(bookingPayload.p_end)-Date.parse(bookingPayload.p_start),40*60000)
+ await calendar.getByRole('button',{name:'Close booking'}).click()
  await st.setViewportSize({width:360,height:780});await noPageOverflow(st)
  await st.setViewportSize({width:1024,height:768})
  await button(st,'Prepare lesson').click()
