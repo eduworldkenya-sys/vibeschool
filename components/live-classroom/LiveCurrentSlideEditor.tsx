@@ -1,7 +1,6 @@
 'use client'
 import {useEffect,useRef,useState} from 'react'
-import {SlideBodyEditor} from './LiveSlideBodyEditor'
-import {SlideCanvas} from './LiveSlideCanvas'
+import {EditableSlideCanvas} from './EditableSlideCanvas'
 import {decodeSlide,encodeSlide,decodeAssessment,decodePhotoSlide,validSlide,type LiveSlide} from './LiveSlideProtocol'
 import styles from './LiveClassroom.module.css'
 
@@ -66,10 +65,7 @@ export function LiveCurrentSlideEditor({body,roomId,promptId,active,busy,onSync,
   </div>
   <small role="status">{sending?'Sharing changes…':conflict?'The displayed slide changed elsewhere. Reopen it before editing.':!active?'Live updates paused.':!encoded?'Shorten or complete the slide.':error?'Not shared':dirty?'Changes pending…':'Shared with class'}</small>
   {error&&<div role="alert">{error}<button type="button" disabled={busy||disabled} onClick={()=>setError('')}>Retry</button></div>}
-  <SlideCanvas slide={draft} number={initial.number} total={initial.total} roomId={roomId} edit={{
-   title:<input aria-label="Title" maxLength={120} value={draft.title} disabled={disabled} onChange={e=>patch({title:e.target.value})}/>,
-   body:<SlideBodyEditor slide={draft} disabled={disabled} allowActivities={false} onChange={body=>patch({body})}/>,
-  }}/>
+  <EditableSlideCanvas slide={draft} number={initial.number} total={initial.total} roomId={roomId} disabled={disabled} allowActivities={false} onChange={patch}/>
   <small>Edits apply to this live lesson.</small>
  </div>
 }

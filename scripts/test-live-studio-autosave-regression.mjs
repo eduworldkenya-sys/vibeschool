@@ -50,7 +50,7 @@ test('failed save leaves local content dirty and can retry without advancing rev
  assert.equal(h.state.generation,h.state.savedGeneration)
 })
 test('ordinary save does not disable canonical slide inputs or navigation; launch remains exclusive',async()=>{
- assert.match(source,/<SlideBodyEditor[^\n]+disabled=\{busy\}/)
+ assert.match(source,/<EditableSlideCanvas[^\n]+disabled=\{busy\}/)
  assert.match(source,/<PrivateSlideFields[^\n]+disabled=\{busy\}/)
  assert.match(source,/aria-label="Next slide" disabled=\{busy\|\|/)
  assert.match(source,/\[autoSave,dirty,busy,saving,saveProblem,edit,save\]/)
