@@ -545,6 +545,26 @@ try{
    const max=element.scrollHeight-element.clientHeight
    return max>0&&Math.abs(element.scrollTop/max-0.25)<0.14
  },null,{timeout:18000})
+ // Restore the server-acknowledged presenter viewport in the teacher's own tab.
+ const beforeReconnect=await fixture.rpc(fixture.teacher,'get',sid,null,{},fixture.cls)
+ assert.ok(Math.abs(beforeReconnect.presentedScrollRatio-0.25)<0.14)
+ await t.reload();await dialog(t).waitFor()
+ await t.waitForFunction(()=>{
+   const el=document.querySelector('[aria-label="Shared lesson"]')
+   const max=el?el.scrollHeight-el.clientHeight:0
+   return max>0&&Math.abs(el.scrollTop/max-0.25)<0.14
+ },null,{timeout:18000})
+ await t.getByRole('button',{name:'Previous lesson page'}).click()
+ await l.getByLabel('Shared lesson',{exact:true}).getByText(/How many quarters are in one whole\?/).first().waitFor()
+ const beforeHistoryReconnect=await fixture.rpc(fixture.teacher,'get',sid,null,{},fixture.cls)
+ assert.notEqual(beforeHistoryReconnect.presentedPromptId,beforeHistoryReconnect.prompt.id)
+ await t.reload();await dialog(t).waitFor()
+ await t.getByLabel('Shared lesson',{exact:true}).getByText(/How many quarters are in one whole\?/).first().waitFor()
+ await t.getByRole('button',{name:'Return to Live'}).click()
+ await l.getByText(/Live reading guide/).waitFor()
+ const afterReconnect=await fixture.rpc(fixture.teacher,'get',sid,null,{},fixture.cls)
+ assert.equal(afterReconnect.prompt.id,beforeReconnect.prompt.id,'Reconnect does not republish a lesson page')
+ assert.equal(afterReconnect.history.length,beforeReconnect.history.length)
  // An actual teacher publishes a bounded model over the authorized classroom
  // transport. A learner can explore it and reconnect to the shared values.
  await button(t,'Teaching Kit').click()
