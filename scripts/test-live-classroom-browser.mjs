@@ -691,7 +691,6 @@ try{
  assert.equal((await fixture.rpc(fixture.teacher,'get',oldTrial.id,null,{},null)).status,'ended')
  await st.getByLabel('Presenter notes (private)').waitFor()
  await button(st,'Present slide').click()
- await button(st,'Present slide').click()
  const guidance=st.getByLabel('Private teaching guidance')
  await guidance.getByText('Slide 1 of 1 · 5 min planned',{exact:true}).waitFor()
  await guidance.getByText('Private teacher notes',{exact:true}).click()
