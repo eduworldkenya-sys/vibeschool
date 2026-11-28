@@ -716,6 +716,20 @@ try{
  await st.getByLabel('Private teaching guidance').getByRole('button',{name:'Start activity timer · 5 min',exact:true}).waitFor()
  const afterTimer=await fixture.rpc(fixture.teacher,'get',standaloneRoomId,null,{},null)
  assert.equal(afterTimer.prompt.id,sharedStandalone.prompt.id,'Private activity timer never publishes or advances')
+ // A standalone model must not become the prepared lesson's resume target,
+ // even though both the model and this prepared deck are encoded as 1/1.
+ await st.getByRole('navigation',{name:'Classroom tool rail'}).getByRole('button',{name:'Tools',exact:true}).click()
+ await st.getByRole('searchbox',{name:'Search tools'}).fill('counters')
+ await st.getByRole('slider',{name:'Group A',exact:true}).press('ArrowRight')
+ await button(st,'Present to class').click()
+ await st.getByText('4 + 5 = 9 counters',{exact:true}).first().waitFor()
+ await st.getByRole('button',{name:'Return to slide 1',exact:true}).waitFor()
+ await st.reload()
+ await st.getByRole('button',{name:'Return to slide 1',exact:true}).click()
+ await st.getByLabel('Private teaching guidance').getByText('Slide 1 of 1 · 5 min planned',{exact:true}).waitFor()
+ const restoredStandalone=await fixture.rpc(fixture.teacher,'get',standaloneRoomId,null,{},null)
+ assert.equal(restoredStandalone.prompt.body,sharedStandalone.prompt.body,'Return restores the exact previously shared prepared page, not the temporary model')
+
 
  const endedReviewId=new URL(st.url()).searchParams.get('resumeRoom')
  assert.ok(endedReviewId,'Standalone lesson keeps its canonical room id')

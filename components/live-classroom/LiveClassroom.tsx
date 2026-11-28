@@ -1139,7 +1139,22 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
     if((saved?.body||saved?.key)&&!window.confirm('Replace the unsent activity draft?'))return
     chooseMode(activity.kind);setBody(question);const draft=liveSlide&&slides[liveSlide.number-1];setKey(draft&&draft.body===liveSlide?.body?preparedAssessment(draft)?.answer??'':'')
   }
-  const lastSlidePrompt=[...history].reverse().find(item=>item.kind==='teach'&&decodeSlide(item.body))
+  // Match published pages against the private prepared deck. Ad-hoc tools and
+  // resource previews can also be encoded as one-slide decks; do not treat
+  // those as a teaching position just because they decode as a slide.
+  function matchesPreparedPage(item:Prompt){
+    const published=item.kind==='teach'?decodeSlide(item.body):null
+    if(!published||published.total!==slides.length)return false
+    const draft=slides[published.number-1]
+    if(!draft)return false
+    const encoded=encodeSlide(draft,published.number,slides.length)
+    if(encoded===item.body)return true
+    const full=decodeSlide(encoded)
+    const original=visualSlidePayload(draft.body),shared=visualSlidePayload(published.body)
+    return !!full&&original!==null&&shared!==null&&boardRevealCount(original,shared)!==null&&JSON.stringify({...full,body:published.body})===JSON.stringify(published)
+  }
+  const preparedHistoryPrompt=!draftLoading&&!conflictDraft?[...history].reverse().find(matchesPreparedPage):undefined
+  const lastSlidePrompt=preparedHistoryPrompt??[...history].reverse().find(item=>item.kind==='teach'&&decodeSlide(item.body))
   const lastPresentedSlide=lastSlidePrompt?decodeSlide(lastSlidePrompt.body):null
   const presenterSlide=matchedSlide&&matchedSlide.total===slides.length?slides[matchedSlide.number-1]:null
   const presenterMatches=presenterSlide&&matchedSlide&&encodeSlide(presenterSlide,matchedSlide.number,slides.length)===encodeSlide(matchedSlide,matchedSlide.number,matchedSlide.total)
@@ -1147,6 +1162,17 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
   const plannedMinutes=presenterMatches?studioMinutes(presenterSlide):0
   const upcomingSlide=nextLiveSlide===null?null:slides[nextLiveSlide]
   const currentAssessment=liveSlide?decodeAssessment(liveSlide.body):null
+  const interruptedPresentation=prompt&&(prompt.kind==='board'||prompt.kind==='clock'||(prompt.kind==='teach'&&!presenterMatches))
+  const returnPrompt=interruptedPresentation?(preparedHistoryPrompt??(prompt.kind==='board'&&!draftLoading&&!conflictDraft?lastSlidePrompt:undefined)):undefined
+  const returnSlide=returnPrompt?decodeSlide(returnPrompt.body):null
+  async function returnToPreparedSlide(){
+    if(!returnPrompt||!returnSlide||!canNavigateSlides||photoLock.current||conflictDraft)return
+    const next=await act('publish',null,{kind:'teach',body:returnPrompt.body,answerKey:null})
+    if(next?.prompt?.body===returnPrompt.body){
+      setContentTab(null);setEditingBoard(false);setPanel(null)
+      if(returnSlide.total===slides.length)setSlideIndex(returnSlide.number-1)
+    }
+  }
 
   function startPreparedActivity(){
     if(!currentAssessment||!canNavigateSlides)return
@@ -1413,8 +1439,9 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
       {viewedPrompt.id===prompt?.id&&<button type="button" onClick={()=>setPanel('learners')}>Responses</button>}
       {viewedPrompt.id===prompt?.id&&viewedPrompt.revealed&&resumeAfterActivity!==null&&<button type="button" disabled={!canNavigateSlides} onClick={()=>presentSlide(resumeAfterActivity)}>Continue slides</button>}
     </div>}
-    {teacher&&panel===null&&!contentTab&&reviewId===null&&prompt?.kind==='board'&&lastSlidePrompt&&lastPresentedSlide&&(!focusMode||focusDock)&&<div className={styles.presentControls}>
-      <button type="button" disabled={!canNavigateSlides} onClick={()=>void act('publish',null,{kind:'teach',body:lastSlidePrompt.body,answerKey:null})}>Return to slide {lastPresentedSlide.number}</button>
+    {teacher&&panel===null&&reviewId===null&&returnSlide&&(!focusMode||focusDock)&&<div className={styles.presentControls} aria-label="Resume prepared lesson">
+      <button type="button" disabled={!canNavigateSlides||photoPreparing||!!conflictDraft} onClick={()=>void returnToPreparedSlide()}>Return to slide {returnSlide.number}</button>
+      {instantEntry&&<small>{returnSlide.title||'Prepared lesson'}</small>}
     </div>}
     {teacher&&instantEntry&&panel===null&&!contentTab&&!editingBoard&&reviewId===null&&liveSlide&&(!focusMode||focusDock)&&<section className={styles.deliveryGuidance} aria-label="Private teaching guidance">
       <span>Slide {liveSlide.number} of {liveSlide.total}{plannedMinutes>0?` · ${plannedMinutes} min planned`:''}</span>
