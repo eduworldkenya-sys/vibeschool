@@ -248,6 +248,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
   const [studioInspector,setStudioInspector]=useState<'content'|'design'|'notes'>('content')
   const [deletedSlide,setDeletedSlide]=useState<{slide:LiveSlide;index:number}|null>(null)
   const [beforeLibrary,setBeforeLibrary]=useState(initialStudio&&teacher)
+  const preparedRoomId=useRef<string|null>(null)
   const preparedDeck=useRef<{title:string;slides:LiveSlide[]}|null>(null)
   const [preparedTitle,setPreparedTitle]=useState('')
   const [linkedPlan,setLinkedPlan]=useState<{id:string;schemeId:string|null;title:string;steps:LessonDeliveryStep[]}|null>(null)
@@ -372,7 +373,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
   const pendingPublish=useRef<{fingerprint:string;requestId:string}|null>(null)
   const [draftWarning,setDraftWarning]=useState(false)
   const revoke=useCallback(()=>{
-    removeDraft(draftKey.current);draftKey.current=null;setDraftBinding(null);setBeforeLibrary(false);preparedDeck.current=null;setPreparedTitle('');setConflictDraft(null)
+    removeDraft(draftKey.current);draftKey.current=null;setDraftBinding(null);setBeforeLibrary(false);preparedDeck.current=null;preparedRoomId.current=null;setPreparedTitle('');setConflictDraft(null)
     pendingPublish.current=null;composerDrafts.current={}
     roomUrl(null);active.current=null;setRoom(null);setRooms([]);setReviewId(null)
     setError('Classroom access is no longer available.')
@@ -658,13 +659,48 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
   useEffect(()=>{setShareLink('')},[room?.id])
   useEffect(()=>{if(room?.id)setPastOpen(false)},[room?.id])
   useEffect(()=>{setAnswer('');setAnswerFor(room?.prompt?.id??'')},[room?.prompt?.id])
-  async function act(action:string,id:string|null=null,payload:Record<string,unknown>={}):Promise<Room|undefined> {
+  function closeRoomVoice(next:Room){
+    if(process.env.NEXT_PUBLIC_VIBE_LIVE_VOICE_ENABLED==='true' && next.teacher){
+      // End-class media ejection is a separate, strictly authorized server
+      // operation. The classroom and saved teaching history remain intact.
+      void supabase.auth.getSession().then(async({data:{session}})=>{
+        if(!session)return
+        const res=await fetch('/api/live/voice/'+encodeURIComponent(next.id),{
+          method:'DELETE',headers:{Authorization:'Bearer '+session.access_token},
+          cache:'no-store',
+        })
+        if(!res.ok && mounted.current)setError('Class ended, but the audio service may still be closing.')
+      }).catch(()=>{if(mounted.current)setError('Class ended; audio closure needs verification.')})
+    }
+  }
+  async function act(action:string,id:string|null=null,payload:Record<string,unknown>={},replaceRoomId?:string):Promise<Room|undefined> {
     if(mutating.current) return
     const stamp=++generation.current // discard any earlier poll; never discard the user's click
     mutating.current=true;lock.current=true;setBusy(true);setError('')
     try {
       let requestPayload=payload
       if(action==='start'&&preparedDeck.current){await validateStudioResources(preparedDeck.current.slides);await validateStudioFiles(preparedDeck.current.slides);if(!mounted.current||generation.current!==stamp)return}
+      const startingPrepared=action==='start'&&instantEntry&&!!preparedDeck.current
+      if(startingPrepared){
+        const openRooms=await call('list') as Summary[]
+        if(!mounted.current||generation.current!==stamp)return
+        const existing=openRooms.find(item=>item.own&&item.mode!=='school')
+        if(existing&&existing.id!==replaceRoomId){
+          setRooms(openRooms.filter(item=>item.own))
+          throw Error('A class is already open. Confirm ending it before starting the prepared lesson.')
+        }
+        if(existing){
+          const previous=await call('get',existing.id) as Room
+          if(!mounted.current||generation.current!==stamp)return
+          if(!previous.teacher||previous.id!==existing.id)throw Error('Could not confirm the existing class.')
+          if(previous.status!=='ended'){
+            const ended=await call('end',previous.id,previous.version) as Room
+            if(ended.status!=='ended')throw Error('Could not end the existing class.')
+            closeRoomVoice(ended)
+          }
+          setRooms(items=>items.filter(item=>item.id!==existing.id))
+        }
+      }
       if(action==='publish'){
         const fingerprint=JSON.stringify([room?.id,payload.kind,payload.body,payload.answerKey??null])
         if(pendingPublish.current?.fingerprint!==fingerprint)pendingPublish.current={fingerprint,requestId:crypto.randomUUID()}
@@ -699,6 +735,14 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
         if(bindError)startLinkFailure='Live started, but the Lesson Plan link could not be saved. '+(bindError.message||'Retry from lesson review.')
       }
       if(!mounted.current||generation.current!==stamp)return
+      if(startingPrepared){
+        if(next.id===replaceRoomId||next.title!==payload.title||next.version!==0||next.prompt){
+          accept(next)
+          setError('An existing class reopened. The prepared lesson is still queued.')
+          return
+        }
+        preparedRoomId.current=next.id
+      }
       accept(next)
       if(startLinkFailure)setLinkedPlanError(startLinkFailure)
       if(action==='publish'){
@@ -719,18 +763,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
       if(action==='reply'&&typeof payload.questionId==='string'){const questionId=payload.questionId;setReplyDrafts(items=>({...items,[questionId]:''}))}
       if(action==='end'){
         removeDraft(draftKey.current);draftKey.current=null;setDraftBinding(null)
-        if(process.env.NEXT_PUBLIC_VIBE_LIVE_VOICE_ENABLED==='true' && next.teacher){
-          // End-class media ejection is a separate, strictly authorized server
-          // operation. The classroom and saved teaching history remain intact.
-          void supabase.auth.getSession().then(async({data:{session}})=>{
-            if(!session)return
-            const res=await fetch('/api/live/voice/'+encodeURIComponent(next.id),{
-              method:'DELETE',headers:{Authorization:'Bearer '+session.access_token},
-              cache:'no-store',
-            })
-            if(!res.ok && mounted.current)setError('Class ended, but the audio service may still be closing.')
-          }).catch(()=>{if(mounted.current)setError('Class ended; audio closure needs verification.')})
-        }
+        closeRoomVoice(next)
       }
       return next
     } catch(e) {
@@ -886,7 +919,10 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
       if(cancelled||draftKey.current!==key)return
       setWorkspaceRevision(revision)
       if(draft){restoreDraft(draft)}
-      else if(preparedDeck.current){setSlides(preparedDeck.current.slides);setSlideIndex(0);if(instantEntry)setPanel('slides')}
+      else if(preparedDeck.current&&(!instantEntry||preparedRoomId.current===roomId)){
+        setSlides(preparedDeck.current.slides);setSlideIndex(0)
+        if(instantEntry){setStudioInspector('notes');setPanel('slides')}
+      }
       else{
         const latest=active.current
         const published=latest?historyFor(latest):[]
@@ -907,7 +943,10 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
           setSlides(deck);setSlideIndex(latestSlide.number-1)
         }
       }
-      preparedDeck.current=null;setPreparedTitle('');setBeforeLibrary(false);setDraftBinding({roomId,key})
+      if(!instantEntry||preparedRoomId.current===roomId){
+        preparedDeck.current=null;setPreparedTitle('');preparedRoomId.current=null
+      }
+      setBeforeLibrary(false);setDraftBinding({roomId,key})
     }).catch(()=>{if(!cancelled)setDraftWarning(true)})
     return ()=>{cancelled=true}
   },[teacher,room?.id,room?.status==='ended',call,workspaceRetry,revoke,instantEntry])
@@ -1385,22 +1424,22 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
   }
   if(teacher&&beforeLibrary&&!room&&!loading)return <main className={`${styles.live} ${styles.studioPage}`} aria-label="Live Studio"><TeachingLibrary command={call} currentDeck={null} onUse={attachingPlan?attachPlanPresentation:useMaterial} attachToPlan={attachingPlan} onClose={()=>{setAttachingPlan(false);setBeforeLibrary(false)}}/></main>
   if(instantEntry&&teacher&&!classId&&!room&&!loading){
-    const currentClass=rooms.find(item=>item.own&&item.mode==='tuition'&&item.status==='active')
-      ??rooms.find(item=>item.own&&item.mode==='tuition'&&item.status==='paused')
+    const currentClass=rooms.find(item=>item.own&&item.mode!=='school')
     return <main className={styles.live} style={{fontFamily:'var(--font-jakarta), system-ui, sans-serif'}}>
     <header className={styles.header}><Link href={back}>Back</Link><h1>Online teaching</h1></header>
     <section className={styles.panel}>
       {error&&<p role="alert">{error} <button onClick={()=>void refresh()}>Retry</button></p>}
       <div className={styles.controls}>
         <button type="button" disabled={busy} onClick={()=>setBeforeLibrary(true)}>Prepare lesson</button>
-        <button type="button" className={styles.primary} disabled={busy||!online||!!error} onClick={()=>{
-          if(currentClass)void act('get',currentClass.id)
-          else void act('start',null,{title:preparedDeck.current?.title||'Untitled lesson',mode:'tuition',groupId:null})
-        }}>{busy?'Connecting…':currentClass?'Resume class':'Go Live'}</button>
+        {currentClass&&<button type="button" disabled={busy||!online} onClick={()=>void act('get',currentClass.id)}>Resume {currentClass.title}</button>}
+        {(preparedTitle||!currentClass)&&<button type="button" className={styles.primary} disabled={busy||!online} onClick={()=>{
+          if(currentClass&&!window.confirm(`End “${currentClass.title}” for everyone and start “${preparedTitle}”?`))return
+          void act('start',null,{title:preparedTitle||'Untitled lesson',mode:'tuition',groupId:null},currentClass?.id)
+        }}>{busy?'Connecting…':preparedTitle?`Start ${preparedTitle}`:'Go Live'}</button>}
       </div>
       {preparedTitle&&<p>Ready for next lesson: {preparedTitle} <button type="button" disabled={busy} onClick={()=>setRehearsalOpen(true)}>Rehearse privately</button> <button type="button" disabled={busy} onClick={()=>{preparedDeck.current=null;setPreparedTitle('')}}>Remove from this session</button></p>}
       <small>Invited classroom · Microphone starts muted</small>
-      {rooms.filter(item=>item.mode!=='tuition').map(item=><button key={item.id} disabled={busy} onClick={()=>void act('get',item.id)}>Resume {item.title}</button>)}
+      {rooms.filter(item=>item.id!==currentClass?.id&&item.mode!=='tuition').map(item=><button key={item.id} disabled={busy} onClick={()=>void act('get',item.id)}>Resume {item.title}</button>)}
       {pastAvailable&&<button type="button" aria-expanded={pastOpen} disabled={pastLoading} onClick={()=>void togglePastClasses()}>{pastOpen?'Hide past classes':'Past classes'}</button>}
       {pastOpen&&<section aria-label="Past classes">{pastLoading&&<p role="status">Loading…</p>}{pastError&&<p role="alert">{pastError}</p>}{pastRooms.map(item=><button key={item.id} disabled={busy} onClick={()=>void act('get',item.id)}>{item.title}</button>)}</section>}
     </section>
