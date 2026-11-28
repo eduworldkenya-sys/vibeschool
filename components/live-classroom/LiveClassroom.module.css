@@ -768,3 +768,20 @@
 @media(min-width:1100px){.premium .liveTop{flex-wrap:nowrap}.premium .liveTitle{flex:1 1 130px}.premium .liveTop .premiumMenu{flex:none}.premium .compactFooter>.dock{flex:1 1 0}}
 @media(max-width:1099px){.premium .liveTop .premiumMenu{order:2}.compactTiming{order:3}.premium .compactFooter{justify-content:center}.premium .compactFooter .sessionRow{justify-content:center}}
 @media(max-width:560px){.premium .liveTop .premiumMenu{flex:1 1 auto}.premium .compactTiming{white-space:normal;flex-wrap:wrap}.premium .liveTop .executiveModes button{padding:4px 6px}.premium .compactFooter .sessionRow button{min-height:44px;padding:4px 5px}.premium .compactFooter>.dock{flex:1 1 100%}}
+
+.presentationBody .canvasTitleInput{
+ width:100%;
+ font:inherit;
+ text-align:center;
+ color:inherit;
+ background:transparent;
+}
+.presentationBody .canvasBodyEditor{
+ display:grid;
+ gap:8px;
+ width:100%;
+ min-width:0;
+ text-align:start;
+ overflow-wrap:anywhere;
+}
+.canvasBodyEditor textarea{width:100%;max-width:100%;resize:vertical}
