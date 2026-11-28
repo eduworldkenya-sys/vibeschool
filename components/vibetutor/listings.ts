@@ -19,10 +19,13 @@ function initialsOf(name: string) {
   return name.trim().split(/\s+/).slice(0, 2).map(part => part[0]?.toUpperCase() ?? '').join('') || 'VT'
 }
 
+export type SavedDiscoveryPreference = { subjects: string[]; levels: string[]; days: string[]; area: string; mode: Mode; amount: number }
 export type LiveListings = {
   tutors: DemoTutor[]
   requests: DemoRequest[]
   signedIn: boolean
+  learnerPreference?: SavedDiscoveryPreference
+  tutorPreference?: SavedDiscoveryPreference
 }
 
 export async function fetchLiveListings(): Promise<LiveListings> {
@@ -48,9 +51,19 @@ export async function fetchLiveListings(): Promise<LiveListings> {
   // are read separately under owner-only RLS, only for the verified signed-in
   // request owner, and are never written to the anonymous discovery view.
   const ownedNamesById = new Map<string, string>()
-  if (signedIn && requestRows.length > 0) {
+  let learnerPreference: SavedDiscoveryPreference | undefined
+  let verifiedId: string | undefined
+  if (signedIn) {
     const { data: verified, error: identityError } = await client.auth.getUser()
     if (!identityError && verified.user) {
+      verifiedId = verified.user.id
+      const { data: own } = await client.from('vibetutor_requests')
+        .select('subjects,levels,available_days,area,teaching_mode,budget_kes')
+        .eq('requester_id', verifiedId).eq('status', 'open')
+        .order('created_at', { ascending: false }).limit(1).maybeSingle()
+      if (own && ['online','physical','either'].includes(own.teaching_mode)) learnerPreference = {
+        subjects: own.subjects, levels: own.levels, days: own.available_days, area: own.area ?? '', mode: own.teaching_mode as Mode, amount: own.budget_kes ?? 0,
+      }
       const { data: mine, error: mineError } = await client.from('vibetutor_requests')
         .select('id,learner_label')
         .eq('requester_id', verified.user.id)
@@ -78,7 +91,9 @@ export async function fetchLiveListings(): Promise<LiveListings> {
     postedDaysAgo: Math.max(0, Math.floor((Date.now() - new Date(row.created_at).getTime()) / 86400000)),
     note: row.note ?? '', real: true,
   }))
-  return { tutors, requests, signedIn }
+  const myTutor = verifiedId ? tutors.find(t => t.id === verifiedId) : undefined
+  const tutorPreference = myTutor ? { subjects: myTutor.subjects, levels: myTutor.levels, days: myTutor.days, area: myTutor.area, mode: myTutor.mode, amount: myTutor.rateKes } : undefined
+  return { tutors, requests, signedIn, learnerPreference, tutorPreference }
 }
 
 export async function saveTutorListing(input: {
