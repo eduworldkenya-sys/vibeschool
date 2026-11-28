@@ -29,11 +29,14 @@ type Peer = {
   deadline: ReturnType<typeof setTimeout>
   stream?: MediaStream
   negotiating: boolean
+  everConnected: boolean
   output?: MediaStreamTrack | null
 }
 
 const POLL_MS = 2000
 const SIGNAL_TIMEOUT_MS = 10000
+// A failed leave may retain the old server lease for 16 seconds.
+const PEER_REJOIN_DELAY_MS = 17000
 class MeshRequestError extends Error {}
 
 // The host broadcasts one mix to all listeners and a host-only track back to
@@ -88,6 +91,8 @@ export function MeshLiveVoice({ roomId, classId, teacher, enabled, status, learn
   const [retry, setRetry] = useState(0)
   const [busy, setBusy] = useState(false)
   const [listenVolume,setListenVolume]=useState(100)
+  const automaticRejoinUsed = useRef(false)
+  useEffect(() => { automaticRejoinUsed.current = false }, [roomId, classId, teacher, enabled, status])
   const playerRef = useRef<HTMLAudioElement>(null)
   useEffect(()=>{if(playerRef.current)playerRef.current.volume=listenVolume/100},[listenVolume])
   const micClick = useRef<(() => Promise<void>) | null>(null)
@@ -128,6 +133,7 @@ export function MeshLiveVoice({ roomId, classId, teacher, enabled, status, learn
     let moderationVersion = 0
     let timer: ReturnType<typeof setTimeout> | undefined
     let reconnectTimer: ReturnType<typeof setTimeout> | undefined
+    let peerRejoinTimer: ReturnType<typeof setTimeout> | undefined
     let networkInterrupted = !navigator.onLine
     let lease: ReturnType<typeof setTimeout> | undefined
     let learnerSender: RTCRtpSender | undefined
@@ -160,6 +166,7 @@ export function MeshLiveVoice({ roomId, classId, teacher, enabled, status, learn
     }
 
     const stop = (message: string, failed = false, release = true) => {
+      clearTimeout(peerRejoinTimer)
       if (lifetime.signal.aborted) return
       lifetime.abort()
       clearTimeout(timer)
@@ -241,6 +248,13 @@ export function MeshLiveVoice({ roomId, classId, teacher, enabled, status, learn
 
     const failPeer = (edge: Peer) => {
       if (edge.controller.signal.aborted) return
+      if (!teacher && admitted && edge.everConnected && navigator.onLine && !automaticRejoinUsed.current) {
+        automaticRejoinUsed.current = true
+        // Stop capture and release the old client; never resume the old speaking grant.
+        stop('Reconnecting…')
+        peerRejoinTimer = setTimeout(() => { if (navigator.onLine) setRetry(value => value + 1) }, PEER_REJOIN_DELAY_MS)
+        return
+      }
       failedEdges.set(edge.studentId, edge.epoch)
       closePeer(edge)
       sync()
@@ -294,7 +308,7 @@ export function MeshLiveVoice({ roomId, classId, teacher, enabled, status, learn
       const call = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.cloudflare.com:3478' }] })
       const edge: Peer = {
         studentId: state.studentId, epoch: state.epoch, call,
-        controller: new AbortController(), negotiating: false,
+        controller: new AbortController(), negotiating: false, everConnected: false,
         deadline: setTimeout(() => failPeer(edge), 24000),
       }
       peers.set(state.studentId, edge)
@@ -310,6 +324,7 @@ export function MeshLiveVoice({ roomId, classId, teacher, enabled, status, learn
         if (edge.controller.signal.aborted) return
         switch (call.connectionState) {
           case 'connected':
+            edge.everConnected = true
             clearTimeout(edge.deadline)
             break
           case 'disconnected':
@@ -478,7 +493,7 @@ export function MeshLiveVoice({ roomId, classId, teacher, enabled, status, learn
         {micState === 'on' ? 'Mute' : micState === 'requesting' ? 'Cancel' : micState === 'error' ? 'Retry mic' : 'Unmute'}
       </button>
       {status === 'active' && failure &&
-        <button type="button" disabled={busy||phase==='Reconnecting…'||!navigator.onLine} onClick={() => setRetry(value => value + 1)}>Retry audio</button>}
+        <button type="button" disabled={busy||phase==='Reconnecting…'||!navigator.onLine} onClick={() => { automaticRejoinUsed.current = false; setRetry(value => value + 1) }}>Retry audio</button>}
       {status === 'active' && teacher && onFallback && (admitted || failure) &&
         <button type="button" disabled={busy} onClick={() => void controls.current?.('fallback')}>Use Daily audio</button>}
       {compact&&<button type="button" aria-expanded={audioDetails} title={failure||"Audio settings and speaking requests"} onClick={()=>setAudioDetails(v=>!v)}>{failure?"Audio issue":learners.some(l=>l.needsHelp)?"Audio · requests":"Audio settings"}</button>}
