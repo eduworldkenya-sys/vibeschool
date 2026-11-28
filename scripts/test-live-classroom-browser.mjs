@@ -81,7 +81,7 @@ const server=createServer(async(req,res)=>{
 })
 await new Promise((ok,fail)=>{server.once('error',fail);server.listen(0,'127.0.0.1',ok)})
 const origin='http://127.0.0.1:'+server.address().port
-const browser=await chromium.launch({headless:true})
+const browser=await chromium.launch({headless:true,executablePath:process.env.LIVE_TEST_CHROMIUM||undefined})
 const contexts=[],errors=[]
 async function open(role,width=360,height=780,resume=''){
   const context=await browser.newContext({viewport:{width,height}})
@@ -246,7 +246,32 @@ try{
   await button(t,'Edit current slide').click()
   await t.getByLabel('Edit presented slide').waitFor()
   assert.equal(await t.getByLabel('Title',{exact:true}).inputValue(),'Equivalent fractions')
-  await t.getByLabel('Content',{exact:true}).fill('Two quarters equal one half. Revised.')
+  const content=t.getByLabel('Content',{exact:true})
+  let resumeShare,finishShare
+  const shareFinished=new Promise(resolve=>{finishShare=resolve})
+  let intercepted=false
+  const shareBarrier=new Promise(resolve=>{resumeShare=resolve})
+  const delayFirstUpdate=async route=>{
+   if(intercepted||route.request().postDataJSON()?.params?.p_action!=='slide_update'){
+    await route.continue()
+    return
+   }
+   intercepted=true
+   await shareBarrier
+   try{await route.continue()}finally{finishShare()}
+  }
+  await t.route('**/rpc',delayFirstUpdate)
+  try{
+   await content.fill('Two quarters equal one half.')
+   await t.getByText('Sharing changes…',{exact:true}).waitFor()
+   assert.ok(await content.isEnabled(),'Sync must keep the live editor interactive')
+   await content.press('End')
+   await content.pressSequentially(' Revised.')
+  }finally{
+   resumeShare()
+   if(intercepted)await shareFinished
+   await t.unroute('**/rpc',delayFirstUpdate)
+  }
   await t.getByText('Shared with class',{exact:true}).waitFor()
   await l.bringToFront()
   await see(l,'Two quarters equal one half. Revised.')
