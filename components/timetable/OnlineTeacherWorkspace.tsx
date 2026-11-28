@@ -4,6 +4,7 @@ import {useEffect,useState,type ReactNode} from 'react'
 import Link from 'next/link'
 import {getSupabaseClient} from '@/lib/supabase'
 import TuitionLessonBookingForm from '@/components/vibetutor/TuitionLessonBookingForm'
+import {scheduledLiveEnabled} from '@/components/live-classroom/ScheduledBookingContext'
 import {ArrowLeft,ArrowRight,BookOpen,CalendarDays,ChevronLeft,ChevronRight,ClipboardList,House,Lock,MessageCircle,Presentation,UserRound,Users,Video,Wallet,ChartNoAxesColumn} from 'lucide-react'
 import {tuitionLocalDate,tuitionLocalTime,tuitionLessonsBetween,useTuitionTimetable,type TuitionTimetableLesson} from './TuitionTimetable'
 import {tuitionLessonState} from '@/lib/vibetutor/lessonLifecycle'
@@ -21,10 +22,10 @@ function label(date:string){return dates.format(new Date(date+'T00:00:00Z'))}
 function LessonItem({lesson,now}:{lesson:TuitionTimetableLesson;now:number}){
  const state=tuitionLessonState(lesson,now)
  const text={upcoming:'Scheduled',joinable:'Ready to join',ended:'Ended',cancelled:'Cancelled',completed:'Completed',unavailable:'Unavailable'}[state]
- const url=state==='joinable'?'/tuition/lessons/'+encodeURIComponent(lesson.id):detailHref(lesson)
+ const url=(state==='joinable'||scheduledLiveEnabled&&['upcoming','ended','completed'].includes(state))?'/tuition/lessons/'+encodeURIComponent(lesson.id):detailHref(lesson)
  return <Link className={styles.booking} data-state={state} href={url} aria-label={lesson.title+', '+tuitionLocalTime(lesson.starts_at)+', '+text}>
    <time dateTime={lesson.starts_at}>{tuitionLocalTime(lesson.starts_at)}–{tuitionLocalTime(lesson.ends_at)}</time>
-   <strong>{lesson.title}</strong><small>{text}{state==='joinable'?' · Join':''}</small>
+   <strong>{lesson.title}</strong><small>{text}{state==='joinable'?' · Join':state==='upcoming'&&scheduledLiveEnabled?' · Prepare':''}</small>
  </Link>
 }
 
@@ -72,7 +73,7 @@ export default function OnlineTeacherWorkspace({children,back='/teacher/pulse',s
     <div><span>This week</span><strong>{ready?currentWeek.filter(l=>l.status==='scheduled').length:'—'}</strong></div>
     <div><span>Completed this week</span><strong>{ready?completed:'—'}</strong></div>
   </section>}
-  {!scheduleOnly&&ready&&next&&<section className={styles.next} aria-label="Next scheduled lesson"><div><small>NEXT SCHEDULED LESSON</small><h2>{next.title}</h2><p>{label(tuitionLocalDate(next.starts_at))} · {tuitionLocalTime(next.starts_at)}–{tuitionLocalTime(next.ends_at)} EAT</p></div><Link className={styles.action} href={tuitionLessonState(next,now)==='joinable'?'/tuition/lessons/'+encodeURIComponent(next.id):detailHref(next)}>{tuitionLessonState(next,now)==='joinable'?'Join lesson':'Lesson details'}<ArrowRight size={16}/></Link></section>}
+  {!scheduleOnly&&ready&&next&&<section className={styles.next} aria-label="Next scheduled lesson"><div><small>NEXT SCHEDULED LESSON</small><h2>{next.title}</h2><p>{label(tuitionLocalDate(next.starts_at))} · {tuitionLocalTime(next.starts_at)}–{tuitionLocalTime(next.ends_at)} EAT</p></div><Link className={styles.action} href={(tuitionLessonState(next,now)==='joinable'||scheduledLiveEnabled)?'/tuition/lessons/'+encodeURIComponent(next.id):detailHref(next)}>{tuitionLessonState(next,now)==='joinable'?'Join lesson':scheduledLiveEnabled?'Prepare lesson':'Lesson details'}<ArrowRight size={16}/></Link></section>}
   <section className={styles.calendar} id="schedule" aria-label="My teaching schedule">
    <div className={styles.calendarHead}><div><h2>My teaching schedule</h2><p>East Africa Time (EAT)</p></div><div className={styles.weekControls}><button type="button" aria-label="Previous week" onClick={()=>setOffset(v=>v-1)}><ChevronLeft size={19}/></button><strong>{label(start)} – {label(days[6])} {days[6].slice(0,4)}</strong><button type="button" aria-label="Next week" onClick={()=>setOffset(v=>v+1)}><ChevronRight size={19}/></button><button type="button" onClick={()=>setOffset(0)}>Today</button></div></div>
    <div className={styles.calendarActions}><button className={styles.action} type="button" aria-expanded={bookingOpen} onClick={()=>setBookingOpen(v=>!v)}>{bookingOpen?'Close booking':'Schedule lesson'}</button><Link className={styles.secondary} href={availabilityHref}>Set availability</Link><button type="button" onClick={refresh} disabled={loading}>Refresh</button></div>

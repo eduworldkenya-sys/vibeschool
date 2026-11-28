@@ -11,14 +11,17 @@ const testModules='/tmp/live-test/node_modules'
 const {build}=require(testModules+'/esbuild')
 const {chromium}=require(testModules+'/playwright')
 const fixture=await createLiveFixture({learning:true})
+await fixture.db.exec('alter table public.vibetutor_student_invitations add primary key(id); alter table public.vibetutor_private_groups alter column id set default gen_random_uuid()')
+await fixture.db.exec(readFileSync(new URL('../supabase/migrations/20261106123211_vibetutor_private_lessons.sql',import.meta.url),'utf8'))
+await fixture.db.exec(readFileSync(new URL('../supabase/migrations/20261128070000_live_tuition_booking.sql',import.meta.url),'utf8'))
 await fixture.db.exec(readFileSync(new URL('../supabase/migrations/20261125000100_live_slide_study.sql',import.meta.url),'utf8'))
 const liveUpdateEnabled=process.env.TEST_LIVE_SLIDE_UPDATE==='1'
 if(liveUpdateEnabled)await fixture.db.exec(readFileSync(new URL('../supabase/migrations/20261127173000_live_classroom_slide_update.sql',import.meta.url),'utf8'))
 const identity={teacher:fixture.teacher,learner:fixture.a,'learner-b':fixture.b,outsider:fixture.outsider}
 const result=await build({
-  stdin:{contents:"import React from 'react'; import {createRoot} from 'react-dom/client'; import LiveClassroom from './components/live-classroom/LiveClassroom'; const role=location.pathname.slice(1); createRoot(document.getElementById('root')).render(<LiveClassroom classId={role==='teacher'&&!new URLSearchParams(location.search).has('standalone')?'"+fixture.cls+"':null} teacher={role==='teacher'} instantEntry={new URLSearchParams(location.search).get('executive')==='1'} back='/'/>);",loader:'tsx',resolveDir:process.cwd()},
+  stdin:{contents:"import React from 'react'; import {createRoot} from 'react-dom/client'; import LiveClassroom from './components/live-classroom/LiveClassroom'; import ScheduledLiveClassroom from './components/vibetutor/ScheduledLiveClassroom'; const role=location.pathname.slice(1); const booking=new URLSearchParams(location.search).get('booking'); createRoot(document.getElementById('root')).render(booking?<ScheduledLiveClassroom lessonId={booking}/>:<LiveClassroom classId={role==='teacher'&&!new URLSearchParams(location.search).has('standalone')?'"+fixture.cls+"':null} teacher={role==='teacher'} instantEntry={new URLSearchParams(location.search).get('executive')==='1'} back='/'/>);",loader:'tsx',resolveDir:process.cwd()},
   bundle:true,write:false,outdir:'out',entryNames:'app',jsx:'automatic',platform:'browser',
-  nodePaths:[testModules],define:{'process.env.NODE_ENV':'"production"','process.env.NEXT_PUBLIC_VIBE_LIVE_DAILY_ENABLED':'"true"','process.env.NEXT_PUBLIC_VIBE_LIVE_VOICE_ENABLED':'"false"','process.env.NEXT_PUBLIC_VIBE_LIVE_SLIDE_UPDATE_ENABLED':JSON.stringify(liveUpdateEnabled?'true':'false')},
+  nodePaths:[testModules],define:{'process.env.NEXT_PUBLIC_VIBE_SCHEDULED_LIVE_ENABLED':'"true"','process.env.NEXT_PUBLIC_VIBE_LIVE_ENABLED':'"true"','process.env.NODE_ENV':'"production"','process.env.NEXT_PUBLIC_VIBE_LIVE_DAILY_ENABLED':'"true"','process.env.NEXT_PUBLIC_VIBE_LIVE_VOICE_ENABLED':'"false"','process.env.NEXT_PUBLIC_VIBE_LIVE_SLIDE_UPDATE_ENABLED':JSON.stringify(liveUpdateEnabled?'true':'false')},
   plugins:[{name:'loopback-fixture',setup(b){
     b.onResolve({filter:/^(@\/lib\/supabase|next\/link)$/},args=>({path:args.path,namespace:'fixture'}))
     b.onLoad({filter:/.*/,namespace:'fixture'},args=>({loader:'jsx',resolveDir:process.cwd(),contents:args.path==='next/link'?
@@ -56,6 +59,11 @@ const server=createServer(async(req,res)=>{
         const id='00000000-0000-4000-8000-000000000100'
         bookingRows.push({id,invitation_id:p.p_invitation,title:p.p_title,starts_at:p.p_start,ends_at:p.p_end,status:'scheduled'})
         return {data:id,error:null}
+      }
+      if(name==='vibe_live_tuition_booking'){
+        await fixture.db.exec("set role authenticated; select set_config('request.jwt.claim.sub','"+identity[userRole]+"',false)")
+        try{return {data:(await fixture.db.query('select public.vibe_live_tuition_booking($1,$2) as out',[p.p_booking,p.p_action])).rows[0].out,error:null}}
+        finally{await fixture.db.exec('reset role')}
       }
       if(name==='vibe_live_study_command'){
         await fixture.db.exec("set role authenticated; select set_config('request.jwt.claim.sub','"+identity[userRole]+"',false)")
@@ -800,6 +808,43 @@ try{
  await st.getByRole('heading',{name:'Online teaching',exact:true}).waitFor()
  assert.equal(new URL(st.url()).searchParams.has('resumeRoom'),false,'Leaving review clears the ended room URL')
  await standalone.context.close()
+ // A real booked session uses the very same Live Studio and student renderer.
+ const bookingId=fixture.id(110)
+ await fixture.db.query("update vibe_live.sessions set created_at=now()-interval '30 seconds' where teacher_id=$1",[fixture.teacher])
+ await fixture.db.query("insert into public.vibetutor_lessons(id,invitation_id,tutor_id,student_id,title,starts_at,ends_at) values($1,$2,$3,$4,'Scheduled fractions',now()+interval '2 minutes',now()+interval '42 minutes')",[bookingId,fixture.id(40),fixture.teacher,fixture.id(30)])
+ const bookedTeacher=await open('teacher',1024,768,'?booking='+bookingId),bt=bookedTeacher.page
+ await bt.getByRole('heading',{name:'Scheduled fractions',exact:true}).waitFor()
+ const bookedLearner=await open('learner',360,780,'?booking='+bookingId),bl=bookedLearner.page
+ await bl.getByText('Waiting for your teacher to start the lesson.').waitFor()
+ await bt.bringToFront()
+ await button(bt,'Prepare lesson').click()
+ await bt.getByRole('heading',{name:'My presentations'}).waitFor()
+ await bt.getByRole('button',{name:/Prepared fractions/}).first().click()
+ await button(bt,'Prepare for Live').click()
+ await bt.getByText(/Prepared: Prepared fractions/).waitFor()
+ assert.equal(await dialog(bt).count(),0,'Preparation must not create a room')
+ await button(bt,'Start booked lesson').click()
+ await dialog(bt).waitFor()
+ await button(bt,'Present slide').click()
+ const bookedRoomId=new URL(bt.url()).searchParams.get('resumeRoom')
+ assert.ok(bookedRoomId)
+ await bl.bringToFront()
+ await button(bl,'Refresh lesson').click()
+ await button(bl,'Join lesson').click()
+ await dialog(bl).waitFor()
+ assert.equal(new URL(bl.url()).searchParams.get('resumeRoom'),bookedRoomId)
+ await bl.getByLabel('Shared lesson',{exact:true}).getByText('Equivalent fractions',{exact:true}).first().waitFor()
+ const bookedOutsider=await open('learner-b',360,780,'?booking='+bookingId)
+ await bookedOutsider.page.getByRole('alert').waitFor()
+ assert.equal(await button(bookedOutsider.page,'Join lesson').count(),0)
+ await bookedOutsider.context.close()
+ await bt.bringToFront()
+ await button(bt,'End class').click()
+ await bt.getByRole('dialog',{name:'End class?'}).getByRole('button',{name:'End class',exact:true}).click()
+ await bt.getByRole('main',{name:'Completed lesson review'}).waitFor()
+ await bl.bringToFront()
+ await bl.getByText('This session has ended.').waitFor()
+ await bookedTeacher.context.close();await bookedLearner.context.close()
  assert.deepEqual(errors,[],'Browser runtime errors')
  console.log('PASS: actual responsive classroom UI with synthetic authenticated RPC transport, separate learner views, library reuse, draft recovery, slide navigation, board, private workpad, one-tap polls, hand acknowledgement, quiz reveal, offline/reconnect, outsider denial and ended history')
 }catch(e){
