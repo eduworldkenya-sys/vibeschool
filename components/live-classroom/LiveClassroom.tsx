@@ -1395,7 +1395,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
       {viewedPrompt.id===prompt?.id&&<button type="button" onClick={()=>setPanel('learners')}>Responses</button>}
       {viewedPrompt.id===prompt?.id&&viewedPrompt.revealed&&resumeAfterActivity!==null&&<button type="button" disabled={!canNavigateSlides} onClick={()=>presentSlide(resumeAfterActivity)}>Continue slides</button>}
     </div>}
-    {teacher&&panel===null&&!contentTab&&!editingBoard&&reviewId===null&&prompt?.kind==='board'&&lastSlidePrompt&&lastPresentedSlide&&(!focusMode||focusDock)&&<div className={styles.presentControls}>
+    {teacher&&panel===null&&!contentTab&&reviewId===null&&prompt?.kind==='board'&&lastSlidePrompt&&lastPresentedSlide&&(!focusMode||focusDock)&&<div className={styles.presentControls}>
       <button type="button" disabled={!canNavigateSlides} onClick={()=>void act('publish',null,{kind:'teach',body:lastSlidePrompt.body,answerKey:null})}>Return to slide {lastPresentedSlide.number}</button>
     </div>}
     {teacher&&instantEntry&&panel===null&&!contentTab&&!editingBoard&&reviewId===null&&liveSlide&&(!focusMode||focusDock)&&<section className={styles.deliveryGuidance} aria-label="Private teaching guidance">
