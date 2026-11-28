@@ -59,7 +59,7 @@ type Participant = { studentId: string; name: string; needsHelp: boolean; answer
 type PresenterPosition = {roomId:string;promptId:string;currentPromptId:string;ratio:number}
 type WaitingRequest = {studentId:string;name:string;requestedAt:string}
 type LiveQuestion = {id:string;body:string;reply:string|null;name?:string}
-type Room = { teachingPhase?:TeachingPhase; mode: ClassroomMode; id: string; title: string; version: number; status: 'active' | 'paused' | 'ended'; teacher: boolean; prompt: Prompt | null; history?: HistoryPrompt[]; handAckAt?: string|null; ownNote?:string; questions?:LiveQuestion[]; participants?: Participant[]; ownAnswer?: string | null; needsHelp?: boolean; dmUnread?: number; chatEnabled?:boolean; waitingCount?:number; presentedPromptId?:string|null; presentedScrollRatio?:number; presentedSeq?:number }
+type Room = { bookingCreated?:boolean; teachingPhase?:TeachingPhase; mode: ClassroomMode; id: string; title: string; version: number; status: 'active' | 'paused' | 'ended'; teacher: boolean; prompt: Prompt | null; history?: HistoryPrompt[]; handAckAt?: string|null; ownNote?:string; questions?:LiveQuestion[]; participants?: Participant[]; ownAnswer?: string | null; needsHelp?: boolean; dmUnread?: number; chatEnabled?:boolean; waitingCount?:number; presentedPromptId?:string|null; presentedScrollRatio?:number; presentedSeq?:number }
 type ComposerDraft = { body: string; key: string }
 type DraftState = { serverRevision?:number; board: string; boardPages?: string[]; boardPage?: number; slides: LiveSlide[]; slideIndex: number; mode: Mode; body: string; key: string; clock: string; composers: Partial<Record<Mode,ComposerDraft>> }
 const validModes = ['teach','quiz','exercise','poll','clock','board'] as const
@@ -751,7 +751,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
       }
       if(!mounted.current||generation.current!==stamp)return
       if(startingPrepared){
-        if(next.id===replaceRoomId||next.title!==payload.title||next.version!==0||next.prompt){
+        if((scheduledId&&!next.bookingCreated)||next.id===replaceRoomId||next.title!==payload.title||next.version!==0||next.prompt){
           accept(next)
           setError('An existing class reopened. The prepared lesson is still queued.')
           return
