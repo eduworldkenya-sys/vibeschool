@@ -4,6 +4,7 @@ import Link from "next/link";
 import { getSupabaseClient } from "@/lib/supabase";
 import { tuitionLessonCanCancel, tuitionLessonState } from "@/lib/vibetutor/lessonLifecycle";
 import TuitionLessonBookingForm from "./TuitionLessonBookingForm";
+import {scheduledLiveEnabled} from "@/components/live-classroom/ScheduledBookingContext";
 
 type Lesson = { id: string; invitation_id: string; title: string; starts_at: string; ends_at: string; status: string };
 const panel: React.CSSProperties = { background: "#fff", border: "1px solid #dfe5de", padding: 14, borderRadius: 12 };
@@ -43,6 +44,8 @@ export default function PrivateTuitionTools({ invitationId, isTutor, section = "
         <small>{state === "ended" ? "Ended" : state === "joinable" ? "Ready to join" : state === "upcoming" ? "Scheduled" : state === "completed" ? "Completed" : state === "cancelled" ? "Cancelled" : "Unavailable"}</small>
         {isTutor && tuitionLessonCanCancel(l, now) && <button type="button" onClick={() => void cancel(l.id)} disabled={busy} style={{ marginLeft: 10 }}>Cancel</button>}
         {state === "joinable" && <div style={{ marginTop: 8 }}><Link href={"/tuition/lessons/" + l.id} style={{ ...btn, display: "inline-block", textDecoration: "none" }}>Join lesson</Link></div>}
+        {scheduledLiveEnabled && isTutor && state === "upcoming" && <div style={{marginTop:8}}><Link href={"/tuition/lessons/" + l.id} style={{...btn,display:"inline-block",textDecoration:"none"}}>Prepare lesson</Link></div>}
+        {scheduledLiveEnabled && (state === "ended" || state === "completed") && <div style={{marginTop:8}}><Link href={"/tuition/lessons/" + l.id}>Review lesson</Link></div>}
         {state === "upcoming" && <small style={{ display: "block", marginTop: 6 }}>Join opens 15 minutes before the lesson.</small>}
         {state === "ended" && <small style={{ display: "block", marginTop: 6 }}>This lesson has ended.</small>}
       </div>;
