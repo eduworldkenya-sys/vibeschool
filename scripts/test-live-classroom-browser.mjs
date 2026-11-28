@@ -461,6 +461,10 @@ try{
  await l.getByLabel('Your answer').fill('2')
  await button(l,'Submit').click()
  await l.getByText(/Submitted:/).waitFor()
+ const openQuiz=await fixture.rpc(fixture.teacher,'get',sid,null,{},fixture.cls)
+ assert.equal(openQuiz.prompt.revealed,false)
+ await t.reload();await dialog(t).waitFor()
+ await t.getByLabel('Question controls').getByText('Current question',{exact:true}).waitFor()
  await teacherTool(t,'More')
  await button(t,'Reveal / close answers').click()
  await see(l,'Two quarters')
@@ -477,7 +481,9 @@ try{
  await denied.page.getByRole('alert').waitFor()
  assert.equal(await denied.page.getByRole('dialog',{name:'Live classroom'}).count(),0)
  await denied.context.close()
- await t.getByRole('button',{name:'Close tools'}).click()
+ await t.reload();await dialog(t).waitFor()
+ await t.getByLabel('Question controls').getByText('Responses closed',{exact:true}).waitFor()
+ assert.equal((await fixture.rpc(fixture.teacher,'get',sid,null,{},fixture.cls)).prompt.id,openQuiz.prompt.id,'Refresh preserves the revealed quiz identity')
  await button(t,'Edit as new question').click()
  assert.equal(await t.getByLabel('Question or instruction').inputValue(),'How many quarters make one half?')
  assert.equal(await t.getByLabel('Answer (hidden until reveal)').inputValue(),'Two quarters')
@@ -545,6 +551,26 @@ try{
    const max=element.scrollHeight-element.clientHeight
    return max>0&&Math.abs(element.scrollTop/max-0.25)<0.14
  },null,{timeout:18000})
+ // Restore the server-acknowledged presenter viewport in the teacher's own tab.
+ const beforeReconnect=await fixture.rpc(fixture.teacher,'get',sid,null,{},fixture.cls)
+ assert.ok(Math.abs(beforeReconnect.presentedScrollRatio-0.25)<0.14)
+ await t.reload();await dialog(t).waitFor()
+ await t.waitForFunction(()=>{
+   const el=document.querySelector('[aria-label="Shared lesson"]')
+   const max=el?el.scrollHeight-el.clientHeight:0
+   return max>0&&Math.abs(el.scrollTop/max-0.25)<0.14
+ },null,{timeout:18000})
+ await t.getByRole('button',{name:'Previous lesson page'}).click()
+ await l.getByLabel('Shared lesson',{exact:true}).getByText(/How many quarters are in one whole\?/).first().waitFor()
+ const beforeHistoryReconnect=await fixture.rpc(fixture.teacher,'get',sid,null,{},fixture.cls)
+ assert.notEqual(beforeHistoryReconnect.presentedPromptId,beforeHistoryReconnect.prompt.id)
+ await t.reload();await dialog(t).waitFor()
+ await t.getByLabel('Shared lesson',{exact:true}).getByText(/How many quarters are in one whole\?/).first().waitFor()
+ await t.getByRole('button',{name:'Return to Live'}).click()
+ await l.getByText(/Live reading guide/).waitFor()
+ const afterReconnect=await fixture.rpc(fixture.teacher,'get',sid,null,{},fixture.cls)
+ assert.equal(afterReconnect.prompt.id,beforeReconnect.prompt.id,'Reconnect does not republish a lesson page')
+ assert.equal(afterReconnect.history.length,beforeReconnect.history.length)
  // An actual teacher publishes a bounded model over the authorized classroom
  // transport. A learner can explore it and reconnect to the shared values.
  await button(t,'Teaching Kit').click()
