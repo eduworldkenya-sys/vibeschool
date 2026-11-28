@@ -1,6 +1,7 @@
 BEGIN;
 
--- access: authenticated plan and presentation owners through the RPC below.
+-- access: owner-only vibe_live.lesson_plan_presentations
+-- authorization-test: vibe_live.lesson_plan_presentations; owner succeeds through RPC; anon, other teachers and revoked class access denied.
 CREATE TABLE vibe_live.lesson_plan_presentations (
   lesson_plan_id uuid PRIMARY KEY REFERENCES public.lesson_plans(id) ON DELETE CASCADE,
   presentation_id uuid NOT NULL REFERENCES vibe_live.teacher_materials(id) ON DELETE CASCADE
