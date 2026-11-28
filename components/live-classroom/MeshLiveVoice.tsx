@@ -14,6 +14,7 @@ type Props = {
   enabled: boolean
   status: 'active' | 'paused' | 'ended'
   learners: Array<{ studentId: string; name: string; needsHelp: boolean }>
+  compact?: boolean
   onFallback?: () => void
 }
 
@@ -74,7 +75,8 @@ class HostMixer {
   }
 }
 
-export function MeshLiveVoice({ roomId, classId, teacher, enabled, status, learners, onFallback }: Props) {
+export function MeshLiveVoice({ roomId, classId, teacher, enabled, status, learners, onFallback, compact=false }: Props) {
+  const [audioDetails,setAudioDetails]=useState(false)
   const [phase, setPhase] = useState('Connecting…')
   const [micState, setMicState] = useState<MicState>('muted')
   const [allowed, setAllowed] = useState(false)
@@ -465,7 +467,7 @@ export function MeshLiveVoice({ roomId, classId, teacher, enabled, status, learn
     }
   }, [roomId, classId, teacher, enabled, status, retry])
 
-  return <section className={styles.voice} aria-label="Classroom audio">
+  return <section className={styles.voice} data-compact={compact} aria-label="Classroom audio">
     <div className={styles.summary}>
       <Headphones size={17} aria-hidden="true" />
       <strong>Voice</strong>
@@ -479,10 +481,13 @@ export function MeshLiveVoice({ roomId, classId, teacher, enabled, status, learn
         <button type="button" disabled={busy||phase==='Reconnecting…'||!navigator.onLine} onClick={() => setRetry(value => value + 1)}>Retry audio</button>}
       {status === 'active' && teacher && onFallback && (admitted || failure) &&
         <button type="button" disabled={busy} onClick={() => void controls.current?.('fallback')}>Use Daily audio</button>}
+      {compact&&<button type="button" aria-expanded={audioDetails} title={failure||"Audio settings and speaking requests"} onClick={()=>setAudioDetails(v=>!v)}>{failure?"Audio issue":learners.some(l=>l.needsHelp)?"Audio · requests":"Audio settings"}</button>}
     </div>
     <audio ref={playerRef} autoPlay hidden />
+    {soundBlocked && compact && <button type="button" onClick={()=>void playerRef.current?.play().then(()=>setSoundBlocked(false),()=>setSoundBlocked(true))}>Enable sound</button>}
+    <div className={styles.audioDetails} hidden={compact&&!audioDetails}>
     {teacher&&enabled&&status==='active'&&<label className={styles.listenVolume}>Listening volume <input type="range" min={0} max={100} step={5} value={listenVolume} onChange={e=>setListenVolume(Number(e.target.value))} aria-label="Local listening volume"/><output>{listenVolume}%</output></label>}
-    {soundBlocked && <button type="button" onClick={() => void playerRef.current?.play().then(
+    {soundBlocked && !compact && <button type="button" onClick={() => void playerRef.current?.play().then(
       () => setSoundBlocked(false), () => setSoundBlocked(true),
     )}>Enable sound</button>}
     {teacher && admitted && <div className={styles.requests}>
@@ -498,5 +503,6 @@ export function MeshLiveVoice({ roomId, classId, teacher, enabled, status, learn
     {!teacher && connectedIds.length > 0 && !allowed && <div className={styles.detail}>Listening · Raise your hand to speak</div>}
     {failure && <span role="alert">{failure}</span>}
     {micState === 'error' && <span role="alert">Microphone unavailable. Check browser permission.</span>}
+    </div>
   </section>
 }

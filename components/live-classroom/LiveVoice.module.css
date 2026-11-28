@@ -11,3 +11,15 @@
 @media(max-width:420px){.voice{padding:0}.summary{gap:4px;flex-wrap:nowrap}.summary strong{display:none}.summary button{padding:4px 5px!important;min-height:32px!important}.phase{flex-basis:auto;margin-right:0}.detail{font-size:10px}}
 
 .listenVolume{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px}.listenVolume input{width:100px;max-width:100%;accent-color:var(--vs-accent,#087e72)}.listenVolume output{min-width:36px;font-variant-numeric:tabular-nums}
+
+/* Secondary audio controls remain mounted; the compact teacher dock reveals them on demand. */
+.audioDetails{display:contents}
+.audioDetails[hidden]{display:none}
+.voice[data-compact=true]{position:relative;display:flex;align-items:center;flex-wrap:wrap;gap:3px}
+.voice[data-compact=true] .summary{gap:3px;flex-wrap:wrap}
+.voice[data-compact=true] .summary strong{display:none}
+.voice[data-compact=true] .phase{margin:0;white-space:nowrap}
+.voice[data-compact=true] .summary button{min-height:36px!important;padding:4px 5px!important}
+.voice[data-compact=true] .audioDetails:not([hidden]){display:grid;position:absolute;z-index:10;bottom:calc(100% + 6px);left:0;width:min(360px,calc(100vw - 20px));max-height:45dvh;overflow:auto;gap:8px;padding:12px;border:1px solid #c8d7cf;background:white;color:#23352e;border-radius:8px;box-shadow:0 8px 24px #173c2b30}
+.voice[data-compact=true] .audioDetails .error{color:#9d3030}
+@media(max-width:560px){.voice[data-compact=true] .summary button{min-height:44px!important}}

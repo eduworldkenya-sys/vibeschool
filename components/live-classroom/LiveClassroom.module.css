@@ -743,3 +743,28 @@
 .deliveryGuidance details{min-width:0;max-width:100%}
 .deliveryGuidance summary{cursor:pointer;font-weight:650}
 .deliveryGuidance p{max-height:18dvh;overflow:auto;white-space:pre-wrap;margin:4px 0}
+
+/* Standalone classroom: compact, responsive chrome. Shared learner routes unchanged. */
+.standardFooter{display:contents}
+.premium .liveTop{padding:3px 8px;min-height:48px;gap:6px;position:relative;z-index:9;flex-wrap:wrap}
+.premium .liveTitle{flex:1 1 150px}
+.premium .liveTitle small{font-size:10px;gap:3px;flex-wrap:wrap}
+.premium .liveTop .premiumMenu{position:relative;min-height:0;padding:0;background:transparent;border:0;gap:2px;justify-content:flex-start;overflow:visible}
+.premium .liveTop .premiumMenu>.premiumMenuGroup{position:relative;right:auto}
+.premium .liveTop .executiveModes{padding:2px;gap:1px}
+.premium .liveTop .executiveModes button{min-width:0;min-height:36px;padding:4px 9px}
+.premium .liveTop .premiumMenuGroup>button{min-height:36px;padding:4px}
+.compactTiming{display:flex;align-items:center;gap:4px;white-space:nowrap;font-size:11px;color:#52685d}
+.premium .compactTiming button{min-height:36px;padding:4px 6px;font-size:11px}
+.compactFooter{flex:0 0 auto;display:flex;align-items:center;flex-wrap:wrap;min-width:0;background:white;border-top:1px solid #dce4df;position:relative;z-index:5;padding:2px 6px;gap:2px}
+.compactFooter:empty,.compactFooter:has(>.premiumVoiceDock[hidden]):not(:has(>footer)){display:none}
+.premium .compactFooter>.premiumVoiceDock{border:0;padding:0;max-width:100%;min-width:0}
+.premium .compactFooter .premiumVoiceDock .voiceSlot>section{overflow:visible;max-height:none}
+.premium .compactFooter>.dock{flex:1 1 auto;width:auto;min-width:0;border:0;padding:0;gap:2px;overflow:visible;flex-wrap:wrap}
+.premium .compactFooter .sessionRow{flex-wrap:wrap;gap:2px;justify-content:flex-end}
+.premium .compactFooter .sessionRow button{min-height:40px;padding:4px 7px}
+.premium .deliveryGuidance{padding:2px 8px;gap:3px 9px;font-size:11px}
+.premium .deliveryGuidance button,.premium .presentControls button{min-height:34px;padding:4px 8px}
+@media(min-width:1100px){.premium .liveTop{flex-wrap:nowrap}.premium .liveTitle{flex:1 1 130px}.premium .liveTop .premiumMenu{flex:none}.premium .compactFooter>.dock{flex:1 1 0}}
+@media(max-width:1099px){.premium .liveTop .premiumMenu{order:2}.compactTiming{order:3}.premium .compactFooter{justify-content:center}.premium .compactFooter .sessionRow{justify-content:center}}
+@media(max-width:560px){.premium .liveTop .premiumMenu{flex:1 1 auto}.premium .compactTiming{white-space:normal;flex-wrap:wrap}.premium .liveTop .executiveModes button{padding:4px 6px}.premium .compactFooter .sessionRow button{min-height:44px;padding:4px 5px}.premium .compactFooter>.dock{flex:1 1 100%}}
