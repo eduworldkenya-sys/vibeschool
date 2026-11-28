@@ -10,7 +10,8 @@ import {TeachingToolsLibrary} from '@/components/learn/tools/TeachingToolsLibrar
 import {LiveResourcePicker} from './LiveResourcePicker'
 import {validateStudioResources} from './LiveStudioResourceValidation'
 import {StudioFilePreview,uploadStudioFile,validateStudioFiles} from './LiveStudioFiles'
-import {exportDeck,importDeck,MAX_DECK_FILE_BYTES,buildTextRevealSlides,isPhotoBody,studioMinutes,setStudioMinutes,studioResource,studioFile,setStudioFile,encodeSlide,type SlideDemo} from './LiveSlideProtocol'
+import {importPresentationFile} from './LivePresentationImport'
+import {exportDeck,buildTextRevealSlides,isPhotoBody,studioMinutes,setStudioMinutes,studioResource,studioFile,setStudioFile,encodeSlide,type SlideDemo} from './LiveSlideProtocol'
 import {composeVisualSlide} from './LiveBoardProtocol'
 type Summary={id:string;title:string;revision:number;slideCount:number;updatedAt:string}
 type Version=Omit<Summary,'id'>
@@ -132,7 +133,7 @@ export function TeachingLibrary({command,currentDeck,onUse,onClose,attachToPlan=
  }
  function loadFile(file:File){
   if(busy||lock.current||!mayReplace())return
-  void run(async()=>{const isPdf=/\.pdf$/i.test(file.name)||file.type==='application/pdf';let deck:{title:string;slides:LiveSlide[]};if(isPdf){const {importPdfSlides}=await import('./LiveSlidePdfImport');deck=await importPdfSlides(file)}else if(/\.pptx$/i.test(file.name)){if(!window.confirm('Import editable PowerPoint text? Original pictures, shapes, animations and layout will not be preserved.'))return;const {importPowerPoint}=await import('./LiveSlidePowerPoint');deck=await importPowerPoint(file)}else{if(file.size>MAX_DECK_FILE_BYTES)throw Error('Presentation file is too large.');deck=importDeck(await file.text())}if(!alive.current)return;setEdit({id:crypto.randomUUID(),title:deck.title,slides:deck.slides,revision:0});setIndex(0);setDirty(true);setSaveProblem('')})
+  void run(async()=>{if(/\.pptx$/i.test(file.name)&&!window.confirm('Import editable PowerPoint text? Original pictures, shapes, animations and layout will not be preserved.'))return;const deck=await importPresentationFile(file);if(!alive.current)return;setEdit({id:crypto.randomUUID(),title:deck.title,slides:deck.slides,revision:0});setIndex(0);setDirty(true);setSaveProblem('')})
  }
  function attachFile(file:File){
   if(!edit||lock.current||edit.slides.length>=30)return
