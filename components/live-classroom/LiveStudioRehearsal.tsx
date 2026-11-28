@@ -6,8 +6,20 @@ import styles from './LiveClassroom.module.css'
 import {StudioFilePreview} from './LiveStudioFiles'
 
 // This rehearsal has no classroom command, room ID, or learner identity.
-export function LiveStudioRehearsal({slides,onClose}:{slides:LiveSlide[];onClose:()=>void}){
- const [index,setIndex]=useState(0)
+type Props={
+ slides:LiveSlide[]
+ initialIndex:number
+ onClose:(index:number)=>void
+ onSave:()=>void
+ onPrepare:()=>void
+ saveDisabled:boolean
+ prepareLabel:string
+ status:string
+ error:string
+}
+
+export function LiveStudioRehearsal({slides,initialIndex,onClose,onSave,onPrepare,saveDisabled,prepareLabel,status,error}:Props){
+ const [index,setIndex]=useState(initialIndex)
  const [teacherView,setTeacherView]=useState(false)
  const [choice,setChoice]=useState<number|null>(null)
  const [mic,setMic]=useState<'idle'|'checking'|'ready'|'error'>('idle')
@@ -30,7 +42,13 @@ export function LiveStudioRehearsal({slides,onClose}:{slides:LiveSlide[];onClose
  const {notes:privateNotes,...publicSlide}=slide
  function navigate(next:number){setIndex(next);setChoice(null)}
  return <section className={styles.slideFields} aria-label="Private slide rehearsal">
-  <div className={styles.slideToolbar}><strong>Private rehearsal</strong><button type="button" onClick={onClose}>Back to preparation</button></div>
+  <div className={styles.slideToolbar}><strong>Private rehearsal</strong><button type="button" onClick={()=>onClose(index)}>Edit this slide</button></div>
+  <div className={styles.controls}>
+   <button type="button" disabled={saveDisabled} onClick={onSave}>Save presentation</button>
+   <button type="button" className={styles.primary} disabled={saveDisabled} onClick={onPrepare}>{prepareLabel}</button>
+   <small role="status">{status}</small>
+  </div>
+  {error&&<p role="alert">{error}</p>}
   <p role="status">No students are connected. Nothing is published or recorded.</p>
   <div className={styles.controls}><button type="button" aria-pressed={!teacherView} onClick={()=>setTeacherView(false)}>Student preview</button><button type="button" aria-pressed={teacherView} onClick={()=>setTeacherView(true)}>Teacher view</button><button type="button" disabled={mic==='checking'} onClick={()=>void testMicrophone()}>Test microphone</button></div>
   {mic!=='idle'&&<small role="status">{mic==='checking'?'Checking permission…':mic==='ready'?'Microphone access verified; microphone released.':'Microphone unavailable. Check device permissions.'}</small>}
