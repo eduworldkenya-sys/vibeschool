@@ -18,11 +18,14 @@ export default function ScheduledLiveClassroom({lessonId}:{lessonId:string}){
   const stamp=++generation.current
   try{
    const {data,error:failure}=await supabase.rpc('vibe_live_tuition_booking',{p_booking:lessonId,p_action:'context'})
-   if(failure)throw Error('Could not verify your access to this scheduled lesson.')
+   if(failure){
+    if(generation.current===stamp&&failure.code==='42501'){setContext(null);setEntered(false)}
+    throw Error('Could not verify your access to this scheduled lesson.')
+   }
    const next=parseScheduledBooking(data,lessonId)
    if(generation.current!==stamp)return
    setContext(next);setError('')
-  }catch(e){if(generation.current===stamp){setContext(null);setEntered(false);setError(e instanceof Error?e.message:'Lesson unavailable.')}}
+  }catch(e){if(generation.current===stamp){setError(e instanceof Error?e.message:'Lesson unavailable.')}}
  },[lessonId])
  useEffect(()=>{
   setContext(null);setEntered(false)
@@ -48,7 +51,7 @@ export default function ScheduledLiveClassroom({lessonId}:{lessonId:string}){
   }catch(e){setError(e instanceof Error?e.message:'Could not join.')}
   finally{joining.current=false;setBusy(false)}
  }
- if(context?.role==='teacher')return <LiveClassroom key={lessonId+':teacher'} classId={null} teacher back="/onlineteacherv1" instantEntry scheduledBooking={context}/>
+ if(context?.role==='teacher')return <>{error&&<p role="alert">{error} <button type="button" onClick={()=>void load()}>Retry access</button></p>}<LiveClassroom key={lessonId+':teacher'} classId={null} teacher back="/onlineteacherv1" instantEntry scheduledBooking={context}/></>
  if(context?.role==='student'&&entered&&context.roomId&&context.state!=='cancelled')return <LiveClassroom key={lessonId+':student'} classId={null} teacher={false} back="/student/tutoring" scheduledBooking={context}/>
  return <main className={styles.live}><header className={styles.header}><Link href="/student/tutoring">Back</Link><h1>{context?.title??'Scheduled lesson'}</h1></header>
   <section className={styles.panel}>
