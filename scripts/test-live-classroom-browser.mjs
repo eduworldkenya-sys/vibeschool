@@ -15,7 +15,7 @@ const liveUpdateEnabled=process.env.TEST_LIVE_SLIDE_UPDATE==='1'
 if(liveUpdateEnabled)await fixture.db.exec(readFileSync(new URL('../supabase/migrations/20261127173000_live_classroom_slide_update.sql',import.meta.url),'utf8'))
 const identity={teacher:fixture.teacher,learner:fixture.a,'learner-b':fixture.b,outsider:fixture.outsider}
 const result=await build({
-  stdin:{contents:"import React from 'react'; import {createRoot} from 'react-dom/client'; import LiveClassroom from './components/live-classroom/LiveClassroom'; const role=location.pathname.slice(1); createRoot(document.getElementById('root')).render(<LiveClassroom classId={role==='teacher'?'"+fixture.cls+"':null} teacher={role==='teacher'} instantEntry={new URLSearchParams(location.search).get('executive')==='1'} back='/'/>);",loader:'tsx',resolveDir:process.cwd()},
+  stdin:{contents:"import React from 'react'; import {createRoot} from 'react-dom/client'; import LiveClassroom from './components/live-classroom/LiveClassroom'; const role=location.pathname.slice(1); createRoot(document.getElementById('root')).render(<LiveClassroom classId={role==='teacher'&&!new URLSearchParams(location.search).has('standalone')?'"+fixture.cls+"':null} teacher={role==='teacher'} instantEntry={new URLSearchParams(location.search).get('executive')==='1'} back='/'/>);",loader:'tsx',resolveDir:process.cwd()},
   bundle:true,write:false,outdir:'out',entryNames:'app',jsx:'automatic',platform:'browser',
   nodePaths:[testModules],define:{'process.env.NODE_ENV':'"production"','process.env.NEXT_PUBLIC_VIBE_LIVE_DAILY_ENABLED':'"true"','process.env.NEXT_PUBLIC_VIBE_LIVE_VOICE_ENABLED':'"false"','process.env.NEXT_PUBLIC_VIBE_LIVE_SLIDE_UPDATE_ENABLED':JSON.stringify(liveUpdateEnabled?'true':'false')},
   plugins:[{name:'loopback-fixture',setup(b){
@@ -604,6 +604,23 @@ try{
  await see(l,'This session has ended.')
  await l.getByRole('button',{name:'First lesson page'}).click()
  await see(l,'Equivalent fractions')
+ const standalone=await open('teacher',1024,768,'?executive=1&standalone=1')
+ const st=standalone.page
+ await button(st,'Prepare lesson').click()
+ await st.getByRole('heading',{name:'My presentations'}).waitFor()
+ await st.getByRole('button',{name:/Prepared fractions/}).first().click()
+ await button(st,'Prepare for Live').click()
+ await st.getByText(/Ready for next lesson: Prepared fractions/).waitFor()
+ await button(st,'Rehearse privately').click()
+ await st.getByLabel('Private rehearsal',{exact:true}).first().waitFor()
+ assert.equal(await dialog(st).count(),0,'Standalone rehearsal must not start a room')
+ await button(st,'Exit rehearsal').click()
+ await button(st,'Go Live').click()
+ await dialog(st).waitFor()
+ await st.getByText('Prepared fractions',{exact:true}).first().waitFor()
+ await button(st,'Present slide').waitFor()
+ assert.equal(await button(st,'Present slide').isEnabled(),true,'Opening slide is ready to present')
+ await standalone.context.close()
  assert.deepEqual(errors,[],'Browser runtime errors')
  console.log('PASS: actual responsive classroom UI with synthetic authenticated RPC transport, separate learner views, library reuse, draft recovery, slide navigation, board, private workpad, one-tap polls, hand acknowledgement, quiz reveal, offline/reconnect, outsider denial and ended history')
 }catch(e){

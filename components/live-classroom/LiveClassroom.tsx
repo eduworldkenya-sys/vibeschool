@@ -886,7 +886,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
       if(cancelled||draftKey.current!==key)return
       setWorkspaceRevision(revision)
       if(draft){restoreDraft(draft)}
-      else if(preparedDeck.current){setSlides(preparedDeck.current.slides);setSlideIndex(0)}
+      else if(preparedDeck.current){setSlides(preparedDeck.current.slides);setSlideIndex(0);if(instantEntry)setPanel('slides')}
       else{
         const latest=active.current
         const published=latest?historyFor(latest):[]
@@ -910,7 +910,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
       preparedDeck.current=null;setPreparedTitle('');setBeforeLibrary(false);setDraftBinding({roomId,key})
     }).catch(()=>{if(!cancelled)setDraftWarning(true)})
     return ()=>{cancelled=true}
-  },[teacher,room?.id,room?.status==='ended',call,workspaceRetry,revoke])
+  },[teacher,room?.id,room?.status==='ended',call,workspaceRetry,revoke,instantEntry])
   useEffect(()=>{
     if(!teacher||!room||room.status==='ended'||draftBinding?.roomId!==room.id||draftKey.current!==draftBinding.key)return
     const binding=draftBinding
@@ -1383,18 +1383,29 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
     </main>
     return createPortal(stage,document.body)
   }
-  if(instantEntry&&teacher&&!classId&&!room&&!loading)return <main className={styles.live} style={{fontFamily:'var(--font-jakarta), system-ui, sans-serif'}}>
+  if(teacher&&beforeLibrary&&!room&&!loading)return <main className={`${styles.live} ${styles.studioPage}`} aria-label="Live Studio"><TeachingLibrary command={call} currentDeck={null} onUse={attachingPlan?attachPlanPresentation:useMaterial} attachToPlan={attachingPlan} onClose={()=>{setAttachingPlan(false);setBeforeLibrary(false)}}/></main>
+  if(instantEntry&&teacher&&!classId&&!room&&!loading){
+    const currentClass=rooms.find(item=>item.own&&item.mode==='tuition'&&item.status==='active')
+      ??rooms.find(item=>item.own&&item.mode==='tuition'&&item.status==='paused')
+    return <main className={styles.live} style={{fontFamily:'var(--font-jakarta), system-ui, sans-serif'}}>
     <header className={styles.header}><Link href={back}>Back</Link><h1>Online teaching</h1></header>
     <section className={styles.panel}>
       {error&&<p role="alert">{error} <button onClick={()=>void refresh()}>Retry</button></p>}
-      <button type="button" className={styles.primary} disabled={busy||!online||!!error} onClick={()=>{const existing=rooms.find(item=>item.own&&item.mode==='tuition'&&item.status==='active')??rooms.find(item=>item.own&&item.mode==='tuition'&&item.status==='paused');if(existing)void act('get',existing.id);else void act('start',null,{title:'Untitled lesson',mode:'tuition',groupId:null})}}>{busy?'Connecting…':'Go Live'}</button>
+      <div className={styles.controls}>
+        <button type="button" disabled={busy} onClick={()=>setBeforeLibrary(true)}>Prepare lesson</button>
+        <button type="button" className={styles.primary} disabled={busy||!online||!!error} onClick={()=>{
+          if(currentClass)void act('get',currentClass.id)
+          else void act('start',null,{title:preparedDeck.current?.title||'Untitled lesson',mode:'tuition',groupId:null})
+        }}>{busy?'Connecting…':currentClass?'Resume class':'Go Live'}</button>
+      </div>
+      {preparedTitle&&<p>Ready for next lesson: {preparedTitle} <button type="button" disabled={busy} onClick={()=>setRehearsalOpen(true)}>Rehearse privately</button> <button type="button" disabled={busy} onClick={()=>{preparedDeck.current=null;setPreparedTitle('')}}>Remove from this session</button></p>}
       <small>Invited classroom · Microphone starts muted</small>
       {rooms.filter(item=>item.mode!=='tuition').map(item=><button key={item.id} disabled={busy} onClick={()=>void act('get',item.id)}>Resume {item.title}</button>)}
       {pastAvailable&&<button type="button" aria-expanded={pastOpen} disabled={pastLoading} onClick={()=>void togglePastClasses()}>{pastOpen?'Hide past classes':'Past classes'}</button>}
       {pastOpen&&<section aria-label="Past classes">{pastLoading&&<p role="status">Loading…</p>}{pastError&&<p role="alert">{pastError}</p>}{pastRooms.map(item=><button key={item.id} disabled={busy} onClick={()=>void act('get',item.id)}>{item.title}</button>)}</section>}
     </section>
   </main>
-  if(teacher&&beforeLibrary&&!room&&!loading)return <main className={`${styles.live} ${styles.studioPage}`} aria-label="Live Studio"><TeachingLibrary command={call} currentDeck={null} onUse={attachingPlan?attachPlanPresentation:useMaterial} attachToPlan={attachingPlan} onClose={()=>{setAttachingPlan(false);setBeforeLibrary(false)}}/></main>
+  }
   return <main className={styles.live}>
     <header className={styles.header}><Link href={back}>Back</Link><h1>Live Classroom</h1>{room&&<span className={styles.status}>{room.status==='active'?'Live':room.status==='paused'?'Paused':'Ended'}</span>}</header>
     {error&&<div role="alert" className={styles.alert}>{error} <button onClick={()=>void refresh()}>Retry</button></div>}
