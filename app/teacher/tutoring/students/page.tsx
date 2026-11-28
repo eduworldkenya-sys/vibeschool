@@ -17,6 +17,7 @@ const muted = { color: "var(--teacher-muted, #536159)", fontSize: 13 };
 export default function TuitionStudents() {
   const searchParams = useSearchParams();
   const requestedTool = searchParams.get("tool");
+  const requestedInvitation = searchParams.get("invitation");
   const [rows, setRows] = useState<Invite[]>([]);
   const [notice, setNotice] = useState("");
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
@@ -36,11 +37,12 @@ export default function TuitionStudents() {
     const invites = (data ?? []) as Invite[];
     setRows(invites);
     if ((requestedTool === "lessons" || requestedTool === "messages" || requestedTool === "tasks") && invites.some(row => row.status === "accepted")) {
-      setExpanded(current => current ?? { id: invites.find(row => row.status === "accepted")!.id, tool: requestedTool });
+      const target = requestedInvitation ? invites.find(row => row.id === requestedInvitation && row.status === "accepted") : invites.find(row => row.status === "accepted");
+      if (target) setExpanded(current => current ?? { id: target.id, tool: requestedTool });
     }
     setError("");
     setState("ready");
-  }, [requestedTool]);
+  }, [requestedTool, requestedInvitation]);
   useEffect(() => { void load(); }, [load]);
 
   async function create() {
