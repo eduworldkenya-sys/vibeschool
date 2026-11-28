@@ -620,7 +620,7 @@ try{
  await dialog(st).waitFor()
  await button(st,'Prepare slides').click()
  await st.getByRole('heading',{name:'Untitled slide',exact:true}).first().waitFor()
- assert.equal(await st.getByText('Equivalent fractions',{exact:true}).count(),0)
+ assert.equal(await st.getByRole('heading',{name:'Equivalent fractions',exact:true}).count(),0)
  await button(st,'Leave classroom').click()
  await st.getByText(/Ready for next lesson: Prepared fractions/).waitFor()
  st.once('dialog',d=>d.dismiss())
