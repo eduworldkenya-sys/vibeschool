@@ -11,6 +11,7 @@ const testModules='/tmp/live-test/node_modules'
 const {build}=require(testModules+'/esbuild')
 const {chromium}=require(testModules+'/playwright')
 const fixture=await createLiveFixture({learning:true})
+await fixture.db.exec(readFileSync(new URL('../supabase/migrations/20261125000100_live_slide_study.sql',import.meta.url),'utf8'))
 const liveUpdateEnabled=process.env.TEST_LIVE_SLIDE_UPDATE==='1'
 if(liveUpdateEnabled)await fixture.db.exec(readFileSync(new URL('../supabase/migrations/20261127173000_live_classroom_slide_update.sql',import.meta.url),'utf8'))
 const identity={teacher:fixture.teacher,learner:fixture.a,'learner-b':fixture.b,outsider:fixture.outsider}
@@ -55,6 +56,11 @@ const server=createServer(async(req,res)=>{
         const id='00000000-0000-4000-8000-000000000100'
         bookingRows.push({id,invitation_id:p.p_invitation,title:p.p_title,starts_at:p.p_start,ends_at:p.p_end,status:'scheduled'})
         return {data:id,error:null}
+      }
+      if(name==='vibe_live_study_command'){
+        await fixture.db.exec("set role authenticated; select set_config('request.jwt.claim.sub','"+identity[userRole]+"',false)")
+        try{return {data:(await fixture.db.query('select public.vibe_live_study_command($1,$2,$3,$4::jsonb) as out',[p.p_action,p.p_class,p.p_id,JSON.stringify(p.p_payload)])).rows[0].out,error:null}}
+        finally{await fixture.db.exec('reset role')}
       }
       if(name!=='vibe_live_command')throw Error('Unexpected RPC')
       const data=await fixture.rpc(identity[userRole],p.p_action,p.p_session_id,p.p_version,p.p_payload,p.p_class_id)
