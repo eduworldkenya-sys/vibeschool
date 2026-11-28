@@ -1426,7 +1426,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
   if(teacher&&beforeLibrary&&!room&&!loading)return <main className={`${styles.live} ${styles.studioPage}`} aria-label="Live Studio"><TeachingLibrary command={call} currentDeck={null} onUse={attachingPlan?attachPlanPresentation:useMaterial} attachToPlan={attachingPlan} onClose={()=>{setAttachingPlan(false);setBeforeLibrary(false)}}/></main>
   if(instantEntry&&teacher&&!classId&&!room&&!loading){
     const currentClass=rooms.find(item=>item.own&&item.mode!=='school')
-    return <OnlineTeacherWorkspace back={back}>
+    return <OnlineTeacherWorkspace back={back} onOpenStudio={()=>setBeforeLibrary(true)}>
       {error&&<p role="alert">{error} <button onClick={()=>void refresh()}>Retry</button></p>}
       <div className={styles.controls}>
         <button type="button" disabled={busy} onClick={()=>setBeforeLibrary(true)}>Prepare lesson</button>
