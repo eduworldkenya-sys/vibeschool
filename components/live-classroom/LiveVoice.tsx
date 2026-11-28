@@ -9,7 +9,7 @@ import { MeshLiveVoice } from './MeshLiveVoice'
 type Learner = { studentId:string; name:string; needsHelp:boolean }
 type Props = {
   roomId:string;classId:string|null;teacher:boolean;enabled:boolean;status:'active'|'paused'|'ended'
-  learners:Learner[];onAcknowledge:(studentId:string)=>Promise<void>
+  learners:Learner[];compact?:boolean;onAcknowledge:(studentId:string)=>Promise<void>
 }
 // Keep provider details out of learner-facing UI. Daily's typed fatal-error
 // category is enough to distinguish a transport fault from a rejected meeting.
@@ -58,7 +58,8 @@ function canPublishAudio(value:unknown):boolean{
   if (value instanceof Set)return value.has('audio')
   return false
 }
-function DailyLiveVoice({roomId,classId,teacher,enabled,status,learners,onAcknowledge}:Props) {
+function DailyLiveVoice({roomId,classId,teacher,enabled,status,learners,onAcknowledge,compact=false}:Props) {
+  const [audioDetails,setAudioDetails]=useState(false)
   const meeting=useRef<DailyCall|null>(null)
   const media=useRef<Map<string,HTMLAudioElement>>(new Map())
   const [listenVolume,setListenVolume]=useState(100)
@@ -380,7 +381,7 @@ function DailyLiveVoice({roomId,classId,teacher,enabled,status,learners,onAcknow
     setSoundBlocked(results.some(x=>x.status==='rejected'))
   }
   const speakingName=learners.find(l=>l.studentId===activeSpeaker)?.name
-  return <section className={styles.voice} aria-label="Classroom audio">
+  return <section className={styles.voice} data-compact={compact} aria-label="Classroom audio">
     <div className={styles.summary}>
       <Headphones size={17} aria-hidden="true"/>
       <strong>Voice</strong>
@@ -393,7 +394,9 @@ function DailyLiveVoice({roomId,classId,teacher,enabled,status,learners,onAcknow
         title={!teacher&&!permission?'Raise your hand and wait for teacher approval':'Microphone'}>
         {micOn?<Mic size={15}/>:<MicOff size={15}/>} {micOn?'Mute':teacher?'Speak':permission?'Speak':'Muted'}
       </button>:<button type="button" disabled title={!enabled?'Audio has not been activated for this classroom.':'Join audio first to use the microphone.'} aria-label="Microphone off"><MicOff size={15}/> Mic off</button>}
+      {compact&&<button type="button" aria-expanded={audioDetails} title={error||"Audio settings and speaking requests"} onClick={()=>setAudioDetails(v=>!v)}>{error?"Audio issue":learners.some(l=>l.needsHelp)?"Audio · requests":"Audio settings"}</button>}
     </div>
+    <div className={styles.audioDetails} hidden={compact&&!audioDetails}>
     {teacher&&enabled&&status==='active'&&<label className={styles.listenVolume}>Listening volume <input type="range" min={0} max={100} step={5} value={listenVolume} onChange={e=>setListenVolume(Number(e.target.value))} aria-label="Local listening volume"/><output>{listenVolume}%</output></label>}
     {!enabled&&<div className={styles.detail} role="status">Audio is unavailable for this class. The microphone cannot be switched on yet.</div>}
     {phase==='listening'&&<div className={styles.detail}>
@@ -409,6 +412,7 @@ function DailyLiveVoice({roomId,classId,teacher,enabled,status,learners,onAcknow
     </div>}
     {soundBlocked&&<button type="button" onClick={()=>void enableSound()}>Tap to enable sound</button>}
     {error&&<span className={styles.error} role="alert"><WifiOff size={14} aria-hidden="true"/> {error}</span>}
+    </div>
   </section>
 }
 
