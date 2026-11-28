@@ -344,6 +344,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
   const [selfPaced,setSelfPaced]=useState(false)
   const [followingTeacher,setFollowingTeacher]=useState(true)
   const stageScrollRef=useRef<HTMLElement|null>(null)
+  const pendingTeacherViewport=useRef<{roomId:string;promptId:string;ratio:number}|null>(null)
   const presenterTimer=useRef<number|null>(null)
   const presenterPending=useRef<PresenterPosition|null>(null)
   const presenterChain=useRef<Promise<void>>(Promise.resolve())
@@ -762,7 +763,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
       accept(next)
       if(startLinkFailure)setLinkedPlanError(startLinkFailure)
       if(action==='publish'){
-        pendingPublish.current=null;setReviewId(null)
+        pendingTeacherViewport.current=null;pendingPublish.current=null;setReviewId(null)
         if(!contentTab&&panel==='compose'){delete composerDrafts.current[mode];setBody('');setKey('')}
         const presented=next.prompt?.kind==='teach'?decodeSlide(next.prompt.body):null
         if(!contentTab&&presented&&presented.total===slides.length)setSlideIndex(panel==='production'?Math.min(presented.number,slides.length-1):presented.number-1)
@@ -897,8 +898,24 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
   const currentDraftFingerprint=stableDraftFingerprint({board,boardPages:boardPages.map((p,i)=>i===boardPage?board:p),boardPage,slides,slideIndex,mode,body,key:'',clock,composers:Object.fromEntries(Object.entries(composerDrafts.current).map(([m,d])=>[m,{...d,key:''}]))})
   const currentWorkspaceStatus=workspaceStatus==='Draft saved'&&currentDraftFingerprint!==workspaceSaved.current?'Draft changes pending…':workspaceStatus
   useEffect(()=>{
-    setSelfPaced(false);setReviewId(null);setDraftBinding(null);draftKey.current=null;setWorkspaceRevision(null);setWorkspaceStatus('');workspaceSaved.current='';workspaceSaving.current=null;setConflictDraft(null);composerDrafts.current={};pendingPublish.current=null;setDraftWarning(false);setMode('teach');setClock('10:30');boardInitialized.current=false;setBoardPages(['']);setBoardPage(0);setPanel(null);setFocusMode(false);setEditingBoard(false);setShowSticker(true);setEndConfirm(false);setBoard('');setUndoBoards([]);setRedoBoards([]);boardUndoByPage.current={};setFocusDock(false);setSlides([{title:'',body:''}]);setSlideIndex(0);setDeletedSlide(null);setBody('');setKey('')
+    const restored=teacher&&room&&room.status!=='ended'&&room.presentedPromptId&&history.some(item=>item.id===room.presentedPromptId)?room.presentedPromptId:null
+    pendingTeacherViewport.current=room&&restored?{roomId:room.id,promptId:restored,ratio:Math.min(1,Math.max(0,Number(room.presentedScrollRatio??0)||0))}:null
+    setSelfPaced(false);setReviewId(restored&&restored!==room?.prompt?.id?restored:null);setDraftBinding(null);draftKey.current=null;setWorkspaceRevision(null);setWorkspaceStatus('');workspaceSaved.current='';workspaceSaving.current=null;setConflictDraft(null);composerDrafts.current={};pendingPublish.current=null;setDraftWarning(false);setMode('teach');setClock('10:30');boardInitialized.current=false;setBoardPages(['']);setBoardPage(0);setPanel(null);setFocusMode(false);setEditingBoard(false);setShowSticker(true);setEndConfirm(false);setBoard('');setUndoBoards([]);setRedoBoards([]);boardUndoByPage.current={};setFocusDock(false);setSlides([{title:'',body:''}]);setSlideIndex(0);setDeletedSlide(null);setBody('');setKey('')
   },[room?.id])
+  // Restore the last acknowledged teacher viewport on entry only. Ordinary
+  // polls must not fight the teacher's subsequent navigation.
+  useEffect(()=>{
+    const pending=pendingTeacherViewport.current
+    if(!teacher||!room||!pending||pending.roomId!==room.id||draftLoading||viewedPrompt?.id!==pending.promptId||panel||contentTab||editingBoard||rehearsalOpen)return
+    const element=stageScrollRef.current
+    if(!element)return
+    const frame=window.requestAnimationFrame(()=>{
+      if(pendingTeacherViewport.current!==pending||active.current?.id!==pending.roomId)return
+      element.scrollTop=Math.max(0,element.scrollHeight-element.clientHeight)*pending.ratio
+      pendingTeacherViewport.current=null
+    })
+    return ()=>window.cancelAnimationFrame(frame)
+  },[teacher,room?.id,draftLoading,viewedPrompt?.id,panel,contentTab,editingBoard,rehearsalOpen])
   function restoreDraft(draft:DraftState){
     setBoard(draft.board)
     if(Array.isArray(draft.boardPages)&&draft.boardPages.length>0&&draft.boardPages.length<=30&&draft.boardPages.every(p=>typeof p==='string'&&p.length<=BOARD_LIMIT)&&Number.isInteger(draft.boardPage)&&draft.boardPage!>=0&&draft.boardPage!<draft.boardPages.length){setBoardPages(draft.boardPages);setBoardPage(draft.boardPage!)}
@@ -1298,7 +1315,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
     {teacher&&currentWorkspaceStatus&&<span className={styles.srOnly} role="status">{currentWorkspaceStatus}</span>}
     {teacher&&workspaceStatus&&(workspaceRevision===null||!!conflictDraft)&&<div className={styles.workspaceStatus} role="alert">{workspaceStatus}{workspaceRevision===null&&draftBinding&&<button type="button" onClick={()=>{setDraftBinding(null);setWorkspaceRetry(n=>n+1)}}>Retry draft sync</button>}{conflictDraft&&<><button type="button" onClick={()=>{restoreDraft(conflictDraft);setConflictDraft(null)}}>Restore local copy</button><button type="button" onClick={()=>setConflictDraft(null)}>Keep server copy</button></>}</div>}
     {(history.length>1||reviewId!==null)&&<LessonNavigation items={history} reviewId={reviewId} onReview={id=>{
-      setEditingBoard(false);setPanel(null);setReviewId(id)
+      pendingTeacherViewport.current=null;setEditingBoard(false);setPanel(null);setReviewId(id)
       if(stageScrollRef.current)stageScrollRef.current.scrollTop=0
       if(teacher){if(room.status==='active'&&(id??prompt?.id))queuePresenter(id??prompt!.id,0,true)}
       else setFollowingTeacher(id===null)
@@ -1321,7 +1338,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
         data-board-edit={editingBoard&&teacher&&!contentTab} data-workspace={contentTab?'content':rehearsalOpen?'rehearsal':panel==='slides'?'prepare':panel==='production'?'produce':'teach'}
         aria-label={contentTab?'Now showing':editingBoard&&teacher?'Draft drawing board':'Shared lesson'}
         onScroll={event=>{
-          if(!teacher||contentTab||panel||rehearsalOpen||editingBoard||room.status!=='active'||!viewedPrompt)return
+          if(!teacher||pendingTeacherViewport.current||contentTab||panel||rehearsalOpen||editingBoard||room.status!=='active'||!viewedPrompt)return
           const element=event.currentTarget
           const max=element.scrollHeight-element.clientHeight
           queuePresenter(viewedPrompt.id,max>0?element.scrollTop/max:0)
