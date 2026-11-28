@@ -247,11 +247,18 @@ try{
   await t.getByLabel('Edit presented slide').waitFor()
   assert.equal(await t.getByLabel('Title',{exact:true}).inputValue(),'Equivalent fractions')
   const content=t.getByLabel('Content',{exact:true})
-  let resumeShare
+  let resumeShare,finishShare
+  const shareFinished=new Promise(resolve=>{finishShare=resolve})
+  let intercepted=false
   const shareBarrier=new Promise(resolve=>{resumeShare=resolve})
   const delayFirstUpdate=async route=>{
-   if(route.request().postDataJSON()?.params?.p_action==='slide_update')await shareBarrier
-   await route.continue()
+   if(intercepted||route.request().postDataJSON()?.params?.p_action!=='slide_update'){
+    await route.continue()
+    return
+   }
+   intercepted=true
+   await shareBarrier
+   try{await route.continue()}finally{finishShare()}
   }
   await t.route('**/rpc',delayFirstUpdate)
   try{
@@ -262,6 +269,7 @@ try{
    await content.pressSequentially(' Revised.')
   }finally{
    resumeShare()
+   if(intercepted)await shareFinished
    await t.unroute('**/rpc',delayFirstUpdate)
   }
   await t.getByText('Shared with class',{exact:true}).waitFor()
