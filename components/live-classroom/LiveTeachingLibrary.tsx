@@ -17,12 +17,12 @@ type Version=Omit<Summary,'id'>
 type Material={id:string;title:string;revision:number;slides:LiveSlide[]}
 type Command=(action:string,id?:string|null,version?:number|null,payload?:Record<string,unknown>)=>Promise<unknown>
 const blank=()=>({title:'',body:''})
-function isMaterial(v:unknown):v is Material{
+export function isMaterial(v:unknown):v is Material{
  if(!v||typeof v!=='object')return false
  const m=v as Material
  return typeof m.id==='string'&&typeof m.title==='string'&&Number.isInteger(m.revision)&&m.revision>0&&Array.isArray(m.slides)&&m.slides.length>0&&m.slides.length<=30&&m.slides.every(validSlide)
 }
-export function TeachingLibrary({command,currentDeck,onUse,onClose}:{command:Command;currentDeck:LiveSlide[]|null;onUse:(m:Material)=>void;onClose?:()=>void}){
+export function TeachingLibrary({command,currentDeck,onUse,onClose,attachToPlan=false}:{command:Command;currentDeck:LiveSlide[]|null;onUse:(m:Material)=>void|Promise<void>;onClose?:()=>void;attachToPlan?:boolean}){
  const [items,setItems]=useState<Summary[]>([]),[edit,setEdit]=useState<Material|null>(null),[index,setIndex]=useState(0),[busy,setBusy]=useState(false),[error,setError]=useState(''),[dirty,setDirty]=useState(false)
  const alive=useRef(false),lock=useRef(false),fileInput=useRef<HTMLInputElement>(null)
  const [saveProblem,setSaveProblem]=useState('')
@@ -64,7 +64,7 @@ export function TeachingLibrary({command,currentDeck,onUse,onClose}:{command:Com
   void run(async()=>{const result=await command('materials_get',null,null,{id:item.id})
    if(!isMaterial(result))throw Error('Invalid presentation response')
    if(!alive.current)return
-   if(use){if(onClose){await validateStudioResources(result.slides);await validateStudioFiles(result.slides)}if(alive.current)onUse(result);return}
+   if(use){if(onClose){await validateStudioResources(result.slides);await validateStudioFiles(result.slides)}if(alive.current)await onUse(result);return}
    entryTab.current=target
    setEdit(copy?{...result,id:crypto.randomUUID(),title:result.title.slice(0,113)+' (copy)',revision:0}:result);setIndex(0);setDirty(copy);setSaveProblem('')
   })
@@ -93,13 +93,13 @@ export function TeachingLibrary({command,currentDeck,onUse,onClose}:{command:Com
   lock.current=true;setBusy(true);setSaveProblem('')
   try{
    if(use&&onClose){await validateStudioResources(edit.slides);await validateStudioFiles(edit.slides)}
-   if(!dirty&&edit.revision>0){if(alive.current&&use)onUseRef.current(edit);return}
+   if(!dirty&&edit.revision>0){if(alive.current&&use)await onUseRef.current(edit);return}
    const result=await command('materials_save',null,null,{id:edit.id,revision:edit.revision,title:edit.title,slides:edit.slides})
    if(!isMaterial(result)||result.id!==edit.id||result.revision!==edit.revision+1)throw Error('Invalid presentation save response.')
    if(!alive.current)return
    setEdit(result);setDirty(false)
    setItems(items=>[{id:result.id,title:result.title,revision:result.revision,slideCount:result.slides.length,updatedAt:new Date().toISOString()},...items.filter(item=>item.id!==result.id)])
-   if(use)onUseRef.current(result)
+   if(use)await onUseRef.current(result)
   }catch(e){
    if(alive.current)setSaveProblem(e instanceof Error?e.message:'Could not save. Retry.')
   }finally{lock.current=false;if(alive.current)setBusy(false)}
@@ -168,7 +168,7 @@ export function TeachingLibrary({command,currentDeck,onUse,onClose}:{command:Com
     <div className={styles.studioHomeHeading}><div><h2>My presentations</h2><small>Create or continue preparing a lesson.</small></div><button type="button" className={styles.primary} disabled={busy} onClick={()=>create()}>+ New presentation</button><button type="button" disabled={busy} onClick={()=>fileInput.current?.click()}>Import</button></div>
     <label className={styles.studioSearch}>Search presentations<input type="search" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search by title"/></label>
     <input ref={fileInput} type="file" accept=".json,application/json,.pdf,application/pdf,.pptx,application/vnd.openxmlformats-officedocument.presentationml.presentation" hidden onChange={e=>{const file=e.target.files?.[0];e.target.value='';if(file)loadFile(file)}}/>
-    <div className={styles.studioCardGrid}>{items.filter(item=>item.title.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase())).map(item=><article key={item.id} className={styles.studioMaterialCard}><button type="button" className={styles.studioMaterialOpen} disabled={busy} onClick={()=>open(item)}><span className={styles.studioMaterialArt} aria-hidden="true"><span>▤</span></span><strong>{item.title}</strong><small>{item.slideCount} {item.slideCount===1?'slide':'slides'}</small></button><details className={styles.studioCardMenu}><summary aria-label={'Actions for '+item.title}>⋯</summary><div><button type="button" disabled={busy} onClick={()=>open(item,true)}>Prepare for live</button><button type="button" disabled={busy} onClick={()=>open(item,false,true)}>Duplicate</button><button type="button" disabled={busy} onClick={()=>openHistory(item)}>Versions</button><button type="button" disabled={busy} onClick={()=>{if(!window.confirm('Delete this saved presentation? Shared lesson history remains.'))return;void run(async()=>{await command('materials_delete',null,null,{id:item.id,revision:item.revision});await refresh()})}}>Delete</button></div></details></article>)}</div>
+    <div className={styles.studioCardGrid}>{items.filter(item=>item.title.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase())).map(item=><article key={item.id} className={styles.studioMaterialCard}><button type="button" className={styles.studioMaterialOpen} disabled={busy} onClick={()=>open(item)}><span className={styles.studioMaterialArt} aria-hidden="true"><span>▤</span></span><strong>{item.title}</strong><small>{item.slideCount} {item.slideCount===1?'slide':'slides'}</small></button><details className={styles.studioCardMenu}><summary aria-label={'Actions for '+item.title}>⋯</summary><div><button type="button" disabled={busy} onClick={()=>open(item,true)}>{attachToPlan?'Attach to Lesson Plan':'Prepare for live'}</button><button type="button" disabled={busy} onClick={()=>open(item,false,true)}>Duplicate</button><button type="button" disabled={busy} onClick={()=>openHistory(item)}>Versions</button><button type="button" disabled={busy} onClick={()=>{if(!window.confirm('Delete this saved presentation? Shared lesson history remains.'))return;void run(async()=>{await command('materials_delete',null,null,{id:item.id,revision:item.revision});await refresh()})}}>Delete</button></div></details></article>)}</div>
     {!items.length?<p>No saved presentations yet.</p>:!items.some(item=>item.title.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase()))?<p>No matching presentations.</p>:null}
     <button type="button" className={styles.studioBack} disabled={busy} onClick={()=>void run(refresh)}>Refresh library</button>
   </section>}
@@ -209,7 +209,7 @@ export function TeachingLibrary({command,currentDeck,onUse,onClose}:{command:Com
    <div className={styles.studioSection} hidden={!!onClose&&studioTab!=="Notes"}>
    <PrivateSlideFields key={edit.id+':private:'+index} slide={slide} disabled={busy} onChange={notes=>patch({notes})}/>
    </div>
-   <div className={styles.studioFooter}>{onClose&&<button type="button" disabled={busy||!edit.slides.some(s=>s.title.trim()||s.body.trim())} onClick={()=>setRehearsing(true)}>Rehearse</button>}<button className={styles.primary} disabled={busy||!edit.title.trim()} onClick={()=>void save(true)}>{onClose?"Prepare for Live":"Save & use"}</button></div>
+   <div className={styles.studioFooter}>{onClose&&<button type="button" disabled={busy||!edit.slides.some(s=>s.title.trim()||s.body.trim())} onClick={()=>setRehearsing(true)}>Rehearse</button>}<button className={styles.primary} disabled={busy||!edit.title.trim()} onClick={()=>void save(true)}>{attachToPlan?"Save & attach":onClose?"Prepare for Live":"Save & use"}</button></div>
    <details className={styles.studioLibraryMenu}><summary>Presentation options</summary><label className={styles.autoSaveLabel}><input type="checkbox" checked={autoSave} disabled={busy} onChange={e=>setAutoSave(e.target.checked)}/> Auto-save</label><div className={styles.controls}><button disabled={busy||!edit.title.trim()} onClick={()=>void save()}>Save presentation</button><button disabled={busy} onClick={()=>{if(mayReplace()){setEdit(null);setDirty(false);setSaveProblem('')}}}>Close editor</button><button type="button" disabled={busy||!edit.title.trim()} onClick={download} >Export slides (without private notes)</button><button type="button" disabled={busy||!edit.title.trim()||edit.slides.some(s=>isPhotoBody(s.body))} onClick={()=>setPrintDeck(edit)}>Print / Save PDF</button><button type="button" disabled={busy||!edit.title.trim()} onClick={downloadPowerPoint}>Export PowerPoint text</button><small>{busy?'Saving…':dirty?'Changes not yet saved':edit.revision>0?'Saved privately · recover from My Presentations':'New presentation'}</small></div></details>
   </section>}
  </div>
