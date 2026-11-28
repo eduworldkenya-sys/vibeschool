@@ -8,6 +8,7 @@ import styles from './LiveClassroom.module.css'
 import ClassroomManager from './ClassroomManager'
 import OnlineTeacherWorkspace from '@/components/timetable/OnlineTeacherWorkspace'
 import EndedTeacherWorkspace from './EndedTeacherWorkspace'
+import type {ScheduledBookingContext} from './ScheduledBookingContext'
 import {encodeDemo, adjacentSlide, buildTextRevealSlides, decodeAssessment, assessmentPrompt, decodePhotoSlide, visualSlideBody, visualSlidePayload, preparedAssessment } from './LiveSlideProtocol'
 import { ExecutiveDialog } from './ExecutiveDialog'
 import { ExecutiveCommandPalette } from './ExecutiveCommandPalette'
@@ -229,7 +230,10 @@ function TeacherSticker({prompt,hidden,onHide}:{prompt:Prompt|null|undefined;hid
  </div>
 }
 
-export default function LiveClassroom({classId,teacher,back,hostModes=['tuition','open'],initialStudio=false,instantEntry=false}:{classId:string|null;teacher:boolean;back:string;hostModes?:ClassroomMode[];initialStudio?:boolean;instantEntry?:boolean}) {
+export default function LiveClassroom({classId,teacher,back,hostModes=['tuition','open'],initialStudio=false,instantEntry=false,scheduledBooking}:{classId:string|null;teacher:boolean;back:string;hostModes?:ClassroomMode[];initialStudio?:boolean;instantEntry?:boolean;scheduledBooking?:ScheduledBookingContext}) {
+  const scheduledId=scheduledBooking?.id
+  const bookedRoomRef=useRef<string|null>(scheduledBooking?.roomId??null)
+  useEffect(()=>{if(scheduledBooking?.roomId)bookedRoomRef.current=scheduledBooking.roomId},[scheduledBooking?.roomId])
   const hostModeKey=hostModes.join(',')
   const [hostMode,setHostMode]=useState<ClassroomMode>(classId?'school':hostModes[0])
   const [groupId,setGroupId]=useState('')
@@ -387,14 +391,22 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
     return ()=>subscription.unsubscribe()
   },[revoke])
   const call=useCallback(async (action:string,id:string|null=null,version:number|null=null,payload:Record<string,unknown>={})=>{
-    const {data,error:failure}=await supabase.rpc('vibe_live_command',{p_action:action,p_class_id:classId,p_session_id:id,p_version:version,p_payload:{...payload,host:teacher}})
+    if(scheduledId&&action==='past_list')return []
+    if(scheduledId&&action==='get'&&id!==bookedRoomRef.current)throw Error('This is not the room for this booking.')
+    if(scheduledId&&action==='list'&&!bookedRoomRef.current)return []
+    const bookingStart=!!scheduledId&&action==='start'
+    const {data,error:failure}=bookingStart
+      ?await supabase.rpc('vibe_live_tuition_booking',{p_booking:scheduledId,p_action:'start'})
+      :await supabase.rpc('vibe_live_command',{p_action:action,p_class_id:classId,p_session_id:id,p_version:version,p_payload:{...payload,host:teacher}})
     if(failure) {
       if(failure.code==='42501') throw new Error('LIVE_ACCESS_REVOKED')
       throw new Error(failure.message||'Could not sync the classroom.')
     }
     if(data===null||typeof data!=='object') throw new Error('Invalid classroom response.')
+    if(bookingStart){if(typeof data.id!=='string'||data.teacher!==true)throw Error('Invalid scheduled room.');bookedRoomRef.current=data.id}
+    if(scheduledId&&action==='list')return Array.isArray(data)?data.filter((item:Summary)=>item.id===bookedRoomRef.current):[]
     return data
-  },[classId,teacher])
+  },[classId,teacher,scheduledId])
   // Position metadata follows the existing authorized RPC; never broadcast
   // document contents or grant browsers write access to the Realtime topic.
   const queuePresenter=useCallback((promptId:string,ratio:number,immediate=false)=>{
@@ -453,7 +465,8 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
         if(mounted.current&&generation.current===stamp) accept(next)
       } else if(!current) {
         const resumeId=recoverRoomId()
-        if(resumeId){
+        if(resumeId&&scheduledId&&resumeId!==bookedRoomRef.current)roomUrl(null)
+        if(resumeId&&(!scheduledId||resumeId===bookedRoomRef.current)){
           const next=await call('get',resumeId) as Room
           if(mounted.current&&generation.current===stamp){accept(next);setError('')}
           return true
@@ -472,7 +485,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
     } finally {
       if(generation.current===stamp) {lock.current=false;if(mounted.current)setLoading(false)}
     }
-  },[call,accept,teacher,classId,hostModeKey,revoke])
+  },[call,accept,teacher,classId,hostModeKey,revoke,scheduledId])
   // Backend capability probing keeps the archive control hidden until the
   // compatible, independently verified read-only RPC has been commissioned.
   useEffect(()=>{
@@ -826,6 +839,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
   }
   function leave() {
     if(mutating.current)return
+    if(scheduledId){roomUrl(null);window.location.assign(back);return}
     generation.current++;lock.current=false;roomUrl(null);active.current=null;setRoom(null);setReviewId(null);setError('');setLoading(true);void refresh()
   }
   function rememberBoard(){setUndoBoards(history=>[...history.slice(-29),board]);setRedoBoards([])}
@@ -1440,6 +1454,23 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
       work={<LiveWorkbook roomId={room.id} teacher status={room.status} online={online} questions={history} currentId={prompt?.id} command={call} joined={participants.length}/>}
       files={<LiveClassFiles roomId={room.id} teacher status="ended"/>}
       followup={room.mode!=='open'?<LiveIndependentStudy showUnavailable key={room.id} classId={room.mode==='school'?classId:null} teacher mode={room.mode} roomId={room.id}/>:undefined}/>
+  }
+  if(scheduledBooking&&teacher&&!room&&!loading){
+    const booking=scheduledBooking
+    const canPrepare=!booking.roomId&&['upcoming','joinable'].includes(booking.state)
+    const canStart=booking.state==='joinable'&&!booking.roomId
+    return <main className={styles.live}>
+      <header className={styles.header}><Link href={back}>Back to teaching</Link><h1>Scheduled lesson</h1></header>
+      <section className={styles.panel} aria-label="Booked teaching lesson">
+        <h2>{booking.title}</h2>
+        <p>{new Date(booking.startsAt).toLocaleString('en-KE',{dateStyle:'medium',timeStyle:'short',timeZone:'Africa/Nairobi'})} – {new Date(booking.endsAt).toLocaleTimeString('en-KE',{hour:'2-digit',minute:'2-digit',timeZone:'Africa/Nairobi'})} EAT</p>
+        <small>Private booking · Only the booked learner may join.</small>
+        {error&&<p role="alert">{error==='live_end_previous_session'?'Another class is active. Finish it before starting this booking.':error} <button type="button" onClick={()=>void refresh()}>Retry</button></p>}
+        {canPrepare&&<button type="button" disabled={busy} onClick={()=>setBeforeLibrary(true)}>Prepare lesson</button>}
+        {preparedTitle&&canPrepare&&<p>Prepared: {preparedTitle} <button type="button" disabled={busy} onClick={()=>setRehearsalOpen(true)}>Rehearse privately</button> <button type="button" disabled={busy} onClick={()=>{preparedDeck.current=null;setPreparedTitle('')}}>Remove preparation</button></p>}
+        {booking.roomId?<button type="button" className={styles.primary} disabled={busy||!online} onClick={()=>void act('get',booking.roomId!)}>{['ended','completed','cancelled'].includes(booking.state)?'Review lesson':'Resume lesson'}</button>:canStart?<button type="button" className={styles.primary} disabled={busy||!online} onClick={()=>void act('start',null,{title:booking.title,mode:'tuition'})}>{busy?'Starting…':'Start booked lesson'}</button>:<p role="status">{booking.state==='upcoming'?'You can start 15 minutes before the booking.':booking.state==='cancelled'?'This booking was cancelled.':'This lesson has ended without a linked classroom.'}</p>}
+      </section>
+    </main>
   }
   if(instantEntry&&teacher&&!classId&&!room&&!loading){
     const currentClass=rooms.find(item=>item.own&&item.mode!=='school')
