@@ -175,7 +175,17 @@ export function TeachingLibrary({command,currentDeck,onUse,onClose,attachToPlan=
  const slide=edit?.slides[index]
  if(history)return <section className={styles.slideFields} aria-label="Presentation versions"><div className={styles.controls}><strong>Version history</strong><button type="button" disabled={exclusiveBusy} onClick={()=>setHistory(null)}>Back to preparation</button></div>{error&&<p role="alert">{error}</p>}<small>Latest version and up to ten earlier saves. Restore creates a separate copy.</small>{history.versions.map(v=><div key={v.revision} className={styles.controls}><span>Version {v.revision} · {v.title} · {v.slideCount} slides</span><button type="button" disabled={exclusiveBusy} onClick={()=>restoreVersion(v.revision)}>Restore as copy</button></div>)}</section>
  if(resourceOpen&&edit)return <LiveResourcePicker classId={null} lessonPlanId={null} schemeLessonId={null} canPresent={!exclusiveBusy&&edit.slides.length<30} onPresent={()=>{}} onPrepare={page=>{if(lock.current||saveLock.current||edit.slides.length>=30)return;changeDeck([...edit.slides,page],edit.slides.length);setResourceOpen(false)}} onClose={()=>setResourceOpen(false)}/>
- if(rehearsing&&edit)return <LiveStudioRehearsal slides={edit.slides} onClose={()=>setRehearsing(false)}/>
+ if(rehearsing&&edit)return <LiveStudioRehearsal
+  slides={edit.slides}
+  initialIndex={index}
+  onClose={selected=>{setIndex(selected);setStudioTab('Slides');setRehearsing(false)}}
+  onSave={()=>void save()}
+  onPrepare={()=>void save(true)}
+  saveDisabled={busy||saving||!edit.title.trim()}
+  prepareLabel={attachToPlan?'Save & attach':'Prepare for Live'}
+  status={saving?'Saving…':dirty?'Unsaved changes':'All changes saved'}
+  error={saveProblem}
+ />
  return <div className={styles.teachingLibrary}>
   {onClose&&<header className={styles.studioHeader}><button type="button" aria-label="Back to Go Live" disabled={exclusiveBusy} onClick={()=>{if(mayReplace())onClose()}}>←</button><div><h1>Live Studio</h1><small>{edit?.title||"Prepare a lesson"}</small></div></header>}
  {printDeck&&<SlidePrintPreview title={printDeck.title} slides={printDeck.slides} onClose={()=>setPrintDeck(null)}/>}
