@@ -2,13 +2,14 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
+import { getSupabaseClient } from '@/lib/supabase'
 import styles from '@/components/vibetutor/VibeTutor.module.css'
 import Icon from '@/components/vibetutor/Icon'
 import type { FilterOption } from '@/components/vibetutor/FilterBar'
 import BackToTop from '@/components/vibetutor/BackToTop'
 import { TutorCard, RequestCard } from '@/components/vibetutor/Cards'
 import { DAYS, LEVELS, SUBJECTS_BY_LEVEL, type DemoRequest, type DemoTutor, type Mode } from '@/components/vibetutor/data'
-import { fetchLiveListings, type LiveListings } from '@/components/vibetutor/listings'
+import { fetchLiveListings, type LiveListings, type SavedDiscoveryPreference } from '@/components/vibetutor/listings'
 
 type View = 'tutors' | 'students'
 type Discovery = 'for-you' | 'nearby' | 'explore'
@@ -42,6 +43,7 @@ function discoverySeed() {
 type Filters = { q: string; subject: string; level: string; area: string; mode: Mode | ''; priceRange: string; day: string }
 
 function matchesPrice(price: number, range: string) {
+  if (range && price <= 0) return false
   if (range === 'under500') return price < 500
   if (range === '500to1000') return price >= 500 && price <= 1000
   if (range === '1000to2000') return price > 1000 && price <= 2000
@@ -71,6 +73,18 @@ function preferenceScore(row: DemoTutor | DemoRequest, p: Preferences): number |
   return total ? Math.round(100 * known.reduce((sum, [, matched, weight]) => sum + (matched ? weight : 0), 0) / total) : undefined
 }
 
+function savedScore(row: DemoTutor | DemoRequest, saved: SavedDiscoveryPreference | undefined) {
+  if (!saved) return 0
+  const tutor = 'levels' in row
+  const levels = tutor ? row.levels : [row.level]
+  const price = tutor ? row.rateKes : row.budgetKes
+  const share = (a: string[], b: string[]) => a.length ? a.filter(value => b.includes(value)).length / a.length : 0
+  const online = saved.mode !== 'physical' && row.mode !== 'physical'
+  const physical = saved.mode !== 'online' && row.mode !== 'online' && !!saved.area && saved.area === row.area
+  const affordable = saved.amount > 0 && price > 0 && (tutor ? price <= saved.amount : price >= saved.amount)
+  return 25 * share(saved.subjects, row.subjects) + 25 * share(saved.levels, levels) + 20 * share(saved.days, row.days) + 15 * Number(online || physical) + 15 * Number(affordable)
+}
+
 function matchesText(values: string[], q: string) {
   const term = q.trim().toLowerCase()
   return !term || values.some(value => value.toLowerCase().includes(term))
@@ -97,6 +111,9 @@ export default function BrowseClient({ initialView }: { initialView: View }) {
   const [reloadKey, setReloadKey] = useState(0)
   const filters: Filters = { q, subject, level, area: discovery === 'nearby' ? nearbyArea : area, mode, priceRange, day }
   const preferred = preferences[view]
+  const saved = view === 'tutors' ? live?.learnerPreference : live?.tutorPreference
+  const explicitPreference = Object.values(preferred).some(Boolean)
+  const rankScore = (row: DemoTutor | DemoRequest) => explicitPreference ? preferenceScore(row, preferred) ?? 0 : savedScore(row, saved)
   // Explicit choices inform the For You feed for this visit, separately for each role.
   useEffect(() => {
     const next = {subject, level, area: discovery === 'nearby' ? nearbyArea : area, mode, priceRange, day}
@@ -107,6 +124,17 @@ export default function BrowseClient({ initialView }: { initialView: View }) {
     }))
   }, [view, subject, level, area, mode, priceRange, day, discovery, nearbyArea])
   useEffect(() => { setSeed(discoverySeed()); if (new URLSearchParams(window.location.search).get('view') === 'students') setView('students') }, [])
+
+  useEffect(() => {
+    const { data: { subscription } } = getSupabaseClient().auth.onAuthStateChange(event => {
+      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'USER_UPDATED') {
+        setLive(null)
+        setPreferences({ tutors: INITIAL_PREFERENCES, students: INITIAL_PREFERENCES })
+        setReloadKey(key => key + 1)
+      }
+    })
+    return () => subscription.unsubscribe()
+  }, [])
 
   useEffect(() => {
     let active = true
@@ -147,14 +175,14 @@ export default function BrowseClient({ initialView }: { initialView: View }) {
     const matches = tutorsFor(filters)
     const order = (rows: DemoTutor[]) => {
       const rotated = rotate(rows, seed)
-      return discovery === 'for-you' ? rotated.sort((a, b) => (preferenceScore(b, preferred) ?? 0) - (preferenceScore(a, preferred) ?? 0)) : rotated
+      return discovery === 'for-you' ? rotated.sort((a, b) => rankScore(b) - rankScore(a)) : rotated
     }
     return order(matches.filter(t => t.real))
-  }, [q, subject, level, area, mode, priceRange, day, tutorSource, discovery, nearbyArea, preferred, seed])
+  }, [q, subject, level, area, mode, priceRange, day, tutorSource, discovery, nearbyArea, preferred, saved, seed])
   const requests = useMemo(() => {
     const rows = rotate(requestsFor(filters), seed)
-    return discovery === 'for-you' ? rows.sort((a, b) => (preferenceScore(b, preferred) ?? 0) - (preferenceScore(a, preferred) ?? 0)) : rows
-  }, [q, subject, level, area, mode, priceRange, day, requestSource, discovery, nearbyArea, preferred, seed])
+    return discovery === 'for-you' ? rows.sort((a, b) => rankScore(b) - rankScore(a)) : rows
+  }, [q, subject, level, area, mode, priceRange, day, requestSource, discovery, nearbyArea, preferred, saved, seed])
   const currentCount = view === 'tutors' ? tutors.length : requests.length
   // Each facet is calculated without its own current selection.
   const visibleLevels = [...new Set([...LEVELS, ...requestSource.map(r => r.level)])]
@@ -189,7 +217,7 @@ export default function BrowseClient({ initialView }: { initialView: View }) {
   const defaultSubjects = ['Mathematics', 'English', 'Science & Technology', 'Integrated Science']
   const subjectChips = [...new Set([...defaultSubjects.filter(s => !level || availableLevels.includes(s)), ...subjectOptions.map(s => s.value), ...(subject ? [subject] : [])])]
   const activeFilters = !!(q || subject || level || area || mode || priceRange || day || nearbyArea)
-  const personalized = Object.values(preferred).some(Boolean)
+  const personalized = explicitPreference || !!saved
   const score = (row: DemoTutor | DemoRequest) => discovery === 'for-you' && row.real ? preferenceScore(row, preferred) : undefined
 
   return (

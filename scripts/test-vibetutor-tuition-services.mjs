@@ -58,3 +58,15 @@ test('lower primary is available as request categories, not tutor identities', (
     assert.deepEqual(Object.keys(s).sort(), ['area', 'id', 'level', 'subjects'])
   }
 })
+
+ test('saved discovery is owner scoped, preserves anonymous projection and respects explicit filters', () => {
+  const listings = readFileSync('components/vibetutor/listings.ts', 'utf8')
+  const browse = readFileSync('app/vibetutor/browse/BrowseClient.tsx', 'utf8')
+  assert.match(listings, /auth\.getUser\(\)/)
+  assert.match(listings, /\.eq\('requester_id', verifiedId\)\.eq\('status', 'open'\)/)
+  assert.match(listings, /tutors\.find\(t => t\.id === verifiedId\)/)
+  assert.match(browse, /explicitPreference \? preferenceScore/)
+  assert.match(browse, /rankScore\(b\) - rankScore\(a\)/)
+  assert.match(browse, /event === 'SIGNED_OUT'/)
+  assert.match(browse, /if \(range && price <= 0\) return false/)
+ })
