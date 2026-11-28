@@ -21,3 +21,8 @@ Existing draft slides remain the sequence storage. Plan stages may be copied as 
 
 ## Scope constraint
 No AI features in this release. Reuse existing tools and avoid speculative architecture. Prioritize reliable manual lesson preparation, sequence and live execution. Recording and advanced effects remain separate future increments.
+
+## December 2026 launch scope — owner decision, 28 November 2026
+Deferred to January 2027 / after the December online teaching launch: standalone post-class teacher reflection, next-lesson preparation integration and a classroom-opening timer. Track these in [issue #2168](https://github.com/eduworldkenya-sys/vibeschool/issues/2168), retaining the existing school lesson reflection and first-shared-page timer. Do not introduce a reflection migration or activate new capabilities for this deferral.
+
+December priorities remain PDF/photo presentation and recovery, voice and microphone reliability, the full 40-minute teacher-only delivery scenario, mobile/desktop usability, production deployment verification and real-learner testing. Deferral does not certify any of these gates or waive existing access and safety controls.
