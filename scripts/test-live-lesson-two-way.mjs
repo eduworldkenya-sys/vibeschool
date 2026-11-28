@@ -85,3 +85,17 @@ test('normal saved plan displays linked session history but not private learner 
   assert.doesNotMatch(migration,/student_id|a\.body|answer_key/)
   assert.match(modal,/lessonToLiveHref\(/)
 })
+
+test('a plan reuses the existing private presentation and classroom draft',()=>{
+  const attachment=read('supabase/migrations/20261128042000_lesson_plan_presentation.sql')
+  assert.match(attachment,/lesson_plan_id uuid PRIMARY KEY REFERENCES public\.lesson_plans/)
+  assert.match(attachment,/presentation_id uuid NOT NULL REFERENCES vibe_live\.teacher_materials\(id\) ON DELETE CASCADE/)
+  assert.match(attachment,/teacher_id = v_owner\s+AND public\.teacher_can_access_class/)
+  assert.match(attachment,/id = p_presentation_id AND owner_id = v_owner/)
+  assert.match(attachment,/material\.owner_id = v_owner/)
+  assert.match(attachment,/GRANT EXECUTE ON FUNCTION public\.vibe_live_plan_presentation\(uuid, uuid, boolean\) TO authenticated/)
+  assert.match(classroom,/call\('materials_get',null,null,\{id:attachment\.data\}\)/)
+  assert.match(classroom,/preparedDeck\.current=\{title:material\.title,slides:material\.slides\}/)
+  assert.match(classroom,/else if\(preparedDeck\.current\)\{setSlides\(preparedDeck\.current\.slides\);setSlideIndex\(0\)\}/)
+  assert.match(classroom,/onUse=\{attachingPlan\?attachPlanPresentation:useMaterial\}/)
+})

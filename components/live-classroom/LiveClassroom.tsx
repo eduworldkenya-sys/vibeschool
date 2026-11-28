@@ -19,7 +19,7 @@ import {copyPhotoDeck,shareSlidePhotos} from './LivePhotoDeckReuse'
 import {PrivateSlideFields} from './LivePreparedAssessment'
 import {SlideBodyEditor} from './LiveSlideBodyEditor'
 import {LiveCurrentSlideEditor,canEditCurrentSlide} from './LiveCurrentSlideEditor'
-import { TeachingLibrary } from './LiveTeachingLibrary'
+import { TeachingLibrary, isMaterial } from './LiveTeachingLibrary'
 import {validateStudioResources} from './LiveStudioResourceValidation'
 import {studioResource,studioFile} from './LiveSlideProtocol'
 import {presentStudioFile,validateStudioFiles} from './LiveStudioFiles'
@@ -256,6 +256,9 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
   const [plansError,setPlansError]=useState('')
   const [plansLoading,setPlansLoading]=useState(false)
   const [linkedPlanError,setLinkedPlanError]=useState('')
+  const [attachingPlan,setAttachingPlan]=useState(false)
+  const [planLoadAttempt,retryPlanLoad]=useState(0)
+  const [attachedPresentation,setAttachedPresentation]=useState<string|null>(null)
   const [planPhase,setPlanPhase]=useState(0)
   const [workspaceRevision,setWorkspaceRevision]=useState<number|null>(null)
   const [workspaceStatus,setWorkspaceStatus]=useState('')
@@ -584,6 +587,12 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
   useEffect(()=>{
     if(!teacher||!classId||selectedPlanId===null)return
     setLinkedPlan(null);setLinkedPlanError('');setPlanPhase(0)
+    if(!active.current){
+      setAttachedPresentation(null)
+      setAttachingPlan(false)
+      preparedDeck.current=null
+      setPreparedTitle('')
+    }
     if(!selectedPlanId)return
     if(!validLessonId(selectedPlanId)){setLinkedPlanError('Invalid lesson link. Choose a saved Lesson Plan.');return}
     const planId=selectedPlanId
@@ -602,14 +611,29 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
         if(!projection?.steps.length)throw new Error('The saved Lesson Plan needs review before teaching.')
         if(cancelled)return
         const topic=String(result.data.topic||'Lesson Plan').trim().slice(0,120)||'Lesson Plan'
+        if(!active.current){
+          setTitle(topic)
+          const attachment=await supabase.rpc('vibe_live_plan_presentation',{p_plan_id:planId})
+          if(attachment.error)throw new Error('Could not load the plan’s presentation. Try loading the plan again.')
+          if(cancelled)return
+          if(attachment.data&&!active.current){
+            const material=await call('materials_get',null,null,{id:attachment.data})
+            if(cancelled)return
+            if(!isMaterial(material)||material.id!==attachment.data)throw new Error('The attached presentation is unavailable.')
+            if(!active.current){
+              preparedDeck.current={title:material.title,slides:material.slides}
+              setPreparedTitle(material.title)
+              setAttachedPresentation(material.id)
+            }
+          }
+        }
         setLinkedPlan({id:result.data.id,schemeId:result.data.scheme_id??null,title:topic,steps:projection.steps})
         setLinkedPlanError('');setPlanPhase(0)
-        if(!active.current)setTitle(topic)
       }catch(e){if(!cancelled)setLinkedPlanError(e instanceof Error?e.message:'Could not read the saved Lesson Plan.')}
     }
     void load()
     return()=>{cancelled=true}
-  },[teacher,classId,selectedPlanId])
+  },[teacher,classId,selectedPlanId,call,planLoadAttempt])
   useEffect(()=>{
     if(!teacher||room?.mode!=='open'||!room.id)return
     let cancelled=false
@@ -1144,6 +1168,19 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
     else {preparedDeck.current={title:material.title,slides:material.slides};setPreparedTitle(material.title);setTitle(material.title);setBeforeLibrary(false)}
   }
 
+  async function attachPlanPresentation(material:{id:string;title:string;slides:LiveSlide[]}){
+    if(!linkedPlan||linkedPlan.id!==selectedPlanId||active.current)throw new Error('Select a Lesson Plan before attaching a presentation.')
+    const result=await supabase.rpc('vibe_live_plan_presentation',{
+      p_plan_id:linkedPlan.id,p_presentation_id:material.id,p_write:true,
+    })
+    if(result.error||result.data!==material.id)throw new Error('Could not attach this presentation to the Lesson Plan.')
+    setAttachedPresentation(material.id)
+    preparedDeck.current={title:material.title,slides:material.slides}
+    setPreparedTitle(material.title)
+    setAttachingPlan(false)
+    setBeforeLibrary(false)
+  }
+
   if(teacher&&rehearsalOpen&&!room&&!loading)return <main className={styles.live} aria-label="Private rehearsal"><StudioRehearsal slides={preparedDeck.current?.slides??[]} title={preparedTitle||'Untitled lesson'} onClose={()=>setRehearsalOpen(false)} /></main>
   if(immersive&&room){
     const stage=<main ref={immersiveRef} tabIndex={-1} className={instantEntry&&teacher?styles.immersive+" "+styles.premium:styles.immersive} role="dialog" aria-modal="true" aria-label="Live classroom" onKeyDown={e=>{if((e.target as HTMLElement).closest('dialog'))return;if(instantEntry&&teacher&&(e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'&&!endConfirm&&!executiveInvite){e.preventDefault();setPremiumMenu(null);setCommandOpen(true);return}if(e.key==='Escape'){if(endConfirm)setEndConfirm(false);else if(premiumMenu)setPremiumMenu(null);else if(contentTab){if(!photoPreparing)setContentTab(null)}else if(rehearsalOpen)setRehearsalOpen(false);else if(panel)setPanel(null);else if(focusMode)toggleFocus()}if(e.key==='Tab'&&immersiveRef.current){const controls=Array.from(immersiveRef.current.querySelectorAll<HTMLElement>('button:not(:disabled),a[href],input:not(:disabled),textarea:not(:disabled),select:not(:disabled)')).filter(el=>el.offsetParent!==null);const first=controls[0],last=controls[controls.length-1];if(first&&last){if(e.shiftKey&&(document.activeElement===first||document.activeElement===immersiveRef.current)){e.preventDefault();last.focus()}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}}}}}>
@@ -1355,13 +1392,13 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
       {pastOpen&&<section aria-label="Past classes">{pastLoading&&<p role="status">Loading…</p>}{pastError&&<p role="alert">{pastError}</p>}{pastRooms.map(item=><button key={item.id} disabled={busy} onClick={()=>void act('get',item.id)}>{item.title}</button>)}</section>}
     </section>
   </main>
-  if(teacher&&beforeLibrary&&!room&&!loading)return <main className={`${styles.live} ${styles.studioPage}`} aria-label="Live Studio"><TeachingLibrary command={call} currentDeck={null} onUse={useMaterial} onClose={()=>setBeforeLibrary(false)}/></main>
+  if(teacher&&beforeLibrary&&!room&&!loading)return <main className={`${styles.live} ${styles.studioPage}`} aria-label="Live Studio"><TeachingLibrary command={call} currentDeck={null} onUse={attachingPlan?attachPlanPresentation:useMaterial} attachToPlan={attachingPlan} onClose={()=>{setAttachingPlan(false);setBeforeLibrary(false)}}/></main>
   return <main className={styles.live}>
     <header className={styles.header}><Link href={back}>Back</Link><h1>Live Classroom</h1>{room&&<span className={styles.status}>{room.status==='active'?'Live':room.status==='paused'?'Paused':'Ended'}</span>}</header>
     {error&&<div role="alert" className={styles.alert}>{error} <button onClick={()=>void refresh()}>Retry</button></div>}
     {loading&&!room&&<p role="status">Connecting…</p>}
     {!room&&!loading&&<section className={`${styles.panel} ${teacher?styles.classroomEntry:""}`}>
-      {teacher&&<><button type="button" className={styles.studioEntry} aria-label="Live Studio" onClick={()=>setBeforeLibrary(true)}><PanelTop aria-hidden="true"/><span><strong>Live Studio</strong><small>Prepare, preview and rehearse</small></span><span aria-hidden="true">›</span></button>{preparedTitle&&<p>Ready for next lesson: {preparedTitle} <button type="button" onClick={()=>setRehearsalOpen(true)}>Rehearse privately</button> <button type="button" onClick={()=>{preparedDeck.current=null;setPreparedTitle('')}}>Remove</button></p>}</>}
+      {teacher&&<><button type="button" className={styles.studioEntry} aria-label="Live Studio" onClick={()=>setBeforeLibrary(true)}><PanelTop aria-hidden="true"/><span><strong>Live Studio</strong><small>Prepare, preview and rehearse</small></span><span aria-hidden="true">›</span></button>{preparedTitle&&<p>Ready for next lesson: {preparedTitle} <button type="button" onClick={()=>setRehearsalOpen(true)}>Rehearse privately</button> <button type="button" onClick={()=>{preparedDeck.current=null;setPreparedTitle('')}}>Remove from this session</button></p>}</>}
       {teacher&&<div className={styles.startLesson}><h2>Start a lesson</h2>{classId&&<section aria-label="Prepare Live Lesson" className={styles.planPicker}>
         <label>Saved Lesson Plan
           <select aria-label="Saved Lesson Plan" value={selectedPlanId??''}
@@ -1374,8 +1411,12 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
         </label>
         {plansLoading&&<small>Loading saved plans…</small>}
         {plansError&&<small role="status">{plansError}</small>}
-        {linkedPlanError&&<small role="alert">{linkedPlanError}</small>}
-        {linkedPlan&&<small>Private teacher plan ready · {linkedPlan.steps.length} teaching phases</small>}
+        {linkedPlanError&&<div role="alert"><small>{linkedPlanError}</small><button type="button" disabled={busy} onClick={()=>retryPlanLoad(attempt=>attempt+1)}>Retry plan</button></div>}
+        {linkedPlan&&<><small>Private teacher plan ready · {linkedPlan.steps.length} teaching phases</small>
+          <button type="button" disabled={busy} onClick={()=>{setAttachingPlan(true);setBeforeLibrary(true)}}>
+            {attachedPresentation?'Change attached presentation':'Attach presentation'}
+          </button>
+        </>}
       </section>}
       <form onSubmit={e=>{e.preventDefault();void act('start',null,{title:hostMode==='open'?`${publicGrade} · ${publicSubject} · ${title.trim()}`:title,mode:hostMode,groupId:classId||hostMode!=='tuition'?null:groupId||null})}}>
         {!classId&&hostModes.length>1&&<div className={styles.controls} aria-label="Classroom type">{hostModes.map(item=><button type="button" key={item} aria-pressed={hostMode===item} onClick={()=>{setHostMode(item);setGroupId('')}}>{classroomLabels[item]}</button>)}</div>}
