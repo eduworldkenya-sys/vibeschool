@@ -1098,11 +1098,13 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
     void act('ask',null,{body,requestId:questionRequest.current.id})
   }
   function openContent(tab:ContentTab='resources'){setContentFeedback('');setContentTab(tab);setPremiumMenu(null)}
-  function addContentSlide(item:LiveSlide){
-    if(!teacher||draftLoading||busy||conflictDraft||photoLock.current||slides.length>=30){setContentFeedback('The draft is unavailable or full.');return}
-    if(!validSlide(item)){setContentFeedback('This item cannot be added.');return}
+  function addContentDeck(additions:LiveSlide[]){
+    if(!teacher||draftLoading||busy||conflictDraft||photoLock.current){setContentFeedback('The draft is unavailable.');return}
+    if(!additions.length||!additions.every(validSlide)){setContentFeedback('This content cannot be added.');return}
     const blank=slides.length===1&&!slides[0].title.trim()&&!slides[0].body.trim()&&!slides[0].notes?.trim()&&(!slides[0].diagram||slides[0].diagram==='none')
-    setSlides(items=>blank?[item]:[...items,item]);setContentFeedback('Added privately to the lesson.')
+    if((blank?0:slides.length)+additions.length>30){setContentFeedback('The lesson can hold up to 30 slides. Remove unused slides first.');return}
+    setSlides(items=>blank?additions:[...items,...additions])
+    setContentFeedback(additions.length===1?'Added privately to the lesson.':`Added ${additions.length} slides privately to the lesson.`)
   }
   async function showContentSlide(item:LiveSlide){
     const roomId=room?.id;if(!roomId||!canNavigateSlides||photoLock.current)throw Error('Classroom is not ready to share.')
@@ -1298,7 +1300,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
          </div>:<form onSubmit={e=>{e.preventDefault();void act('note',null,{body:noteDraft})}}><label>Personal notes<textarea maxLength={8000} value={noteDraft} disabled={busy} onChange={e=>{noteDirty.current=true;setNoteDraft(e.target.value)}}/></label><button className={styles.primary} disabled={busy||!online||!noteDirty.current}>Save notes</button><small>{noteDirty.current?'Unsaved changes':'Notes saved privately'}</small></form>}
       </section>}
       {teacher&&<TeacherSticker prompt={prompt} hidden={!showSticker||!!contentTab||!!panel||(focusMode&&!focusDock)} onHide={()=>setShowSticker(false)}/>}
-      {teacher&&contentTab&&<LiveContentDrawer tab={contentTab} onTab={setContentTab} onClose={()=>setContentTab(null)} classId={room.mode==='school'?classId:null} lessonPlanId={room.mode==='school'?linkedPlan?.id??null:null} schemeLessonId={room.mode==='school'?linkedPlan?.schemeId??null:null} roomId={room.id} command={call} canAdd={!busy&&!draftLoading&&!photoPreparing&&!conflictDraft&&slides.length<30} canShow={!!canNavigateSlides&&!photoPreparing} onAdd={addContentSlide} onShow={showContentSlide} onManagePresentations={()=>{setContentTab(null);setPanel('library')}} onShowText={body=>{setContentFeedback('');void act('publish',null,{kind:'teach',body,answerKey:null}).then(next=>{if(next)setContentFeedback('Shown to class.')})}}/>}
+      {teacher&&contentTab&&<LiveContentDrawer tab={contentTab} onTab={setContentTab} onClose={()=>setContentTab(null)} classId={room.mode==='school'?classId:null} lessonPlanId={room.mode==='school'?linkedPlan?.id??null:null} schemeLessonId={room.mode==='school'?linkedPlan?.schemeId??null:null} roomId={room.id} command={call} canAdd={!busy&&!draftLoading&&!photoPreparing&&!conflictDraft&&slides.length<30} canShow={!!canNavigateSlides&&!photoPreparing} onAdd={slide=>addContentDeck([slide])} onAddDeck={addContentDeck} onShow={showContentSlide} onManagePresentations={()=>{setContentTab(null);setPanel('library')}} onShowText={body=>{setContentFeedback('');void act('publish',null,{kind:'teach',body,answerKey:null}).then(next=>{if(next)setContentFeedback('Shown to class.')})}}/>}
       {teacher&&!contentTab&&panel&&panel!=='slides'&&panel!=='library'&&panel!=='resources'&&panel!=='chat'&&panel!=='production'&&panel!=='live-slide'&&!(instantEntry&&panel==='invite')&&<section className={styles.sheet} aria-label={panel==='compose'?labels[mode]:panel==='learners'?'Classroom Manager':panel==='invite'?'Invite learners':'Classroom tools'}>
         <div className={styles.sheetTitle}><strong>{panel==='compose'?labels[mode]:panel==='learners'?'Classroom Manager':panel==='kit'?'Teaching Kit':panel==='interactive'?'Interactive tools':panel==='invite'?'Invite learners':panel==='activity'?'Activities':panel==='plan'?'Lesson plan':'More tools'}</strong><button aria-label="Close tools" onClick={()=>{setPanel(null);setEndConfirm(false)}}><X size={19}/></button></div>
         {panel==='activity'&&<div className={styles.executiveActivityList}><button type="button" onClick={()=>chooseMode('quiz')}><HelpCircle size={20}/> Quiz</button><button type="button" onClick={()=>chooseMode('exercise')}><ClipboardList size={20}/> Exercise</button><button type="button" onClick={()=>chooseMode('poll')}><BarChart3 size={20}/> Poll</button><button type="button" onClick={()=>setPanel('learners')}><Users size={20}/> Learner responses</button></div>}
