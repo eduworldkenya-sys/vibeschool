@@ -4,7 +4,7 @@ import {createLiveFixture} from './live-classroom-test-fixture.mjs'
 
 const {db,rpc,id,teacher,a,b,solo,outsider,otherTeacher}=await createLiveFixture({learning:true})
 try{
-  await db.exec('alter table public.vibetutor_private_groups alter column id set default gen_random_uuid()')
+  await db.exec('alter table public.vibetutor_student_invitations add primary key(id); alter table public.vibetutor_private_groups alter column id set default gen_random_uuid()')
   await db.exec(readFileSync(new URL('../supabase/migrations/20261106123211_vibetutor_private_lessons.sql',import.meta.url),'utf8'))
   await db.exec(readFileSync(new URL('../supabase/migrations/20261128070000_live_tuition_booking.sql',import.meta.url),'utf8'))
   const booking=id(110),future=id(111),other=id(112),expired=id(113)
