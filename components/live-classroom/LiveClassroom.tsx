@@ -1387,9 +1387,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
   if(instantEntry&&teacher&&!classId&&!room&&!loading){
     const currentClass=rooms.find(item=>item.own&&item.mode==='tuition'&&item.status==='active')
       ??rooms.find(item=>item.own&&item.mode==='tuition'&&item.status==='paused')
-    return <main className={styles.live} style={{fontFamily:'var(--font-jakarta), system-ui, sans-serif'}}>
-    <header className={styles.header}><Link href={back}>Back</Link><h1>Online teaching</h1></header>
-    <section className={styles.panel}>
+    return <OnlineTeacherWorkspace back={back}>
       {error&&<p role="alert">{error} <button onClick={()=>void refresh()}>Retry</button></p>}
       <div className={styles.controls}>
         <button type="button" disabled={busy} onClick={()=>setBeforeLibrary(true)}>Prepare lesson</button>
@@ -1403,8 +1401,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
       {rooms.filter(item=>item.mode!=='tuition').map(item=><button key={item.id} disabled={busy} onClick={()=>void act('get',item.id)}>Resume {item.title}</button>)}
       {pastAvailable&&<button type="button" aria-expanded={pastOpen} disabled={pastLoading} onClick={()=>void togglePastClasses()}>{pastOpen?'Hide past classes':'Past classes'}</button>}
       {pastOpen&&<section aria-label="Past classes">{pastLoading&&<p role="status">Loading…</p>}{pastError&&<p role="alert">{pastError}</p>}{pastRooms.map(item=><button key={item.id} disabled={busy} onClick={()=>void act('get',item.id)}>{item.title}</button>)}</section>}
-    </section>
-  </main>
+    </OnlineTeacherWorkspace>
   }
   return <main className={styles.live}>
     <header className={styles.header}><Link href={back}>Back</Link><h1>Live Classroom</h1>{room&&<span className={styles.status}>{room.status==='active'?'Live':room.status==='paused'?'Paused':'Ended'}</span>}</header>
