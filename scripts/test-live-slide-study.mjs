@@ -4,7 +4,7 @@ import {createLiveFixture} from './live-classroom-test-fixture.mjs'
 import {encodeAssessment,prepareAssessment} from '../components/live-classroom/LiveSlideProtocol.ts'
 const {db,rpc,id,teacher,a,b,outsider,otherTeacher,cls,otherCls}=await createLiveFixture()
 try{
- await db.exec(readFileSync(new URL('../supabase/migrations/20261125000100_live_slide_study.sql',import.meta.url),'utf8'))
+ await db.exec(readFileSync(new URL('../supabase/migrations/20261127152045_20261125000100_live_slide_study.sql',import.meta.url),'utf8'))
  async function study(who,action,assignment=null,payload={},classId=cls,role='authenticated'){
   await db.exec(`set role ${role};select set_config('request.jwt.claim.sub','${who||''}',false)`)
   try{return (await db.query('select public.vibe_live_study_command($1,$2,$3,$4::jsonb) as out',[action,classId,assignment,JSON.stringify(payload)])).rows[0].out}

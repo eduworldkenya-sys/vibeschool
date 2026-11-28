@@ -14,9 +14,9 @@ const fixture=await createLiveFixture({learning:true})
 await fixture.db.exec('alter table public.vibetutor_student_invitations add primary key(id); alter table public.vibetutor_private_groups alter column id set default gen_random_uuid()')
 await fixture.db.exec(readFileSync(new URL('../supabase/migrations/20261106123211_vibetutor_private_lessons.sql',import.meta.url),'utf8'))
 await fixture.db.exec(readFileSync(new URL('../supabase/migrations/20261128070000_live_tuition_booking.sql',import.meta.url),'utf8'))
-await fixture.db.exec(readFileSync(new URL('../supabase/migrations/20261125000100_live_slide_study.sql',import.meta.url),'utf8'))
+await fixture.db.exec(readFileSync(new URL('../supabase/migrations/20261127152045_20261125000100_live_slide_study.sql',import.meta.url),'utf8'))
 const liveUpdateEnabled=process.env.TEST_LIVE_SLIDE_UPDATE==='1'
-if(liveUpdateEnabled)await fixture.db.exec(readFileSync(new URL('../supabase/migrations/20261127173000_live_classroom_slide_update.sql',import.meta.url),'utf8'))
+if(liveUpdateEnabled)await fixture.db.exec(readFileSync(new URL('../supabase/migrations/20261127193512_20261127173000_live_classroom_slide_update.sql',import.meta.url),'utf8'))
 const identity={teacher:fixture.teacher,learner:fixture.a,'learner-b':fixture.b,outsider:fixture.outsider}
 const result=await build({
   stdin:{contents:"import React from 'react'; import {createRoot} from 'react-dom/client'; import LiveClassroom from './components/live-classroom/LiveClassroom'; import ScheduledLiveClassroom from './components/vibetutor/ScheduledLiveClassroom'; const role=location.pathname.slice(1); const booking=new URLSearchParams(location.search).get('booking'); createRoot(document.getElementById('root')).render(booking?<ScheduledLiveClassroom lessonId={booking}/>:<LiveClassroom classId={role==='teacher'&&!new URLSearchParams(location.search).has('standalone')?'"+fixture.cls+"':null} teacher={role==='teacher'} instantEntry={new URLSearchParams(location.search).get('executive')==='1'} back='/'/>);",loader:'tsx',resolveDir:process.cwd()},
