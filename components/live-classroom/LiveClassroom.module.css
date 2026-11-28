@@ -785,3 +785,22 @@
  overflow-wrap:anywhere;
 }
 .canvasBodyEditor textarea{width:100%;max-width:100%;resize:vertical}
+
+.slideAssessmentDialog{
+ width:min(560px,calc(100% - 32px));
+ max-height:calc(100dvh - 32px);
+ padding:clamp(14px,3vw,24px);
+ border:1px solid #dce4df;
+ border-radius:12px;
+ background:var(--vs-surface,Canvas);
+ color:var(--vs-text,CanvasText);
+ overflow:auto;
+}
+.slideAssessmentDialog::backdrop{background:#10251d66}
+.slideAssessmentDialog h2{margin:0;font-size:1.15rem}
+.slideAssessmentDialog .slideToolbar label{flex:1;min-width:0}
+.slideAssessmentDialog .slideToolbar input{width:100%;box-sizing:border-box}
+@media(min-width:800px){
+ .studioPage .studioSection[data-studio-editor=true]>.studioCanvasArea{grid-row:2}
+ .studioPage .studioSection[data-studio-editor=true]>[data-slide-navigation]{grid-row:1}
+}
