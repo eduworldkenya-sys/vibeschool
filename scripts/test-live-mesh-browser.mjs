@@ -233,6 +233,23 @@ try {
     return Array.from(stats.values()).some(row => row.type === 'inbound-rtp' && row.kind === 'audio' && row.audioLevel < 0.001)
   })
 
+  // A direct peer failure while online must also close capture and rejoin once.
+  await serial(() => rpc(a, 'help', room.id))
+  await host.getByRole('button', { name: 'Allow Learner A to speak' }).click()
+  await learner.getByRole('button', { name: 'Unmute' }).click()
+  await learner.getByRole('button', { name: 'Mute', exact: true }).waitFor()
+  const previousPeerCount = await learner.evaluate(() => window.peerConnections.length)
+  await learner.evaluate(() => {
+    const peer = window.peerConnections.at(-1)
+    peer.close()
+    peer.dispatchEvent(new Event('connectionstatechange'))
+  })
+  await learner.waitForFunction(() => window.micTracks.every(track => track.readyState === 'ended'))
+  await learner.waitForFunction(count => window.peerConnections.length > count && window.peerConnections.at(-1).connectionState === 'connected', previousPeerCount, {timeout:60000})
+  assert.equal(await learner.getByRole('button', { name: 'Unmute' }).isDisabled(), true)
+  assert.ok(await learner.evaluate(() => window.micTracks.every(track => track.readyState === 'ended')))
+  await host.getByText('Learners on audio: '+learnerCount).waitFor({timeout:60000})
+
   // Network loss ends capture, then reacquires a fresh lease without a speaking grant.
   await serial(() => rpc(a, 'help', room.id))
   await host.getByRole('button', { name: 'Allow Learner A to speak' }).click()
