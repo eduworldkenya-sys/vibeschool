@@ -37,13 +37,14 @@ export default function OnlineTeacherWorkspace({children,back='/teacher/pulse',s
  const upcoming=lessons.filter(l=>['upcoming','joinable'].includes(tuitionLessonState(l,now))).sort((a,b)=>Date.parse(a.starts_at)-Date.parse(b.starts_at))
  const next=upcoming[0]
  const ready=!loading&&!error
- const completed=week.filter(l=>tuitionLessonState(l,now)==='completed').length
+ const currentWeek=tuitionLessonsBetween(lessons,monday(today),dayAt(monday(today),6))
+ const completed=currentWeek.filter(l=>tuitionLessonState(l,now)==='completed').length
  return <main id="workspace-home" className={styles.workspace}>
   <header className={styles.header}><Link className={styles.back} href={scheduleOnly?home:back}><ArrowLeft size={18}/><span>{scheduleOnly?'Home':'Teacher workspace'}</span></Link><div className={styles.brand}><span>VibeSchool</span><h1>{scheduleOnly?'My schedule':'Online teaching'}</h1></div><Link className={styles.profile} href="/vibetutor/become-tutor" aria-label="Tutor profile"><UserRound size={22}/></Link></header>
   {!scheduleOnly&&<section className={styles.hero} id="teach" aria-label="Teaching controls"><div><small>YOUR TEACHING WORKSPACE</small><h2>Ready to teach?</h2><p>Start an instant class or prepare your next lesson.</p></div><div className={styles.heroActions}>{children}</div></section>}
   {!scheduleOnly&&<section className={styles.summary} aria-label="Schedule insights" id="insights">
     <div><span>Upcoming lessons</span><strong>{ready?upcoming.length:'—'}</strong></div>
-    <div><span>This week</span><strong>{ready?week.filter(l=>l.status==='scheduled').length:'—'}</strong></div>
+    <div><span>This week</span><strong>{ready?currentWeek.filter(l=>l.status==='scheduled').length:'—'}</strong></div>
     <div><span>Completed this week</span><strong>{ready?completed:'—'}</strong></div>
   </section>}
   {!scheduleOnly&&ready&&next&&<section className={styles.next} aria-label="Next scheduled lesson"><div><small>NEXT SCHEDULED LESSON</small><h2>{next.title}</h2><p>{label(tuitionLocalDate(next.starts_at))} · {tuitionLocalTime(next.starts_at)}–{tuitionLocalTime(next.ends_at)} EAT</p></div><Link className={styles.action} href={tuitionLessonState(next,now)==='joinable'?'/tuition/lessons/'+encodeURIComponent(next.id):scheduleHref}>{tuitionLessonState(next,now)==='joinable'?'Join lesson':'Lesson details'}<ArrowRight size={16}/></Link></section>}
@@ -53,7 +54,7 @@ export default function OnlineTeacherWorkspace({children,back='/teacher/pulse',s
    {loading?<p role="status" className={styles.notice}>Loading your lessons…</p>:error?<div role="alert" className={styles.notice}>Could not load your schedule. <button type="button" onClick={refresh}>Retry schedule</button></div>:<div className={styles.week}>
     {days.map((date,i)=>{const entries=week.filter(l=>tuitionLocalDate(l.starts_at)===date);return <section key={date} className={styles.day} data-today={date===today} aria-label={weekdays[i]+' '+label(date)}>
       <header><span>{weekdays[i]}</span><strong>{date.slice(-2).replace(/^0/,'')}</strong><small>{label(date)}</small></header>
-      {entries.length?entries.map(l=><LessonItem key={l.id} lesson={l} now={now}/>):<div className={styles.empty}>No lessons</div>}
+      <div className={styles.dayEntries}>{entries.length?entries.map(l=><LessonItem key={l.id} lesson={l} now={now}/>):<div className={styles.empty}>No lessons</div>}</div>
     </section>})}
    </div>}
    <footer className={styles.legend}><span><i/>Scheduled</span><span><i/>No lesson booked</span><small>Unbooked time is not confirmed availability.</small></footer>
@@ -73,7 +74,7 @@ export default function OnlineTeacherWorkspace({children,back='/teacher/pulse',s
   </div></section>}
   <nav className={styles.nav} aria-label="Online teacher navigation">
     <Link href={scheduleOnly?home:'#workspace-home'} aria-current={!scheduleOnly?'page':undefined}><House size={20}/>Home</Link>
-    <Link href={scheduleOnly?'#schedule':'#schedule'} aria-current={scheduleOnly?'page':undefined}><CalendarDays size={20}/>Schedule</Link>
+    <Link href="#schedule" aria-current={scheduleOnly?'page':undefined}><CalendarDays size={20}/>Schedule</Link>
     <Link href={scheduleOnly?home+'#teach':'#teach'}><Video size={20}/>Teach</Link>
     <Link href="/vibechat"><MessageCircle size={20}/>Chat</Link>
     <Link href="/vibetutor/become-tutor"><UserRound size={20}/>Profile</Link>
