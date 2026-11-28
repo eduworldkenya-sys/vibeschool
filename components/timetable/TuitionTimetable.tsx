@@ -60,24 +60,29 @@ export function tuitionLessonsBetween(
 export function useTuitionTimetable() {
   const [lessons, setLessons] = useState<TuitionTimetableLesson[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const [revision, setRevision] = useState(0);
   const refresh = useCallback(() => setRevision(value => value + 1), []);
   useEffect(() => {
     let cancelled = false;
     async function load() {
-      const { data, error: readError } = await getSupabaseClient().rpc("vibetutor_my_lessons");
-      if (cancelled) return;
-      if (readError) {
-        setError("Tuition lessons could not be loaded. School timetable is still available.");
-        return; // Never turn a failed private read into an apparently empty schedule.
+      setLoading(true);
+      try {
+        const { data, error: readError } = await getSupabaseClient().rpc("vibetutor_my_lessons");
+        if (cancelled) return;
+        if (readError) throw readError;
+        setLessons((data ?? []) as TuitionTimetableLesson[]);
+        setError(null);
+      } catch {
+        if (!cancelled) setError("Tuition lessons could not be loaded. Please retry.");
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-      setLessons((data ?? []) as TuitionTimetableLesson[]);
-      setError(null);
     }
     void load();
     return () => { cancelled = true; };
   }, [revision]);
-  return { lessons, error, refresh };
+  return { lessons, error, loading, refresh };
 }
 
 export function TuitionTimetableCard({
