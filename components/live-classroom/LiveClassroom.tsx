@@ -1439,7 +1439,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
       }}
       work={<LiveWorkbook roomId={room.id} teacher status={room.status} online={online} questions={history} currentId={prompt?.id} command={call} joined={participants.length}/>}
       files={<LiveClassFiles roomId={room.id} teacher status="ended"/>}
-      followup={room.mode!=='open'?<LiveIndependentStudy key={room.id} classId={room.mode==='school'?classId:null} teacher mode={room.mode} roomId={room.id}/>:undefined}/>
+      followup={room.mode!=='open'?<LiveIndependentStudy showUnavailable key={room.id} classId={room.mode==='school'?classId:null} teacher mode={room.mode} roomId={room.id}/>:undefined}/>
   }
   if(instantEntry&&teacher&&!classId&&!room&&!loading){
     const currentClass=rooms.find(item=>item.own&&item.mode!=='school')
