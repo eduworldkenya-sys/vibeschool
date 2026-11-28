@@ -48,7 +48,7 @@ BEGIN
    RAISE EXCEPTION 'live_booking_unavailable' USING ERRCODE='42501';
  END IF;
  NEW.title:=booked.title;
- NEW.expires_at:=booked.ends_at;
+ NEW.expires_at:=least(NEW.expires_at,booked.ends_at);
  RETURN NEW;
 END $$;
 CREATE TRIGGER live_booking_room_guard BEFORE INSERT ON vibe_live.sessions
@@ -136,11 +136,12 @@ BEGIN
    SELECT * INTO live_room FROM vibe_live.sessions WHERE id=binding.room_id;
  END IF;
  state:=CASE WHEN booked.status='cancelled' THEN 'cancelled' WHEN booked.status='completed' THEN 'completed'
-   WHEN live_room.status='ended' OR booked.ends_at<=now() THEN 'ended'
+   WHEN live_room.status='ended' OR live_room.expires_at<=now() OR booked.ends_at<=now() THEN 'ended'
    WHEN booked.starts_at>now()+interval '15 minutes' THEN 'upcoming' ELSE 'joinable' END;
  IF p_action='context' THEN
    RETURN jsonb_build_object('id',booked.id,'title',booked.title,'role',actor,'state',state,
       'startsAt',booked.starts_at,'endsAt',booked.ends_at,
+      'hasJoined',EXISTS(SELECT 1 FROM vibe_live.participants p WHERE p.session_id=binding.room_id AND p.student_id=booked.student_id),
       'roomId',CASE WHEN actor='teacher' OR vibe_live.can_join(booked.student_id,booked.tutor_id,'tuition',null,null,binding.group_id) AND state<>'cancelled' THEN binding.room_id ELSE null END);
  END IF;
  IF state<>'joinable' THEN RAISE EXCEPTION 'live_booking_unavailable'; END IF;
