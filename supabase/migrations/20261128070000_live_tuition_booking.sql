@@ -148,7 +148,7 @@ BEGIN
  IF p_action='start' THEN
    IF actor<>'teacher' THEN RAISE EXCEPTION 'live_not_authorized' USING ERRCODE='42501'; END IF;
    IF binding.room_id IS NOT NULL THEN
-     RETURN vibe_live.command('get',null,binding.room_id,null,jsonb_build_object('host',true));
+     RETURN vibe_live.command('get',null,binding.room_id,null,jsonb_build_object('host',true))||jsonb_build_object('bookingCreated',false);
    END IF;
    IF binding.started THEN RAISE EXCEPTION 'live_booking_unavailable'; END IF;
    -- This group is created inside the same transaction and is never widened.
@@ -157,7 +157,7 @@ BEGIN
    INSERT INTO public.vibetutor_private_group_members(group_id,invitation_id)
    VALUES(scope_id,booked.invitation_id);
    INSERT INTO vibe_live.tuition_booking_rooms(group_id,booking_id) VALUES(scope_id,booked.id);
-   RETURN vibe_live.command('start',null,null,null,jsonb_build_object('host',true,'mode','tuition','groupId',scope_id,'title',booked.title));
+   RETURN vibe_live.command('start',null,null,null,jsonb_build_object('host',true,'mode','tuition','groupId',scope_id,'title',booked.title))||jsonb_build_object('bookingCreated',true);
  END IF;
  IF actor<>'student' OR binding.room_id IS NULL THEN RAISE EXCEPTION 'live_booking_not_started'; END IF;
  RETURN vibe_live.command('join',null,binding.room_id,null,jsonb_build_object('host',false));
