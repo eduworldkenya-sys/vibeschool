@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import {scheduledLiveEnabled} from '@/components/live-classroom/ScheduledBookingContext';
 import { createClient } from '@supabase/supabase-js';
 import { availableLesson, createVideoSession, validLessonId, VideoError, videoRole, sameVideoOrigin } from '@/lib/vibetutor/video';
 
@@ -13,6 +14,7 @@ function json(body: unknown, status = 200) {
 async function handle(req: NextRequest, id: string, join: boolean) {
   let role: "teacher" | "student" | undefined;
   try {
+    if (scheduledLiveEnabled) throw new VideoError('Open your scheduled lesson in Live Classroom.', 410);
     if (!validLessonId(id)) throw new VideoError('Invalid lesson.', 400);
     if (join && !sameVideoOrigin(req.headers.get('origin'), req.headers.get('host'))) throw new VideoError('Open the lesson from VibeSchool.', 403);
     const authorization = req.headers.get('authorization') ?? '';
