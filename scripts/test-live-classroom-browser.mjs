@@ -562,7 +562,27 @@ try{
  await drawer.getByRole('button',{name:'My presentations'}).click()
  await drawer.getByLabel('Search presentations').waitFor()
  await drawer.getByRole('button',{name:'Upload files'}).click()
- await drawer.getByLabel('Choose PDF or photo').waitFor()
+ await drawer.getByLabel('Upload original PDF or photo').waitFor()
+ const nativeFractions={
+   format:'vibeschool-slides',version:1,title:'Grade 4 Fractions',
+   slides:Array.from({length:12},(_,index)=>({
+     title:'Fractions stage '+(index+1),body:'Explain and practise equal parts.',
+     notes:'Private rehearsal guidance '+(index+1),
+   })),
+ }
+ await drawer.getByLabel('Import editable slides').setInputFiles({
+   name:'fractions.json',mimeType:'application/json',
+   buffer:Buffer.from(JSON.stringify(nativeFractions)),
+ })
+ await drawer.getByRole('heading',{name:'Fractions stage 1',exact:true}).waitFor()
+ await drawer.getByRole('button',{name:'Next',exact:true}).click()
+ await drawer.getByRole('heading',{name:'Fractions stage 2',exact:true}).waitFor()
+ await drawer.getByRole('button',{name:'Add all 12 slides',exact:true}).click()
+ await ct.getByText('Added 12 slides privately to the lesson.',{exact:true}).waitFor()
+ const afterDeck=await fixture.rpc(fixture.teacher,'get',sid)
+ assert.equal(afterDeck.prompt.id,beforeAdd.prompt.id)
+ assert.equal(afterDeck.history.length,beforeAdd.history.length)
+ await now.getByText('4 + 5 = 9 counters',{exact:true}).waitFor()
  await drawer.getByRole('button',{name:'Browse resources'}).click()
  await drawer.getByLabel('Search resources').fill('fraction')
  await drawer.getByRole('button',{name:/Live fraction reading/}).click()
