@@ -11,7 +11,7 @@ import {PhotoSurface} from './LiveSlidePhotos'
 import {SharedObjectBoard} from './LiveObjectBoard'
 import {decodeBoard} from './LiveBoardProtocol'
 export {TeachingDiagram} from './LiveTeachingDiagram'
-export function SlideCanvas({slide,number,total,mini=false,explore=false,roomId,ownerPhotoPreview=false,edit}:{slide:LiveSlide;number:number;total:number;mini?:boolean;explore?:boolean;roomId?:string;ownerPhotoPreview?:boolean;edit?:{title:ReactNode;body:ReactNode}}){
+export function SlideCanvas({slide,number,total,mini=false,explore=false,roomId,ownerPhotoPreview=false,edit}:{slide:LiveSlide;number:number;total:number;mini?:boolean;explore?:boolean;roomId?:string;ownerPhotoPreview?:boolean;edit?:{title:ReactNode;body?:ReactNode}}){
  const multi=decodeMultiDemo(slide.body)
  const photos=decodePhotoSlide(slide.body)
  const assessment=decodeAssessment(slide.body)
