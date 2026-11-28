@@ -6,6 +6,7 @@ import { Search, ChevronDown, Settings, Link2, Pause, Play, Maximize, Minimize, 
 import { supabase } from '@/lib/supabase'
 import styles from './LiveClassroom.module.css'
 import ClassroomManager from './ClassroomManager'
+import OnlineTeacherWorkspace from '@/components/timetable/OnlineTeacherWorkspace'
 import {encodeDemo, adjacentSlide, buildTextRevealSlides, decodeAssessment, assessmentPrompt, decodePhotoSlide, visualSlideBody, visualSlidePayload, preparedAssessment } from './LiveSlideProtocol'
 import { ExecutiveDialog } from './ExecutiveDialog'
 import { ExecutiveCommandPalette } from './ExecutiveCommandPalette'
