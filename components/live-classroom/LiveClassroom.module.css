@@ -804,3 +804,8 @@
  .studioPage .studioSection[data-studio-editor=true]>.studioCanvasArea{grid-row:2}
  .studioPage .studioSection[data-studio-editor=true]>[data-slide-navigation]{grid-row:1}
 }
+
+.canvasToolRail{display:flex;flex-wrap:wrap;align-items:center;gap:6px;width:100%;min-width:0;padding:6px 0}
+.canvasToolRail:empty{display:none}
+.studioCanvas:has(>.canvasToolRail){flex-direction:column;overflow:auto;container-type:inline-size}
+.premium .studioCanvas:has(>.canvasToolRail)>.presentationCanvas{width:100%;max-height:none}
