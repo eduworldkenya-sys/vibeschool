@@ -738,3 +738,8 @@
  .contentDrawerHeader{padding:7px 10px}.contentDrawerHeader small{display:none}.contentTabs{grid-template-columns:repeat(2,minmax(0,1fr));padding:5px}
  .contentNowShowing{gap:3px}.contentCurrentCanvas{padding:4px}
 }
+
+.deliveryGuidance{display:flex;flex:0 0 auto;flex-wrap:wrap;align-items:center;gap:4px 14px;padding:4px 10px;font-size:.82rem;color:#213b36;background:#eef1f2}
+.deliveryGuidance details{min-width:0;max-width:100%}
+.deliveryGuidance summary{cursor:pointer;font-weight:650}
+.deliveryGuidance p{max-height:18dvh;overflow:auto;white-space:pre-wrap;margin:4px 0}
