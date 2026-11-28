@@ -2,7 +2,7 @@
 -- accepted-invitation audience. No duplicate room or admission engine.
 BEGIN;
 -- access: service-only vibe_live.tuition_booking_rooms
--- authorization-test: scripts/test-live-tuition-booking.mjs denies direct client reads and cross-booking joins.
+-- authorization-test: vibe_live.tuition_booking_rooms denies direct anon/authenticated/service_role reads and cross-booking joins in scripts/test-live-tuition-booking.mjs.
 CREATE TABLE vibe_live.tuition_booking_rooms (
  group_id uuid PRIMARY KEY REFERENCES public.vibetutor_private_groups(id) ON DELETE CASCADE,
  booking_id uuid UNIQUE REFERENCES public.vibetutor_lessons(id) ON DELETE SET NULL,
