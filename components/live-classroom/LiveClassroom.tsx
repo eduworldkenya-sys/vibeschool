@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase'
 import styles from './LiveClassroom.module.css'
 import ClassroomManager from './ClassroomManager'
 import OnlineTeacherWorkspace from '@/components/timetable/OnlineTeacherWorkspace'
+import EndedTeacherWorkspace from './EndedTeacherWorkspace'
 import {encodeDemo, adjacentSlide, buildTextRevealSlides, decodeAssessment, assessmentPrompt, decodePhotoSlide, visualSlideBody, visualSlidePayload, preparedAssessment } from './LiveSlideProtocol'
 import { ExecutiveDialog } from './ExecutiveDialog'
 import { ExecutiveCommandPalette } from './ExecutiveCommandPalette'
@@ -1424,6 +1425,22 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
     return createPortal(stage,document.body)
   }
   if(teacher&&beforeLibrary&&!room&&!loading)return <main className={`${styles.live} ${styles.studioPage}`} aria-label="Live Studio"><TeachingLibrary command={call} currentDeck={null} onUse={attachingPlan?attachPlanPresentation:useMaterial} attachToPlan={attachingPlan} onClose={()=>{setAttachingPlan(false);setBeforeLibrary(false)}}/></main>
+  if(instantEntry&&teacher&&!classId&&room?.status==='ended'){
+    const endedRoom=room
+    const items=history.map(item=>{
+      const activity=['quiz','exercise','poll'].includes(item.kind)
+      const title=item.kind==='board'?'Shared whiteboard':item.kind==='clock'?'Clock demonstration':decodeLiveFileRef(item.body)?'Shared PDF or photo':decodeSlide(item.body)?.title||decodeAssessment(item.body)?.question||item.body.split('\n')[0]?.slice(0,100)||labels[item.kind]
+      return {id:item.id,title,category:activity?labels[item.kind]:item.kind==='teach'?'Teaching page':labels[item.kind],activity}
+    })
+    return <EndedTeacherWorkspace key={room.id} title={room.title} audience={classroomLabels[room.mode]+' classroom'} joined={participants.length} items={items} onBack={leave} busy={busy} error={error||undefined}
+      renderItem={id=>{
+        const item=history.find(p=>p.id===id)
+        return item?<LiveStageInk key={endedRoom.id+':'+item.id+':teacher'} roomId={endedRoom.id} promptId={item.id} currentId={prompt?.id} teacher status={endedRoom.status} online={online} participants={participants} command={call} version={endedRoom.version}><SharedPrompt prompt={item} roomId={endedRoom.id}/></LiveStageInk>:null
+      }}
+      work={<LiveWorkbook roomId={room.id} teacher status={room.status} online={online} questions={history} currentId={prompt?.id} command={call} joined={participants.length}/>}
+      files={<LiveClassFiles roomId={room.id} teacher status="ended"/>}
+      followup={room.mode!=='open'?<LiveIndependentStudy key={room.id} classId={room.mode==='school'?classId:null} teacher mode={room.mode} roomId={room.id}/>:undefined}/>
+  }
   if(instantEntry&&teacher&&!classId&&!room&&!loading){
     const currentClass=rooms.find(item=>item.own&&item.mode!=='school')
     return <OnlineTeacherWorkspace back={back} onOpenStudio={()=>setBeforeLibrary(true)}>
